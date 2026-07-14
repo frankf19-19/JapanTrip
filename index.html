@@ -227,6 +227,10 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .saveditm .si-meta{font-size:11.5px;color:#8A8272}
 .saveditm button{border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:5px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
 .saveditm button.del{border-color:#D9CFBC;color:#B0A692}
+/* 照片載入成功後,替代圖示(⛩️等)必須隱藏且不得疊在圖上 */
+.ph img,.d-hero img{position:relative;z-index:2}
+.ph .fb,.d-hero .fb{z-index:1}
+.ph:has(img.ok) .fb,.d-hero:has(img.ok) .fb{display:none}
 /* ── 照片燈箱 ── */
 #lbOverlay{position:fixed;inset:0;background:rgba(10,15,25,.93);z-index:2500;display:none;align-items:center;justify-content:center}
 #lbOverlay.show{display:flex}
@@ -358,7 +362,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r29</span>
+    <span class="build">build r30</span>
   </div>
 </header>
 
@@ -519,7 +523,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r29
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r30
 </footer>
 
 <nav class="bottom">
