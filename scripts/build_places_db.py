@@ -15,8 +15,8 @@ EPS = [
     "https://overpass.private.coffee/api/interpreter",
 ]
 UA = "WAYU-TRIP-PlacesDB/3.0 (GitHub Actions; static travel planner; contact via repo)"
-CAP = 1600  # 每格上限(三分類共用)
-SLEEP = 6   # 禮貌間隔(秒)
+CAP = 1200  # 每格上限(三分類共用)
+SLEEP = 2   # 禮貌間隔(秒)
 _ep_i = 0   # 目前鏡像索引
 
 # 日本大致陸地網格(緯度, 經度)— 跳過純海域省時間
@@ -68,42 +68,58 @@ SPOT_MAP = {
     "aquarium":    (["親子同樂"],            120),
 }
 
-def fetch(q, retries=5):
+def fetch(q, retries=3):
     global _ep_i
     data = urllib.parse.urlencode({"data": q}).encode()
     for i in range(retries):
         ep = EPS[_ep_i % len(EPS)]
         try:
             req = urllib.request.Request(ep, data=data, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=150) as r:
+            with urllib.request.urlopen(req, timeout=60) as r:
                 return json.load(r).get("elements", [])
         except urllib.error.HTTPError as ex:
             wait = 15
             if ex.code == 429:  # 限流:遵守 Retry-After 並換鏡像
                 try:
-                    wait = min(int(ex.headers.get("Retry-After", "30")), 90)
+                    wait = min(int(ex.headers.get("Retry-After", "20")), 45)
                 except Exception:
-                    wait = 30
+                    wait = 20
                 _ep_i += 1
                 print(f"    429 限流 → 換鏡像 {EPS[_ep_i % len(EPS)].split('/')[2]},等 {wait}s", file=sys.stderr)
             elif ex.code in (504, 502, 503):
                 _ep_i += 1
-                wait = 12
+                wait = 4
                 print(f"    {ex.code} → 換鏡像重試", file=sys.stderr)
             else:
-                print(f"    HTTP {ex.code},{wait}s 後重試", file=sys.stderr)
+                print(f"    HTTP {ex.code}", file=sys.stderr)
             time.sleep(wait)
         except Exception as ex:
             _ep_i += 1
             print(f"    重試 {i+1}: {ex}", file=sys.stderr)
-            time.sleep(12)
+            time.sleep(4)
     return None  # 全部失敗:回 None 以保留上一次的分區檔
 
 def main():
+    import subprocess
+    subprocess.run(["git","config","user.name","wayu-bot"],check=False)
+    subprocess.run(["git","config","user.email","actions@users.noreply.github.com"],check=False)
     os.makedirs("data/osm", exist_ok=True)
     cells = japan_cells()
     total = 0
     print(f"掃描 {len(cells)} 個網格…", flush=True)
+    import subprocess
+    def checkpoint(msg):
+        try:
+            files=sorted(f[:-5] for f in os.listdir("data/osm") if f.endswith(".json") and f!="index.json")
+            json.dump(files, open("data/osm/index.json","w"))
+            subprocess.run(["git","add","data/osm"],check=False)
+            r=subprocess.run(["git","diff","--cached","--quiet"])
+            if r.returncode!=0:
+                subprocess.run(["git","commit","-m",msg],check=False)
+                subprocess.run(["git","push"],check=False)
+                print(f"  💾 已提交:{msg}", flush=True)
+        except Exception as ex:
+            print(f"  提交失敗(不影響續跑):{ex}", file=sys.stderr)
     failed = []
     for idx, (la, lo) in enumerate(cells):
         q = Q.format(s=la, w=lo, n=la + 1, e=lo + 1, cap=CAP)
@@ -177,6 +193,8 @@ def main():
             print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: {len(out)} 筆(累計 {total:,})", flush=True)
         else:
             print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: 0", flush=True)
+        if (idx+1) % 15 == 0:
+            checkpoint(f"chore: 餐飲住宿景點資料庫進度 {idx+1}/{len(cells)}(累計 {total:,} 筆)")
         time.sleep(SLEEP)
     # 索引檔
     files = sorted(f[:-5] for f in os.listdir("data/osm") if f.endswith(".json") and f != "index.json")
