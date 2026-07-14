@@ -358,7 +358,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r28</span>
+    <span class="build">build r29</span>
   </div>
 </header>
 
@@ -519,7 +519,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r28
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r29
 </footer>
 
 <nav class="bottom">
@@ -1014,7 +1014,7 @@ const DB=[
 {n:"中之島公園・大阪府立圖書館",j:"中之島公園",la:34.6930,lo:135.5040,c:"spot",t:["自然風景","博物館藝術"],ad:"大阪市北区中之島1",pr:"免費",rt:4.2,a:"大阪",d:"河中島玫瑰園與明治建築群,都會綠洲。",s:75,p:3}
 ];
 /* ═══════════════ 狀態 ═══════════════ */
-let S={center:{n:"東京",la:35.6812,lo:139.7671},centers:[],days:3,pace:3,prefs:new Set(),cat:"all",iti:null,osm:[],month:(new Date().getMonth()+1),fav:new Set()};
+let S={center:null,centers:[],days:3,pace:3,prefs:new Set(),cat:"all",iti:null,osm:[],month:(new Date().getMonth()+1),fav:new Set()};
 /* 安全儲存:GitHub Pages 上可跨次保存;預覽環境自動改用記憶體 */
 const store={_m:{},get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):(this._m[k]??null)}catch(e){return this._m[k]??null}},set(k,v){this._m[k]=v;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 S.fav=new Set(store.get("wayu_fav")||[]);
@@ -1095,7 +1095,7 @@ function climate(mm,ctr){
 const $=id=>document.getElementById(id);
 const toast=m=>{const t=$("toast");t.innerHTML=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),2600)};
 const dist=(a,b,c,d)=>{const R=6371,p=Math.PI/180,x=(c-a)*p,y=(d-b)*p,h=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
-const dKm=s=>dist(S.center.la,S.center.lo,s.la,s.lo);
+const dKm=s=>S.center?dist(S.center.la,S.center.lo,s.la,s.lo):Infinity;
 const fmtD=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1)+" km";
 const CATN={spot:"景點",food:"美食",shop:"購物",hotel:"住宿"};
 const CATC={spot:"var(--ai)",food:"var(--kin)",shop:"var(--shu)",hotel:"var(--matcha)"};
@@ -1214,8 +1214,10 @@ function renderSubFilter(){
 }
 function renderHeroLoc(){
   const el=$("heroLoc"); if(!el)return;
+  if(!S.center){el.innerHTML="";return}
   const cs=S.centers.map(c=>c.n.split(",")[0]).join(" → ");
   el.innerHTML=`📍 <b>${S.center.n.split(",")[0]}</b>
+    <span class="hl-chips" style="cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
     ${S.centers.length?`<span class="hl-chips">多地點:${cs}</span>`:""}
     <span style="flex:1"></span>
     <button class="hl-btn" onclick="addCenter()">＋加入多地點</button>
@@ -1223,20 +1225,32 @@ function renderHeroLoc(){
 }
 function renderCenter(){
   renderHeroLoc();
+  if(!S.center){
+    $("centerInfo").innerHTML=`<div class="centerbar" style="border-color:#D9D2BF;background:#F3EFE3;box-shadow:none">📍 <span style="color:#8A8272;font-size:15px">尚未選擇地點 — 請在上方搜尋或快選城市</span></div>`;
+    return;
+  }
   const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:2px solid var(--shu);color:var(--shu);border-radius:99px;padding:6px 14px;font-size:14px;font-weight:700">${i+1}. ${c.n.split(",")[0]} <b style="cursor:pointer;font-size:15px" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
   $("centerInfo").innerHTML=`<div class="centerbar" style="flex-wrap:wrap">📍 目前中心點:<b>${S.center.n}</b>
     <button style="border:2px solid var(--shu);background:#fff;color:var(--shu);border-radius:10px;padding:9px 16px;font-size:14.5px;font-weight:900;cursor:pointer;min-height:40px" onclick="addCenter()">＋把「${S.center.n.split(",")[0]}」加入行程地點</button>
+    <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
     <span style="margin-left:auto;font-size:13.5px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
     ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(生成時會照順路重排並分配天數)</span></div>`:""}
   </div>`;
 }
 function addCenter(){
+  if(!S.center){toast("請先搜尋或快選一個地點");return}
   if(S.centers.some(c=>Math.abs(c.la-S.center.la)<0.01&&Math.abs(c.lo-S.center.lo)<0.01)){toast("這個地點已在多地點清單");return}
   if(S.centers.length>=8){toast("最多 8 個地點");return}
   S.centers.push({...S.center}); renderCenter();
   toast("✅ 已加入第 "+S.centers.length+" 個地點:"+S.center.n.split(",")[0]+"。繼續搜尋或快選下一個地點!");
 }
 function rmCenter(i){S.centers.splice(i,1);renderCenter()}
+function clearCenter(){
+  S.center=null;S.centers=[];
+  renderCenter();renderHomePicks();
+  if($("pane-explore").classList.contains("on"))renderExplore();
+  toast("已清除地點,請重新搜尋或快選城市");
+}
 
 /* ═══ 異體字歸一(台繁/簡體/日本漢字互通)═══ */
 const VART=[ /* 「變體字們=日本漢字」,無=者全組同型 */
@@ -1436,6 +1450,13 @@ function resolveAlias(target){
 }
 
 /* ═══ GPS 我的位置 ═══ */
+function requireCenter(){
+  if(S.center)return true;
+  if(S.centers.length){S.center={...S.centers[0]};renderCenter();return true}
+  toast("請先在上方搜尋或快選一個地點");
+  window.scrollTo({top:0,behavior:"smooth"});
+  return false;
+}
 function locateMe(){
   if(!navigator.geolocation){toast("此瀏覽器不支援定位");return}
   toast('<span class="spin"></span> 正在取得你的 GPS 位置…');
@@ -1476,7 +1497,8 @@ function addFromSug(i){ // 下拉建議直接加入多地點清單
   if(S.centers.some(c=>Math.abs(c.la-it.la)<0.01&&Math.abs(c.lo-it.lo)<0.01)){toast("「"+it.label.split(",")[0]+"」已在行程地點");return}
   if(S.centers.length>=8){toast("最多 8 個地點");return}
   S.centers.push({n:it.label,la:it.la,lo:it.lo});
-  if(S.centers.length===1&&Math.abs(S.center.la-it.la)>0.01)S.centers.unshift({...S.center}); // 把目前中心也帶進來
+  if(S.center&&S.centers.length===1&&Math.abs(S.center.la-it.la)>0.01)S.centers.unshift({...S.center}); // 把目前中心也帶進來
+  if(!S.center)S.center={n:it.label,la:it.la,lo:it.lo}; // 第一個加入的地點順便設為中心
   renderCenter();
   toast("✅ 已加入行程地點("+S.centers.length+"):"+it.label.split(",")[0]);
 }
@@ -1625,7 +1647,7 @@ function card(s,inIti){
       </div>
       <div class="meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
-        <span class="tag dist">📍 ${fmtD(d)}</span>
+        ${Number.isFinite(d)?`<span class="tag dist">📍 ${fmtD(d)}</span>`:""}
         ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
         ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
         ${S.visited.has(s.n)?`<span class="tag" style="background:#E4EEDD;color:#3F5A35;font-weight:900">✔ 去過</span>`:""}
@@ -1771,14 +1793,14 @@ const IMGOBS=("IntersectionObserver" in window)?new IntersectionObserver(es=>{
 },{rootMargin:"180px"}):null;
 function watchImgs(){if(!IMGOBS)return;document.querySelectorAll(".ph[data-img]:not(.w)").forEach(p=>{p.classList.add("w");IMGOBS.observe(p)})}
 function renderHomePicks(){
-  const list=DB.filter(s=>dKm(s)<=+($("radius")?.value||25))
+  const list=(S.center?DB.filter(s=>dKm(s)<=+($("radius")?.value||25)):DB.filter(s=>s.rt))
     .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||(b.p-a.p)||(dKm(a)-dKm(b))).slice(0,6);
   $("homePicks").innerHTML=list.length?list.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>此區精選較少,但沒問題!</b>直接按「生成行程」,系統會自動即時抓取當地景點排程(全日本都可以);也可以到「探索」頁按即時搜尋先逛逛。</div>`;
   watchImgs();
 }
 function renderExplore(){
   const kw=($("kw").value||"").trim();
-  let list=[...DB,...S.osm].filter(s=>dKm(s)<=+$("radius").value);
+  let list=S.center?[...DB,...S.osm].filter(s=>dKm(s)<=+$("radius").value):[...DB];
   if(S.cat!=="all")list=list.filter(s=>s.c===S.cat);
   if(S.cat==="hotel"&&S.hTier&&S.hTier!=="全部")list=list.filter(s=>hotelTier(s)===S.hTier);
   if(S.cat==="food"){
@@ -1794,6 +1816,7 @@ function renderExplore(){
 
 /* ═══════════════ OSM 即時資料引擎(全日本涵蓋)═══════════════ */
 async function fetchOSM(radKm){
+  if(!S.center)return [];
   const r=Math.round(radKm*1000),A=`around:${r},${S.center.la},${S.center.lo}`;
   const q=`[out:json][timeout:25];(
     node(${A})[tourism~"attraction|museum|viewpoint|theme_park|zoo|aquarium"][name];
@@ -2047,6 +2070,7 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
   return {days,hotel:hotels[0]||null};
 }
 async function generate(reshuffle){
+  if(!requireCenter())return;
   const rad=+$("radius").value;
   const wantMeal=document.querySelector('#extraChips label[data-k=meals]').classList.contains("on");
   const wantHotel=document.querySelector('#extraChips label[data-k=hotel]').classList.contains("on");
@@ -2257,7 +2281,7 @@ function openDetail(name,fromPop){
         ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
         ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
         ${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)} 和遊誌推薦</span>`:""}
-        <span class="tag dist">📍 距中心 ${fmtD(dKm(s))}</span>
+        ${Number.isFinite(dKm(s))?`<span class="tag dist">📍 距中心 ${fmtD(dKm(s))}</span>`:""}
         ${(s.t||[]).map(t=>`<span class="tag">${t}</span>`).join("")}
         ${s.s?`<span class="tag">建議停留 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+" 小時":s.s+" 分"}</span>`:""}
       </div>
@@ -2413,7 +2437,7 @@ function renderMap(){
     }catch(e){}
   };
   // 中心點
-  const ctrs=(S.iti&&S.iti.multi)?[...new Map(S.iti.days.filter(d=>d.center).map(d=>[d.center.n,d.center])).values()]:[S.center];
+  const ctrs=((S.iti&&S.iti.multi)?[...new Map(S.iti.days.filter(d=>d.center).map(d=>[d.center.n,d.center])).values()]:[S.center]).filter(Boolean);
   ctrs.forEach(c=>{if(!Number.isFinite(c.la))return;
     L.circleMarker([c.la,c.lo],{radius:9,color:"#20303F",fillColor:"#fff",fillOpacity:1,weight:3}).bindPopup("📍 "+c.n.split(",")[0]).addTo(LAYER);pts.push([c.la,c.lo])});
   let legend="";
@@ -2448,7 +2472,7 @@ function renderMap(){
   }
   $("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點標記可看詳情${S.iti?"":"・生成行程後會顯示每日路線"}</span>`;
   if(S.iti&&pts.length){try{MAP.fitBounds(pts,{padding:[30,30],maxZoom:14})}catch(e){MAP.setView([36.2,137.8],5)}}
-  else MAP.setView(S.iti?[36.2,137.8]:(pts.length>50?[37.0,137.5]:[S.center.la,S.center.lo]),pts.length>50?5:11);
+  else MAP.setView(S.iti?[36.2,137.8]:((pts.length>50||!S.center)?[37.0,137.5]:[S.center.la,S.center.lo]),(pts.length>50||!S.center)?5:11);
 }
 
 init();
@@ -2464,6 +2488,7 @@ function cellsFor(la,lo,radKm){
   return out;
 }
 async function loadArea(){
+  if(!S.center)return;
   if(OSMDB_ON===false)return; // 確認過分區庫不存在就不再打
   const rad=Math.max(+($("radius")?$("radius").value:25),25);
   const keys=cellsFor(S.center.la,S.center.lo,rad).filter(k=>!OSMCELLS.has(k));
