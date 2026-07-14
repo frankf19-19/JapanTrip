@@ -96,6 +96,8 @@ def main():
                 e["w"] = (t.get("website") or t.get("contact:website"))[:200]
             if t.get("stars"):
                 e["st"] = t["stars"][:4]
+            if not is_food and t.get("tourism") in ("hostel", "guest_house"):
+                e["ht"] = t["tourism"]
             out.append(e)
         if out:
             path = f"data/osm/r{la}_{lo}.json"
