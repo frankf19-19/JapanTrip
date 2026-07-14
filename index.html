@@ -100,6 +100,7 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .daysel button.on{background:var(--shu);border-color:var(--shu);color:#fff}
 .radius-row{display:flex;align-items:center;gap:10px;font-size:13px}
 .radius-row input[type=range]{flex:1;accent-color:var(--shu)}
+.fsel{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font-b);background:#FBF9F3;color:var(--ink);flex:1;min-width:0}
 .go-btn{margin-top:20px;width:100%;background:linear-gradient(135deg,var(--shu),#A72F35);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:4px;cursor:pointer;box-shadow:0 6px 16px rgba(196,59,65,.35)}
 .go-btn:active{transform:scale(.98)}
 .centerbar{display:flex;align-items:center;gap:8px;background:var(--shu-soft);border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:14px;border:1px solid #E4C2C3}
@@ -349,7 +350,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r19</span>
+    <span class="build">build r20</span>
   </div>
 </header>
 
@@ -407,6 +408,32 @@ button:active{transform:scale(.965)}
 
     <div class="f-label">🗓️ 出發月份(行程會附氣候與穿著建議)<span class="jp">MONTH</span></div>
     <div class="chips" id="monChips"></div>
+
+    <div class="f-label">🚃 交通方式(影響移動時間估算)<span class="jp">TRANSPORT</span></div>
+    <div class="chips" id="tmodeChips">
+      <label class="on" data-v="transit" onclick="setTmode(this)">🚃 大眾運輸</label>
+      <label data-v="drive" onclick="setTmode(this)">🚗 租車自駕</label>
+      <label data-v="charter" onclick="setTmode(this)">🚐 包車</label>
+    </div>
+
+    <div class="f-label">✈️ 航班設定(選填,自動調整首日開始・末日收尾時間)<span class="jp">FLIGHT</span></div>
+    <div class="rowflex" style="gap:12px">
+      <div style="min-width:250px">
+        <div style="font-size:12px;color:#8A8272;margin-bottom:4px">去程:抵達機場・落地時間</div>
+        <div style="display:flex;gap:6px">
+          <select id="fInAp" class="fsel"><option value="">(不設定)</option></select>
+          <input id="fInT" type="time" class="fsel" style="max-width:110px">
+        </div>
+      </div>
+      <div style="min-width:250px">
+        <div style="font-size:12px;color:#8A8272;margin-bottom:4px">回程:出發機場・起飛時間</div>
+        <div style="display:flex;gap:6px">
+          <select id="fOutAp" class="fsel"><option value="">(不設定)</option></select>
+          <input id="fOutT" type="time" class="fsel" style="max-width:110px">
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#A39B87;margin-top:6px">＊入境+提領行李預估 90 分;回程以「起飛前 2.5 小時抵達機場」倒推(國際線標準)。航班號查詢請以航空公司 App 為準,這裡填時間即可。</div>
 
     <div class="f-label">🍜 用餐與住宿</div>
     <div class="chips" id="extraChips">
@@ -483,7 +510,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 340 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r19
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r20
 </footer>
 
 <nav class="bottom">
@@ -925,6 +952,25 @@ function setStars(n){
   $("dPanel").dataset.stars=n;
   document.querySelectorAll("#starPick span").forEach((s,i)=>{s.style.color=i<n?"var(--kin)":"#D9D2BF"});
 }
+/* 主要機場 */
+const AIRPORTS=[
+ ["HND","東京羽田",35.5494,139.7798],["NRT","東京成田",35.7719,140.3929],
+ ["KIX","大阪關西",34.4342,135.2440],["ITM","大阪伊丹",34.7855,135.4382],["UKB","神戶",34.6328,135.2239],
+ ["NGO","名古屋中部",34.8584,136.8054],["CTS","札幌新千歲",42.7752,141.6923],["HKD","函館",41.7700,140.8219],
+ ["FUK","福岡",33.5859,130.4507],["OKA","沖繩那霸",26.1958,127.6459],["ISG","石垣",24.3964,124.2449],["MMY","宮古",24.7828,125.2951],
+ ["SDJ","仙台",38.1397,140.9170],["HIJ","廣島",34.4361,132.9195],["OKJ","岡山",34.7569,133.8554],
+ ["TAK","高松",34.2142,134.0156],["MYJ","松山",33.8272,132.6997],["KMQ","小松(金澤)",36.3946,136.4074],
+ ["KOJ","鹿兒島",31.8034,130.7194],["KMJ","熊本",32.8373,130.8550],["NGS","長崎",32.9169,129.9134]
+];
+const TMODES={
+ transit:{v:25,min:15,ic:"🚃",n:"電車/巴士",gm:"transit"},
+ drive:{v:35,min:10,ic:"🚗",n:"開車",gm:"driving",extra:8},
+ charter:{v:35,min:8,ic:"🚐",n:"包車",gm:"driving"}
+};
+S.tmode="transit";
+function setTmode(el){S.tmode=el.dataset.v;document.querySelectorAll("#tmodeChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
+const hm2min=t=>{if(!t)return null;const [a,b]=t.split(":").map(Number);return a*60+b};
+
 /* 各區月均溫 [高,低] 1–12月 */
 const CLIM={
  tokyo:[[10,2],[11,2],[14,5],[19,10],[23,15],[26,19],[30,23],[31,24],[27,21],[22,15],[17,9],[12,4]],
@@ -985,6 +1031,8 @@ function showPane(k,fromPop){
 /* ═══════════════ 初始化控制項 ═══════════════ */
 function init(){
   $("cityChips").innerHTML=CITIES.map((c,i)=>`<button onclick="pickCity(${i},this)">${c.n}</button>`).join("");
+  const apOpts=AIRPORTS.map((a,i)=>`<option value="${i}">${a[0]} ${a[1]}</option>`).join("");
+  $("fInAp").innerHTML+=apOpts; $("fOutAp").innerHTML+=apOpts;
   $("monChips").innerHTML=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${m===S.month?'on':''}" onclick="setMonth(${m},this)">${m}月</label>`).join("");
   $("prefChips").innerHTML=PREFS.map(p=>`<label onclick="togglePref(this,'${p}')">${p}</label>`).join("");
   $("daySel").innerHTML=[1,2,3,4,5,6,7,8,9,10].map(d=>`<button class="${d===3?'on':''}" onclick="setDays(${d},this)">${d}</button>`).join("")
@@ -1648,13 +1696,14 @@ async function overpassSearch(){
 function foodsPool(rad){return DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad)}
 const isNight=s=>(s.t||[]).includes("夜景展望")&&!(s.t||[]).includes("市場老街");
 const isDayOnly=s=>(s.t||[]).some(t=>["神社寺廟","歷史古蹟","博物館藝術"].includes(t))&&!isNight(s);
-function makeStops(dayList,usedF,wantMeal,rad){
+function makeStops(dayList,usedF,wantMeal,rad,startMin){
   const foods=foodsPool(rad);
+  const M=TMODES[S.iti&&S.iti.tmode||S.tmode]||TMODES.transit;
   // 時段感知排序:日間限定(寺社/博物館)→ 一般 → 夜景(各組內維持就近順序)
   const early=dayList.filter(isDayOnly),night=dayList.filter(isNight),
         mid=dayList.filter(s=>!isDayOnly(s)&&!isNight(s));
   dayList=[...early,...mid,...night];
-  let t=9*60; const stops=[];
+  let t=startMin||9*60; const stops=[];
   dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)});
   const nearestFood=pt=>{
     const f=foods.filter(x=>!usedF.has(x.n)).sort((a,b)=>dist(pt.la,pt.lo,a.la,a.lo)-dist(pt.la,pt.lo,b.la,b.lo))[0];
@@ -1663,9 +1712,10 @@ function makeStops(dayList,usedF,wantMeal,rad){
   let lunch=false,snack=!S.prefs.has("美食巡禮");
   dayList.forEach((s,i)=>{
     if(i>0){
-      const km=dist(dayList[i-1].la,dayList[i-1].lo,s.la,s.lo);
-      const mv=Math.max(15,Math.round(km/25*60/5)*5);
-      stops.push({type:"travel",min:mv,km}); t+=mv;
+      const pv=dayList[i-1];
+      const km=dist(pv.la,pv.lo,s.la,s.lo);
+      const mv=Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5);
+      stops.push({type:"travel",min:mv,km,f:[pv.la,pv.lo],g:[s.la,s.lo]}); t+=mv;
     }
     if(wantMeal&&!lunch&&t>=11*60+30&&s.s<420){
       const f=nearestFood(s);
@@ -1696,12 +1746,54 @@ function makeStops(dayList,usedF,wantMeal,rad){
   }
   return stops;
 }
+function travelMin(km){const M=TMODES[(S.iti&&S.iti.tmode)||S.tmode]||TMODES.transit;return Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5)}
+function setupFlights(){
+  const it=S.iti,F=it.flight; if(!F)return;
+  // 首日:機場落地 + 入境90分 + 移動到第一站
+  if(F.inAp&&F.inT!=null&&it.days.length){
+    const d0=it.days[0],first=d0.list[0];
+    if(first){
+      const km=dist(F.inAp[2],F.inAp[3],first.la,first.lo);
+      const mv=travelMin(km);
+      const ready=F.inT+90;
+      d0.startMin=Math.max(9*60,Math.ceil((ready+mv)/15)*15);
+      d0.pre=[{type:"note",txt:`✈️ ${hhmm(F.inT)} 降落 ${F.inAp[0]} ${F.inAp[1]}機場(入境+行李約90分)`},
+              {type:"travel",min:mv,km,f:[F.inAp[2],F.inAp[3]],g:[first.la,first.lo]}];
+    }
+  }
+  // 末日:起飛前150分抵達機場,倒推離開時間並自動精簡當日行程
+  if(F.outAp&&F.outT!=null&&it.days.length){
+    const dl=it.days[it.days.length-1];
+    dl.airportOut={ap:F.outAp,t:F.outT};
+  }
+  rebuildDay(0);
+  if(it.days.length>1||!(F.inAp&&F.inT!=null))rebuildDay(it.days.length-1);
+}
 function rebuildDay(di){
   const it=S.iti,d=it.days[di];
   const oc=S.center; if(d.center)S.center=d.center;
   const usedF=new Set(it.exclF||[]);
   it.days.forEach((o,i)=>{if(i!==di)o.stops.forEach(x=>{if(x.type==="stop"&&(x.meal||x.s.c==="food"))usedF.add(x.s.n)})});
-  d.stops=makeStops(d.list,usedF,it.wantMeal,it.rad||25);
+  const build=()=>makeStops(d.list,new Set(usedF),it.wantMeal,it.rad||25,d.startMin);
+  d.stops=build();
+  // 末日機場倒推:超過離場時限就自動移除最後景點重排
+  if(d.airportOut&&d.list.length){
+    const A=d.airportOut;
+    const deadline=()=>{ // 必須離開最後一站的時間
+      const last=d.list[d.list.length-1];
+      const km=dist(last.la,last.lo,A.ap[2],A.ap[3]);
+      return {leave:A.t-150-travelMin(km),km,mv:travelMin(km)};
+    };
+    let endT=()=>{const ss=d.stops.filter(x=>x.type==="stop");const L=ss[ss.length-1];return L?L.t+(L.s.s||45):9*60};
+    let dd=deadline(),guard=0;
+    while(d.list.length>1&&endT()>dd.leave&&guard++<10){
+      d.list.pop(); d.stops=build(); dd=deadline();
+    }
+    const km=dd.km,mv=dd.mv;
+    const leaveT=Math.max(endT(),Math.min(dd.leave,endT()));
+    d.stops.push({type:"travel",min:mv,km,f:[d.list[d.list.length-1].la,d.list[d.list.length-1].lo],g:[A.ap[2],A.ap[3]]});
+    d.stops.push({type:"note",txt:`🧳 ${hhmm(Math.max(leaveT, dd.leave))} 前離開前往機場 → ✈️ 建議 ${hhmm(A.t-150)} 抵達 ${A.ap[0]} ${A.ap[1]}機場(${hhmm(A.t)} 起飛,提前2.5小時)`,warn:endT()>dd.leave});
+  }
   d.areas=[...new Set(d.list.map(x=>x.a))].join("・");
   S.center=oc;
 }
@@ -1828,7 +1920,10 @@ async function generate(reshuffle){
   if(!days.length){S.center=origin;renderCenter();toast("此範圍連即時資料都找不到景點,請加大半徑或換個中心點");return}
   renderCenter();
   S.iti={days,hotel:(!multi&&wantHotel&&hotels[0])?hotels[0].h:null,hotels:multi?hotels:null,
-    center:{...S.center},made:new Date(),rad,wantMeal,exclF:new Set(),month:S.month,multi};
+    center:{...S.center},made:new Date(),rad,wantMeal,exclF:new Set(),month:S.month,multi,tmode:S.tmode,
+    flight:{inAp:$("fInAp").value!==""?AIRPORTS[+$("fInAp").value]:null,inT:hm2min($("fInT").value),
+            outAp:$("fOutAp").value!==""?AIRPORTS[+$("fOutAp").value]:null,outT:hm2min($("fOutT").value)}};
+  setupFlights();
   S.sug=null;
   renderIti(); showPane("iti");
   if(days.length<S.days)toast("⚠️ 部分地點景點不足,共排出 "+days.length+" 天,可加大半徑再試");
@@ -1846,11 +1941,24 @@ function renderIti(){
     <button class="wxbtn" onclick="liveWx()">☁️ 當地未來7日即時預報</button></div>
     <div class="wxnote">📌 ${c.note}(月均溫為長期參考值,出發前請再看即時預報)</div>
     <div class="wxlive" id="wxLive"></div></div>`;
+  const F=S.iti.flight,MD=TMODES[S.iti.tmode||"transit"];
+  let fRow="";
+  if(F&&(F.inAp||F.outAp)){
+    fRow=`<div class="wxcard" style="background:linear-gradient(135deg,#F5F0E4,#EDE7F2)"><div class="wxtop"><span class="wxemoji">✈️</span><div>`;
+    if(F.inAp&&F.inT!=null)fRow+=`<div style="font-size:14px;font-weight:700">去程:${hhmm(F.inT)} 降落 ${F.inAp[0]} ${F.inAp[1]} → 約 ${hhmm((S.iti.days[0]&&S.iti.days[0].startMin)||9*60)} 開始行程</div>`;
+    if(F.outAp&&F.outT!=null)fRow+=`<div style="font-size:14px;font-weight:700;margin-top:2px">回程:${hhmm(F.outT)} 起飛 ${F.outAp[0]} ${F.outAp[1]} → 建議 ${hhmm(F.outT-150)} 前抵達機場</div>`;
+    fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:3px">${MD.ic} 全程以「${MD.n}」估算移動時間</div></div></div></div>`;
+  }
+  $("wxBox").innerHTML+=fRow;
   let h="";
   S.iti.days.forEach((d,i)=>{
     h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span><span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
-    d.stops.forEach(st=>{
-      if(st.type==="travel"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">🚃 移動約 ${st.min} 分(${fmtD(st.km)})</div></div>`;return}
+    const M=TMODES[S.iti.tmode||"transit"];
+    (d.pre||[]).concat(d.stops).forEach(st=>{
+      if(st.type==="note"){h+=`<div class="stop" style="padding-bottom:10px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:${st.warn?"#B4622A":"var(--ai-deep)"};font-weight:700;background:${st.warn?"#FBF0E2":"#EDF2F9"};border-radius:8px;padding:7px 10px">${st.txt}${st.warn?"<br><span style='font-weight:400'>⚠️ 行程稍趕,建議手動再移除一站</span>":""}</div></div>`;return}
+      if(st.type==="travel"){
+        const nav=st.f?`<a href="https://www.google.com/maps/dir/?api=1&origin=${st.f[0]},${st.f[1]}&destination=${st.g[0]},${st.g[1]}&travelmode=${M.gm}" target="_blank" rel="noopener" style="color:var(--ai);border-bottom:1px dotted var(--ai);text-decoration:none;margin-left:6px">🧭 ${M.gm==="transit"?"怎麼搭":"導航"}</a>`:"";
+        h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">${M.ic} ${M.n}約 ${st.min} 分(${fmtD(st.km)})${nav}</div></div>`;return}
       if(st.type==="gap"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:#8A6A1E">🌆 自由時間約 ${Math.round(st.min/5)*5} 分(逛街/咖啡/提早用餐),等待夜景時段</div></div>`;return}
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
@@ -2099,9 +2207,10 @@ function copyItinerary(){
     +c.emoji+" "+c.m+"月・"+c.region+"一帶約 "+c.hi+"°C/"+c.lo+"°C|"+c.wear+"\n📌 "+c.note+"\n\n";
   S.iti.days.forEach((d,i)=>{
     txt+="── DAY "+(i+1)+"("+d.areas+")──\n";
-    d.stops.forEach(st=>{
+    (d.pre||[]).concat(d.stops).forEach(st=>{
       if(st.type==="travel"){txt+="   ↓ 移動約 "+st.min+" 分\n";return}
       if(st.type==="gap"){txt+="   … 自由時間約 "+Math.round(st.min/5)*5+" 分,等待夜景\n";return}
+      if(st.type==="note"){txt+=st.txt.replace(/<[^>]*>/g,"")+"\n";return}
       txt+=hhmm(st.t)+" "+(S.visited.has(st.s.n)?"✔":"□")+" "+(st.meal?(st.dinner?"[晚餐] ":st.snack?"[小吃] ":"[午餐] "):"")+st.s.n+(st.s.pr?"("+st.s.pr+")":"")+"\n";
     });
     txt+="\n";
