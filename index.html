@@ -362,7 +362,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r31</span>
+    <span class="build">build r32</span>
   </div>
 </header>
 
@@ -447,6 +447,43 @@ button:active{transform:scale(.965)}
     </div>
     <div style="font-size:11px;color:#A39B87;margin-top:6px">＊入境+提領行李預估 90 分;回程以「起飛前 2.5 小時抵達機場」倒推(國際線標準)。航班號查詢請以航空公司 App 為準,這裡填時間即可。</div>
 
+    <div class="f-label">🍜 餐廳偏好(價位・料理,影響行程中的午晚餐挑選)</div>
+    <div class="chips">
+      <label class="on" data-v="any" onclick="pickPref(this,'fPricePref')">價位不限</label>
+      <label data-v="平價" onclick="pickPref(this,'fPricePref')">平價 &lt;¥1,500</label>
+      <label data-v="中檔" onclick="pickPref(this,'fPricePref')">中檔 ¥1,500–4,500</label>
+      <label data-v="高級" onclick="pickPref(this,'fPricePref')">高級 ¥4,500+</label>
+    </div>
+    <div class="chips" style="margin-top:6px">
+      <label class="on" data-v="any" onclick="pickPref(this,'fCuiPref')">料理不限</label>
+      <label data-v="麵類拉麵" onclick="pickPref(this,'fCuiPref')">麵類拉麵</label>
+      <label data-v="壽司海鮮" onclick="pickPref(this,'fCuiPref')">壽司海鮮</label>
+      <label data-v="燒肉串燒" onclick="pickPref(this,'fCuiPref')">燒肉串燒</label>
+      <label data-v="居酒屋酒吧" onclick="pickPref(this,'fCuiPref')">居酒屋</label>
+      <label data-v="粉物小吃" onclick="pickPref(this,'fCuiPref')">粉物小吃</label>
+      <label data-v="日式料理" onclick="pickPref(this,'fCuiPref')">日式料理</label>
+      <label data-v="西式料理" onclick="pickPref(this,'fCuiPref')">西式</label>
+      <label data-v="咖啡甜點" onclick="pickPref(this,'fCuiPref')">咖啡甜點</label>
+    </div>
+
+    <div class="f-label">🏨 住宿偏好(等級・每晚預算,影響飯店推薦)</div>
+    <div class="chips">
+      <label class="on" data-v="any" onclick="pickPref(this,'hTierPref')">等級不限</label>
+      <label data-v="青旅民宿" onclick="pickPref(this,'hTierPref')">青旅民宿</label>
+      <label data-v="平價" onclick="pickPref(this,'hTierPref')">平價</label>
+      <label data-v="中檔" onclick="pickPref(this,'hTierPref')">中檔</label>
+      <label data-v="高檔" onclick="pickPref(this,'hTierPref')">高檔</label>
+      <label data-v="奢華" onclick="pickPref(this,'hTierPref')">奢華</label>
+      <label data-v="溫泉旅館" onclick="pickPref(this,'hTierPref')">溫泉旅館</label>
+    </div>
+    <div class="chips" style="margin-top:6px">
+      <label class="on" data-v="any" onclick="pickPref(this,'hBudget')">預算不限</label>
+      <label data-v="b1" onclick="pickPref(this,'hBudget')">¥1萬內/晚</label>
+      <label data-v="b2" onclick="pickPref(this,'hBudget')">¥1–2萬</label>
+      <label data-v="b3" onclick="pickPref(this,'hBudget')">¥2–4萬</label>
+      <label data-v="b4" onclick="pickPref(this,'hBudget')">¥4萬以上</label>
+    </div>
+
     <div class="f-label">🍜 用餐與住宿</div>
     <div class="chips" id="extraChips">
       <label class="on" data-k="meals" onclick="this.classList.toggle('on')">自動安排午餐・晚餐</label>
@@ -523,7 +560,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r31
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r32
 </footer>
 
 <nav class="bottom">
@@ -1060,6 +1097,19 @@ const TMODES={
  charter:{v:35,min:8,ic:"🚐",n:"包車",gm:"driving"}
 };
 S.tmode="transit";
+S.fPricePref="any";S.fCuiPref="any";S.hTierPref="any";S.hBudget="any";
+const HBUD={b1:[0,10000,"1萬內"],b2:[10000,20000,"1–2萬"],b3:[20000,42000,"2–4萬"],b4:[40000,9e9,"4萬以上"]};
+function pickPref(el,key){S[key]=el.dataset.v;[...el.parentElement.children].forEach(x=>x.classList.remove("on"));el.classList.add("on")}
+function foodMatch(f){
+  if(S.fPricePref!=="any"){const p=foodPrice(f);if(p&&p!==S.fPricePref)return false}
+  if(S.fCuiPref!=="any"&&foodCui(f)!==S.fCuiPref)return false;
+  return true;
+}
+function hotelMatch(ht){
+  if(S.hTierPref!=="any"&&hotelTier(ht)!==S.hTierPref)return false;
+  if(S.hBudget!=="any"){const mx=prMax(ht.pr);if(mx){const b=HBUD[S.hBudget];if(mx<b[0]||mx>b[1])return false}}
+  return true;
+}
 function setTmode(el){S.tmode=el.dataset.v;document.querySelectorAll("#tmodeChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
 const hm2min=t=>{if(!t)return null;const [a,b]=t.split(":").map(Number);return a*60+b};
 
@@ -1890,7 +1940,9 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin){
   let t=startMin||9*60; const stops=[];
   dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)});
   const nearestFood=pt=>{
-    const f=foods.filter(x=>!usedF.has(x.n)).sort((a,b)=>dist(pt.la,pt.lo,a.la,a.lo)-dist(pt.la,pt.lo,b.la,b.lo))[0];
+    let cand=foods.filter(x=>!usedF.has(x.n)&&foodMatch(x));
+    if(!cand.length)cand=foods.filter(x=>!usedF.has(x.n)); // 偏好內找不到 → 放寬
+    const f=cand.sort((a,b)=>dist(pt.la,pt.lo,a.la,a.lo)-dist(pt.la,pt.lo,b.la,b.lo))[0];
     if(f)usedF.add(f.n); return f;
   };
   let lunch=false,snack=!S.prefs.has("美食巡禮");
@@ -2043,6 +2095,8 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
     }catch(e){}
     pool=[...new Map(pool.map(x=>[x.n,x])).values()];
   }
+  const hPref=hotels.filter(hotelMatch);
+  if(hPref.length)hotels=hPref; // 有符合偏好的就只用符合的
   if(!pool.length)return null;
   if(pool.length>400)pool=pool.sort((a,b)=>((b.rt?2:0)+(b.p||0))-((a.rt?2:0)+(a.p||0))).slice(0,400);
   const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(s.rt?2:0)+(reshuffle?Math.random()*4:0);
