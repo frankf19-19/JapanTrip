@@ -362,7 +362,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r30</span>
+    <span class="build">build r31</span>
   </div>
 </header>
 
@@ -523,7 +523,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r30
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r31
 </footer>
 
 <nav class="bottom">
@@ -1613,14 +1613,14 @@ function hotelTier(s){
 }
 const CUIMAP=[
  [/ramen|noodle|udon|soba|拉麵|ラーメン|らーめん|そば|烏龍|沾麵|つけ麺|うどん/i,"麵類拉麵"],
- [/sushi|seafood|fish|壽司|寿司|海鮮|丼|魚|蟹|海膽|うなぎ|鰻/i,"壽司海鮮"],
+ [/sushi|seafood|壽司|寿司|海鮮|刺身|海膽|蟹|海鮮丼/i,"壽司海鮮"],
  [/yakiniku|barbecue|bbq|steak|grill|燒肉|焼肉|牛排|ステーキ|ホルモン|燒鳥|焼鳥|串/i,"燒肉串燒"],
  [/izakaya|pub|bar|sake|居酒屋|酒場|屋台|餃子|立飲|バル/i,"居酒屋酒吧"],
  [/okonomiyaki|takoyaki|大阪燒|お好み|章魚燒|たこ焼|粉物|文字燒|もんじゃ/i,"粉物小吃"],
  [/cafe|coffee|dessert|ice_cream|bakery|sweets|cake|pancake|珈琲|咖啡|甜|冰|茶寮|菓子|麻糬|餅|蛋糕|パン|パフェ|鬆餅|クレープ/i,"咖啡甜點"],
  [/italian|french|pizza|pasta|spanish|western|義|法式|披薩|洋食|イタリアン|フレンチ/i,"西式料理"],
  [/chinese|korean|thai|indian|curry|vietnamese|asian|中華|韓|泰|咖哩|カレー|餃子/i,"亞洲料理"],
- [/tonkatsu|tempura|unagi|teishoku|kaiseki|japanese|豬排|とんかつ|天婦羅|天ぷら|定食|會席|懷石|和食|牛たん|牛舌|蕎麥|お節/i,"日式料理"]
+ [/tonkatsu|tempura|unagi|teishoku|kaiseki|japanese|豬排|とんかつ|天婦羅|天ぷら|定食|會席|懷石|和食|牛たん|牛舌|蕎麥|鰻|うなぎ|ひつまぶし|お節/i,"日式料理"]
 ];
 function foodCui(s){
   const src=(s.cu||"")+" "+s.n+" "+(s.j||"")+" "+(s.d||"").slice(0,20);
@@ -1640,7 +1640,7 @@ function card(s,inIti){
   const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
   return `<div class="spot">
     <div class="band" style="background:${CATC[s.c]}"></div>
-    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n]))}"${s.im?` data-direct="${s.im}"`:""} onclick="openDetail('${esc(s.n)}')">
+    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
       <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">Wikipedia</span>
     </div>
     <div class="bd">
@@ -1781,6 +1781,7 @@ async function loadImg(ph){
   if(ph.dataset.direct){ // Wikidata 附帶的 Commons 圖直接載入
     const im=ph.querySelector("img");im.onload=()=>im.classList.add("ok");im.src=ph.dataset.direct;return;
   }
+  if(ph.dataset.biz){return} // 餐廳/飯店不做維基搜圖(避免亂配),維持替代圖示
   const [ja,zh]=JSON.parse(decodeURIComponent(ph.dataset.img));
   const key=ja+"|"+zh;
   let url=IMGC.get(key);
@@ -2206,21 +2207,28 @@ async function wikiFind(q,lang){ // 全文搜尋後援:找最相關條目名
     return (j.query.search&&j.query.search[0])?j.query.search[0].title:null;
   }catch(e){return null}
 }
+// 相關性驗證:搜到的條目名必須和查詢有實質重疊,避免亂配(例:餐廳配到演員)
+function relOK(q,t){
+  const a=zin(q),b=zin(t||"");
+  if(!a||!b)return false;
+  return b.includes(a.slice(0,Math.min(3,a.length)))||b.includes(a.slice(0,2))||a.includes(b.slice(0,2))||a.includes(b)||b.includes(a);
+}
 async function getIntro(s){
   const key=s.n;
   if(WIKIC.has(key))return WIKIC.get(key);
   let r=null;
   const nClean=s.n.split("・")[0].split("(")[0];
-  // ① 擴充庫自帶維基條目名 → 直接命中
+  const isBiz=(s.c==="food"||s.c==="hotel");
+  // ① 自帶維基條目名 → 直接命中(唯一允許商家走維基的途徑)
   if(s.wt)r=await wikiExtract(s.wt,"ja");
-  // ② 中文條目
-  if(!r)r=await wikiExtract(nClean,"zh");
-  // ③ 日文名條目
-  if(!r&&s.j)r=await wikiExtract(s.j.split(" ")[0],"ja");
-  if(!r)r=await wikiExtract(nClean,"ja");
-  // ④ 全文搜尋後援(zh → ja)
-  if(!r){const t=await wikiFind(nClean,"zh"); if(t)r=await wikiExtract(t,"zh");}
-  if(!r){const t=await wikiFind(s.j||nClean,"ja"); if(t)r=await wikiExtract(t,"ja");}
+  if(!r&&!isBiz){ // 景點才做名稱比對與搜尋後援;餐廳/飯店幾乎無條目,硬搜只會錯
+    r=await wikiExtract(nClean,"zh");
+    if(!r&&s.j)r=await wikiExtract(s.j.split(" ")[0],"ja");
+    if(!r)r=await wikiExtract(nClean,"ja");
+    if(!r){const t=await wikiFind(nClean,"zh"); if(t&&relOK(nClean,t))r=await wikiExtract(t,"zh");}
+    if(!r){const t=await wikiFind(s.j||nClean,"ja"); if(t&&relOK(s.j||nClean,t))r=await wikiExtract(t,"ja");}
+    if(r&&!relOK(nClean,r.title)&&!(s.j&&relOK(s.j,r.title)))r=null; // 最終驗證
+  }
   WIKIC.set(key,r); return r;
 }
 async function wikiGallery(title,lang){
@@ -2325,7 +2333,7 @@ function openDetail(name,fromPop){
   // 大圖:優先 Wikidata 直連圖,否則沿用 Wikipedia 圖搜尋
   const im=$("dImg");
   if(s.im){im.onload=()=>im.classList.add("ok");im.src=s.im;}
-  else{(async()=>{let u=s.j?await fetchWiki(s.j,"ja"):null;
+  else if(s.c!=="food"&&s.c!=="hotel"){(async()=>{let u=s.j?await fetchWiki(s.j,"ja"):null;
     if(!u&&s.j&&s.j.includes(" "))u=await fetchWiki(s.j.split(" ")[0],"ja");
     if(!u)u=await fetchWiki(s.n.split("・")[0].split("(")[0],"zh");
     if(u){im.onload=()=>im.classList.add("ok");im.src=u;}})();}
@@ -2342,15 +2350,18 @@ function openDetail(name,fromPop){
           +`<span class="src">${r.lang==="ja"?"(暫無中文條目,顯示日文介紹)":""} 資料來源:<a href="${r.url}" target="_blank" rel="noopener" style="color:var(--ai)">Wikipedia</a>(CC BY-SA)</span>`;
         if(long)$("wikiMore").onclick=()=>{$("wikiTxt").textContent=r.text;$("wikiMore").remove()};
       }else{
-        box.innerHTML=(s.d||"暫無詳細介紹。")+`<span class="src">Wikipedia 查無此條目;可點「Google 評價」或「搜尋官網」了解更多。</span>`;
+        const isBiz=(s.c==="food"||s.c==="hotel");
+        box.innerHTML=(s.d||"暫無詳細介紹。")+`<span class="src">${isBiz?"店家/旅宿通常沒有百科條目;評價與環境照請點下方「"+(s.c==="food"?"食べログ評價":"Booking 訂房比價")+"」或「📷 更多照片」。":"Wikipedia 查無此條目;可點「Google 評價」或「搜尋官網」了解更多。"}</span>`;
       }
     }
-    // 相簿:多重標題後援(擴充庫條目名 → 日文名 → 解析到的條目 → 中文名)
+    // 相簿:多重標題後援;商家只在有驗證過的條目時才抓,避免亂配照片
     const tries=[];
     if(s.wt)tries.push([s.wt,"ja"]);
-    if(s.j)tries.push([s.j.split(" ")[0],"ja"]);
     if(r&&r.title)tries.push([r.title,r.lang]);
-    tries.push([s.n.split("・")[0].split("(")[0],"zh"]);
+    if(s.c!=="food"&&s.c!=="hotel"){
+      if(s.j)tries.push([s.j.split(" ")[0],"ja"]);
+      tries.push([s.n.split("・")[0].split("(")[0],"zh"]);
+    }
     let pics=[];
     for(const [tt,ll] of tries){
       pics=await wikiGallery(tt,ll);
