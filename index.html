@@ -233,6 +233,48 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .ph img,.d-hero img{position:relative;z-index:2}
 .ph .fb,.d-hero .fb{z-index:1}
 .ph:has(img.ok) .fb,.d-hero:has(img.ok) .fb{display:none}
+/* ── 每日住宿卡 ── */
+.hotel-slot{margin-top:6px;border-top:1px dashed #D9D2BF;padding-top:8px}
+.hotel-slot .stop.hotel .info{background:#F0F4EC;border-radius:12px;padding:12px 14px;border:1px solid #DCE6D2}
+.hs-empty{background:#F3EFE3;border:1px dashed #C9C2B2;border-radius:12px;padding:12px 14px;font-size:13.5px;color:#8A8272;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hs-add{border:1.5px solid var(--matcha);background:#fff;color:#3F5A35;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b);margin-left:auto}
+.hs-nights{background:#3F5A35;color:#fff;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:4px}
+.hs-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.hs-acts button{border:1.5px solid #C9C2B2;background:#fff;color:#5C5A50;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-b)}
+.hp-list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto}
+.hp-row{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer}
+.hp-row.on{border-color:var(--shu);background:var(--shu-soft)}
+.hp-row:hover{background:#F6F1E4}
+/* ── 手機精靈引導 ── */
+#wizFab{display:none;position:fixed;right:16px;bottom:80px;z-index:880;background:var(--shu);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14.5px;font-weight:800;font-family:var(--font-b);box-shadow:0 8px 22px rgba(196,59,65,.45);cursor:pointer}
+#wiz{position:fixed;inset:0;z-index:2200;background:var(--washi);display:none;flex-direction:column}
+#wiz.show{display:flex}
+.wz-top{padding:16px 18px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.wz-top .wz-x{margin-left:auto;background:none;border:none;font-size:22px;color:#8A8272;cursor:pointer}
+.wz-prog{height:5px;background:#E7E1D2;border-radius:3px;flex:1;overflow:hidden}
+.wz-prog i{display:block;height:100%;background:var(--shu);transition:.3s;border-radius:3px}
+.wz-body{flex:1;overflow-y:auto;padding:22px 20px calc(20px + env(safe-area-inset-bottom))}
+.wz-q{font-family:var(--font-d);font-size:23px;font-weight:900;margin-bottom:4px;letter-spacing:1px}
+.wz-sub{font-size:13px;color:#8A8272;margin-bottom:20px}
+.wz-opts{display:flex;flex-direction:column;gap:11px}
+.wz-opt{border:2px solid var(--line);background:#fff;border-radius:14px;padding:16px 18px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;font-family:var(--font-b);color:var(--ink)}
+.wz-opt.on{border-color:var(--shu);background:var(--shu-soft)}
+.wz-opt .em{font-size:24px}
+.wz-opt small{display:block;font-weight:400;font-size:12px;color:#8A8272;margin-top:2px}
+.wz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.wz-grid .wz-opt{flex-direction:column;text-align:center;padding:16px 6px;font-size:15px;gap:4px}
+.wz-search{width:100%;border:2px solid var(--line);border-radius:12px;padding:14px 16px;font-size:16px;font-family:var(--font-b);background:#fff}
+.wz-sug{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.wz-sug .s{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px}
+.wz-chips{display:flex;flex-wrap:wrap;gap:8px}
+.wz-chips label{border:2px solid var(--line);background:#fff;border-radius:99px;padding:9px 15px;font-size:14px;cursor:pointer;font-family:var(--font-b)}
+.wz-chips label.on{border-color:var(--shu);background:var(--shu-soft);color:var(--shu);font-weight:700}
+.wz-foot{padding:14px 18px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px}
+.wz-foot button{flex:1;border-radius:12px;padding:15px;font-size:16px;font-weight:800;font-family:var(--font-b);cursor:pointer;border:none}
+.wz-back{background:#fff;border:2px solid var(--line)!important;color:#5C5A50;flex:0 0 90px}
+.wz-next{background:var(--shu);color:#fff}
+.wz-next:disabled{opacity:.4}
+@media(max-width:700px){#wizFab{display:block}}
 /* ── 照片燈箱 ── */
 #lbOverlay{position:fixed;inset:0;background:rgba(10,15,25,.93);z-index:2500;display:none;align-items:center;justify-content:center}
 #lbOverlay.show{display:flex}
@@ -369,7 +411,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r34</span>
+    <span class="build">build r36</span>
   </div>
 </header>
 
@@ -558,7 +600,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r34
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r36
 </footer>
 
 <nav class="bottom">
@@ -569,6 +611,18 @@ button:active{transform:scale(.965)}
   <button id="nb-fav" onclick="showPane('fav')"><span class="ic">♥</span>最愛</button>
 </nav>
 
+<button id="wizFab" onclick="wizOpen()">✨ 快速規劃</button>
+<div id="wiz">
+  <div class="wz-top">
+    <div class="wz-prog"><i id="wzBar"></i></div>
+    <button class="wz-x" onclick="wizClose()">✕</button>
+  </div>
+  <div class="wz-body" id="wzBody"></div>
+  <div class="wz-foot">
+    <button class="wz-back" id="wzBack" onclick="wizPrev()">上一步</button>
+    <button class="wz-next" id="wzNext" onclick="wizNext()">下一步</button>
+  </div>
+</div>
 <button id="toTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到頂端">↑</button>
 <div id="lbOverlay" onclick="if(event.target===this)closeLB()">
   <button class="lb-x" onclick="closeLB()">✕</button>
@@ -1242,7 +1296,7 @@ function saveIti(){
   const dft=S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊";
   const name=prompt("為這份行程取個名字:",dft); if(name===null)return;
   const itis=store.get("wayu_itis")||[];
-  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null}))});
+  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null,ht:d.hotel?d.hotel.n:null,ln:!!d.lastNight}))});
   store.set("wayu_itis",itis.slice(0,20));
   toast("♥ 行程已儲存到「最愛」");
 }
@@ -1252,7 +1306,7 @@ function loadIti(i){
   S.center={n:it.center,la:it.centerLa,lo:it.centerLo}; S.month=it.month||S.month;
   S.iti={days:it.days.map(dd=>{
       const ns=Array.isArray(dd)?dd:dd.ns, c=Array.isArray(dd)?null:dd.c;
-      return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined};
+      return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined,hotel:(dd.ht?findByName(dd.ht):null),lastNight:!!dd.ln};
     }),hotel:null,hotels:null,multi:!!it.multi,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[])};
   S.iti.days=S.iti.days.filter(d=>d.list.length);
   S.iti.days.forEach((d,di)=>rebuildDay(di));
@@ -2147,6 +2201,83 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
   }
   return {days,hotel:hotels[0]||null};
 }
+/* ═══ 手機精靈引導 ═══ */
+let WZ={step:0,days:3,prefs:new Set()};
+const WZ_STEPS=5;
+function wizOpen(){WZ={step:0,days:S.days||3,prefs:new Set(S.prefs)};$("wiz").classList.add("show");document.body.style.overflow="hidden";wizRender()}
+function wizClose(){$("wiz").classList.remove("show");document.body.style.overflow=""}
+function wizRender(){
+  $("wzBar").style.width=((WZ.step+1)/WZ_STEPS*100)+"%";
+  $("wzBack").style.visibility=WZ.step===0?"hidden":"visible";
+  const nx=$("wzNext");
+  const b=$("wzBody");b.scrollTop=0;
+  if(WZ.step===0){
+    nx.textContent="下一步";nx.disabled=!S.center;
+    b.innerHTML=`<div class="wz-q">要去哪裡?</div><div class="wz-sub">搜尋城市/景點,或直接選熱門城市</div>
+      <input class="wz-search" id="wzQ" placeholder="例:京都、澀谷、shibuya…" oninput="wizSug()" value="${S.center?S.center.n.split(",")[0]:""}">
+      <div class="wz-sug" id="wzSug"></div>
+      <div style="font-size:12px;color:#8A8272;margin:14px 0 8px">熱門城市</div>
+      <div class="wz-chips">${CITIES.slice(0,12).map((c,i)=>`<label class="${S.center&&S.center.n===c.n?"on":""}" onclick="wizPickCity(${i})">${c.n}</label>`).join("")}</div>
+      ${S.center?`<div style="margin-top:16px;padding:12px 16px;background:var(--shu-soft);border-radius:12px;font-size:15px">✅ 已選:<b style="color:var(--shu)">${S.center.n.split(",")[0]}</b></div>`:""}`;
+  }else if(WZ.step===1){
+    nx.textContent="下一步";nx.disabled=false;
+    b.innerHTML=`<div class="wz-q">玩幾天?</div><div class="wz-sub">之後仍可在行程裡增減</div>
+      <div class="wz-grid">${[1,2,3,4,5,6,7,8,10,14].map(d=>`<button class="wz-opt ${WZ.days===d?"on":""}" onclick="WZ.days=${d};wizRender()">${d} 天</button>`).join("")}</div>`;
+  }else if(WZ.step===2){
+    nx.textContent="下一步";nx.disabled=false;
+    const opts=[["自然風景","🏞️"],["神社寺廟","⛩️"],["歷史古蹟","🏯"],["博物館藝術","🎨"],["主題樂園","🎢"],["市場老街","🏮"],["美食巡禮","🍜"],["購物","🛍️"],["溫泉","♨️"],["夜景展望","🌃"],["親子同樂","👨‍👩‍👧"],["動漫電玩","🎮"]];
+    b.innerHTML=`<div class="wz-q">想玩什麼?</div><div class="wz-sub">可複選,不選也沒關係(綜合安排)</div>
+      <div class="wz-chips">${opts.map(([t,e])=>`<label class="${WZ.prefs.has(t)?"on":""}" onclick="wizTogglePref('${t}')">${e} ${t}</label>`).join("")}</div>`;
+  }else if(WZ.step===3){
+    nx.textContent="下一步";nx.disabled=false;
+    b.innerHTML=`<div class="wz-q">怎麼移動?</div><div class="wz-sub">影響行程的交通時間估算</div>
+      <div class="wz-opts">
+        <button class="wz-opt ${S.tmode==="transit"?"on":""}" onclick="S.tmode='transit';wizRender()"><span class="em">🚃</span><div>大眾運輸<small>電車巴士,附「怎麼搭」路線</small></div></button>
+        <button class="wz-opt ${S.tmode==="drive"?"on":""}" onclick="S.tmode='drive';wizRender()"><span class="em">🚗</span><div>租車自駕<small>含停車緩衝時間</small></div></button>
+        <button class="wz-opt ${S.tmode==="charter"?"on":""}" onclick="S.tmode='charter';wizRender()"><span class="em">🚐</span><div>包車<small>點對點接送</small></div></button>
+      </div>`;
+  }else if(WZ.step===4){
+    nx.textContent="✨ 生成行程";nx.disabled=!S.center;
+    const pf=[...WZ.prefs];
+    b.innerHTML=`<div class="wz-q">確認一下</div><div class="wz-sub">沒問題就開始生成!</div>
+      <div class="wz-opts">
+        <div class="wz-opt" style="cursor:default"><span class="em">📍</span><div>地點<small>${S.center?S.center.n.split(",")[0]:"未選"}${S.centers.length>1?" 等 "+S.centers.length+" 地":""}</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">📅</span><div>天數<small>${WZ.days} 天</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">🎯</span><div>玩法<small>${pf.length?pf.join("、"):"綜合安排"}</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">${S.tmode==="transit"?"🚃":S.tmode==="drive"?"🚗":"🚐"}</span><div>交通<small>${S.tmode==="transit"?"大眾運輸":S.tmode==="drive"?"租車自駕":"包車"}</small></div></div>
+      </div>`;
+  }
+}
+function wizSug(){
+  const q=$("wzQ").value.trim();const box=$("wzSug");
+  if(q.length<1){box.innerHTML="";return}
+  if(!NIDX||NIDX_N!==DB.length)buildNIdx();
+  const qn=zin(q),out=[];
+  for(const it of NIDX){if(it.la==null)continue;if(zin(it.label).startsWith(qn)||zin(it.label).includes(qn)){out.push(it);if(out.length>=6)break}}
+  box.innerHTML=out.map((it,i)=>`<div class="s" onclick="wizPickSug(${i})"><span>${it.ic}</span><b>${it.label.split(",")[0]}</b> <small style="color:#A39B87">${it.sub}</small></div>`).join("");
+  window._WZSUG=out;
+}
+function wizPickSug(i){const it=window._WZSUG[i];S.center={n:it.label,la:it.la,lo:it.lo};renderCenter();loadArea();wizRender()}
+function wizPickCity(i){S.center={...CITIES[i]};S.center.n=CITIES[i].n;pickCity(i,null);wizRender()}
+function wizTogglePref(t){WZ.prefs.has(t)?WZ.prefs.delete(t):WZ.prefs.add(t);wizRender()}
+function wizPrev(){if(WZ.step>0){WZ.step--;wizRender()}}
+function wizNext(){
+  if(WZ.step===0&&!S.center){toast("請先選一個地點");return}
+  if(WZ.step<WZ_STEPS-1){WZ.step++;wizRender();return}
+  // 完成:套用設定並生成
+  S.days=WZ.days;
+  S.prefs=new Set(WZ.prefs);
+  // 同步偏好 chips(label 文字含 emoji? 否,PREFS 是純文字)
+  document.querySelectorAll("#prefChips label").forEach(l=>l.classList.toggle("on",S.prefs.has(l.textContent.trim())));
+  // 同步天數按鈕
+  document.querySelectorAll("#daySel button").forEach(b=>b.classList.toggle("on",+b.textContent===S.days));
+  const cst=$("dayCustom");
+  if(cst){if([1,2,3,4,5,6,7,8,9,10].includes(S.days))cst.value="";else cst.value=S.days}
+  wizClose();
+  showPane("home");
+  generate(false);
+}
+
 async function generate(reshuffle){
   if(!requireCenter())return;
   const rad=+$("radius").value;
@@ -2179,6 +2310,18 @@ async function generate(reshuffle){
   S.center=multi?{...route[0]}:origin;
   if(!days.length){S.center=origin;renderCenter();toast("此範圍連即時資料都找不到景點,請加大半徑或換個中心點");return}
   renderCenter();
+  // 住宿分配到每一天:同城市連住同一間,換城市換飯店;最後一晚不安排(隔天離開)
+  if(wantHotel){
+    days.forEach((d,i)=>{
+      if(i===days.length-1){d.hotel=null;d.lastNight=true;return} // 最後一天通常回程,不排住宿
+      // 找該天所屬 center 的飯店
+      let hb=null;
+      if(multi){const m=hotels.find(x=>d.center&&x.cn===d.center.n.split(",")[0]);hb=m?m.h:(hotels[0]?hotels[0].h:null)}
+      else hb=hotels[0]?hotels[0].h:null;
+      // 與前一天同飯店 → 連住;不同 → 新入住
+      d.hotel=hb;
+    });
+  }
   S.iti={days,hotel:(!multi&&wantHotel&&hotels[0])?hotels[0].h:null,hotels:multi?hotels:null,
     center:{...S.center},made:new Date(),rad,wantMeal,exclF:new Set(),month:S.month,multi,tmode:S.tmode,
     flight:{inAp:$("fInAp").value!==""?AIRPORTS[+$("fInAp").value]:null,inT:hm2min($("fInT").value),
@@ -2237,30 +2380,104 @@ function renderIti(){
         +S.sug.cands.map(cd=>`<div class="sugrow"><div><b style="cursor:pointer;border-bottom:1px dotted #C9B98A" onclick="openDetail('${esc(cd.n)}')">${cd.n}</b> <span class="sd">${CATN[cd.c]}${cd.rt?"・★"+cd.rt.toFixed(1):""}${cd.pr?"・"+cd.pr:""}</span><div class="sd">${(cd.d||"").slice(0,28)}…</div></div><button onclick="addStopToDay(${i},'${esc(cd.n)}')">加入</button></div>`).join("")
         +`</div>`;
     }
+    // 當天住宿卡(掛在該日卡片內結尾)
+    h+=renderHotelBlock(d,i);
     h+=`</div>`;
   });
-  if(S.iti.hotels&&S.iti.hotels.length){
-    h+=`<div class="day-card"><div class="day-hd" style="background:var(--matcha)"><span class="dnum" style="background:#3F5A35">🏨 各地點住宿建議</span></div><div class="rail">`;
-    S.iti.hotels.forEach(x=>{
-      const ht=x.h;
-      h+=`<div class="stop hotel"><div class="time" style="font-size:11px">${x.cn}</div><div class="dot"></div>
-      <div class="info"><h4><span class="nm" onclick="openDetail('${esc(ht.n)}')">${ht.n}</span></h4><div class="ja">${ht.j||""}</div><p>${ht.d||""}</p>
-      ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
-      ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}</div></div>`;
-    });
-    h+=`</div></div>`;
-  }
-  if(S.iti.hotel){
-    const ht=S.iti.hotel;
-    h+=`<div class="day-card"><div class="day-hd" style="background:var(--matcha)"><span class="dnum" style="background:#3F5A35">🏨 住宿建議</span><span class="darea">${ht.a}</span></div>
-    <div class="rail"><div class="stop hotel" style="padding-bottom:6px"><div class="time"></div><div class="dot"></div>
-    <div class="info"><h4>${ht.n}</h4><div class="ja">${ht.j||""}</div><p>${ht.d} (距中心 ${fmtD(dKm(ht))})</p>
-    ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
-    ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}
-    ${ht.rt?`<div class="rate"><span class="stars">${"★".repeat(Math.round(ht.rt))}</span><span class="num">${ht.rt.toFixed(1)}</span><span style="color:#A39B87;font-size:11px">和遊誌推薦</span></div>`:""}</div></div></div></div>`;
-  }
   $("itiBox").innerHTML=h;
 }
+
+function nightInfo(di){ // 回傳 {night:第幾晚, total:此段連住共幾晚, first:是否入住當晚}
+  const days=S.iti.days,ht=days[di].hotel;
+  if(!ht)return null;
+  let night=1;
+  for(let k=di-1;k>=0;k--){if(days[k].hotel&&days[k].hotel.n===ht.n)night++;else break}
+  let total=night;
+  for(let k=di+1;k<days.length;k++){if(days[k].hotel&&days[k].hotel.n===ht.n)total++;else break}
+  return {night,total,first:night===1};
+}
+function renderHotelBlock(d,i){
+  if(d.lastNight)return `<div class="hotel-slot"><div class="hs-empty">🧳 最後一天・不安排住宿(通常回程)<button class="hs-add" onclick="addHotel(${i})">＋ 仍要加住宿</button></div></div>`;
+  if(!d.hotel)return `<div class="hotel-slot"><div class="hs-empty">🏨 這天尚未安排住宿 <button class="hs-add" onclick="addHotel(${i})">＋ 選擇住宿</button></div></div>`;
+  const ht=d.hotel,ni=nightInfo(i),tier=hotelTier(ht);
+  const nightTag=ni.total>1?`<span class="hs-nights">住第 ${ni.night}/${ni.total} 晚</span>`:`<span class="hs-nights">住 1 晚</span>`;
+  return `<div class="hotel-slot"><div class="stop hotel">
+    <div class="time" style="font-size:11px;color:#3F5A35">🏨 住宿</div><div class="dot" style="background:var(--matcha);border-color:var(--matcha)"></div>
+    <div class="info">
+      <h4><span class="nm" onclick="openDetail('${esc(ht.n)}')">${ht.n}</span>
+        <span class="tag" style="background:${TIER_COLORS[tier]};color:#fff;font-weight:700;font-size:10.5px">${tier}</span>
+        ${nightTag}</h4>
+      <div class="ja">${ht.j||""}</div>
+      ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
+      ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}
+      <div class="hs-acts">
+        <button onclick="editNights(${i})">🛏️ 連住幾晚</button>
+        <button onclick="changeHotel(${i})">🔄 換其他推薦</button>
+        <button onclick="removeHotel(${i})">✕ 移除</button>
+      </div>
+    </div></div></div>`;
+}
+/* ═══ 住宿編輯 ═══ */
+function hotelPool(di){
+  const d=S.iti.days[di],ctr=d.center||S.iti.center;
+  const oc=S.center;if(ctr)S.center=ctr;
+  let pool=DB.filter(s=>s.c==="hotel"&&dKm(s)<=(S.iti.rad||25)*1.5);
+  const pref=pool.filter(hotelMatch);if(pref.length)pool=pref;
+  pool.sort((a,b)=>dKm(a)-dKm(b));
+  S.center=oc;
+  return pool;
+}
+function changeHotel(di){
+  const pool=hotelPool(di);
+  if(!pool.length){toast("這一帶找不到其他住宿推薦,可加大半徑");return}
+  const cur=S.iti.days[di].hotel;
+  const list=pool.slice(0,12);
+  openHotelPicker(di,list,cur);
+}
+function addHotel(di){changeHotel(di)}
+function openHotelPicker(di,list,cur){
+  const rows=list.map((ht,k)=>{const t=hotelTier(ht);
+    return `<div class="hp-row ${cur&&cur.n===ht.n?"on":""}" onclick="pickHotel(${di},${k})">
+      <div style="flex:1"><b>${ht.n}</b> <span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-size:10px">${t}</span>
+      <div style="font-size:11.5px;color:#8A8272">${ht.pr||""}${ht.ad?" ・"+ht.ad:""}</div></div>
+      ${cur&&cur.n===ht.n?'<span style="color:var(--shu)">目前</span>':""}</div>`;
+  }).join("");
+  window._HPOOL=list;
+  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">選擇 DAY ${di+1} 的住宿</h3>
+    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 12px">依你的住宿偏好排序,點選即可更換</div>
+    <div class="hp-list">${rows}</div>
+    <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
+}
+function pickHotel(di,k){
+  const ht=window._HPOOL[k];
+  S.iti.days[di].hotel=ht;
+  S.iti.days[di].lastNight=false;
+  closeDetail();renderIti();
+  toast("✅ DAY "+(di+1)+" 住宿已更新:"+ht.n);
+}
+function editNights(di){
+  const ht=S.iti.days[di].hotel;if(!ht)return;
+  const ni=nightInfo(di);
+  const maxN=S.iti.days.length-di;
+  const cur=ni?ni.total:1;
+  const opts=[];for(let n=1;n<=maxN;n++)opts.push(n);
+  window._NIGHTDI=di;
+  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">「${ht.n}」連住幾晚?</h3>
+    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 14px">從 DAY ${di+1} 起,同一間飯店連續住宿的晚數(最多 ${maxN} 晚)</div>
+    <div class="wz-grid">${opts.map(n=>`<button class="wz-opt ${n===cur?"on":""}" onclick="applyNights(${n})">${n} 晚</button>`).join("")}</div>
+    <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
+}
+function applyNights(n){
+  const di=window._NIGHTDI,ht=S.iti.days[di].hotel;
+  for(let k=0;k<n&&di+k<S.iti.days.length;k++){S.iti.days[di+k].hotel={...ht};S.iti.days[di+k].lastNight=false}
+  // 超過連住範圍的後一天若原本同飯店,清掉讓它另選
+  const after=di+n;
+  if(after<S.iti.days.length&&S.iti.days[after].hotel&&S.iti.days[after].hotel.n===ht.n)S.iti.days[after].hotel=null;
+  closeDetail();renderIti();toast("✅ 已設定連住 "+n+" 晚");
+}
+function removeHotel(di){S.iti.days[di].hotel=null;renderIti();toast("已移除 DAY "+(di+1)+" 住宿")}
 
 /* ═══ 景點詳情面板(Wikipedia 完整導言 + 相簿)═══ */
 const WIKIC=new Map(),GALC=new Map();
@@ -2496,7 +2713,7 @@ function copyItinerary(){
     });
     txt+="\n";
   });
-  if(S.iti.hotel)txt+="🏨 住宿建議:"+S.iti.hotel.n+"\n";
+  S.iti.days.forEach((d,i)=>{if(d.hotel){const ni=nightInfo(i);txt+="🏨 DAY "+(i+1)+" 住:"+d.hotel.n+(ni&&ni.total>1?"(第"+ni.night+"/"+ni.total+"晚)":"")+"\n"}});
   txt+="\n— 由 和遊誌 WAYU TRIP 生成";
   navigator.clipboard.writeText(txt).then(()=>toast("📋 行程已複製,可貼到 LINE / 備忘錄"))
     .catch(()=>{prompt("手動複製以下內容:",txt)});
