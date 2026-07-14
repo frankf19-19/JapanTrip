@@ -60,6 +60,15 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .searchbox button{background:var(--shu);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:15px;font-weight:700;font-family:var(--font-b);cursor:pointer;white-space:nowrap}
 .searchbox button:active{transform:scale(.97)}
 .geo-hint{font-size:12px;opacity:.7;margin-top:8px}
+.searchwrap{position:relative;max-width:640px}
+#sugList{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);z-index:50;overflow:hidden;display:none;max-height:330px;overflow-y:auto}
+#sugList.show{display:block}
+#sugList .si{display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:14px;color:var(--ink);cursor:pointer;border-top:1px solid #F1EDE0}
+#sugList .si:first-child{border-top:none}
+#sugList .si:hover,#sugList .si.hl{background:#F6F1E4}
+#sugList .si .ic{font-size:17px;flex-shrink:0}
+#sugList .si small{color:#A39B87;font-size:11.5px;margin-left:auto;flex-shrink:0}
+#sugList .si b{font-weight:700}
 .citychips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;max-width:680px}
 .citychips button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#F4EFE2;border-radius:99px;padding:6px 14px;font-size:13px;font-family:var(--font-b);cursor:pointer;transition:.15s}
 .citychips button:hover,.citychips button.on{background:var(--shu);border-color:var(--shu)}
@@ -144,7 +153,8 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .stop.meal .dot{border-color:var(--kin)}
 .stop.hotel .dot{border-color:var(--matcha)}
 .stop .info{flex:1;margin-top:-3px}
-.stop .info h4{font-size:15px;font-weight:700}
+.stop .info h4{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;line-height:1.45}
+.stop .info h4 .rmv{margin-left:auto}
 .stop .info .ja{font-size:11px;color:#A39B87}
 .stop .info .mrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .stop .info p{font-size:12.5px;color:#5C5A50;margin-top:4px}
@@ -164,7 +174,8 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 /* ── 底部導覽(手機)── */
 nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:1000;padding-bottom:env(safe-area-inset-bottom)}
 @media(min-width:900px){nav.bottom{display:none}}
-nav.bottom button{flex:1;background:none;border:none;padding:8px 0 6px;font-size:10.5px;color:#8A8272;font-family:var(--font-b);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.bottom button{flex:1;background:none;border:none;padding:7px 0 5px;font-size:10px;color:#8A8272;font-family:var(--font-b);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
+nav.bottom button .ic{font-size:19px}
 nav.bottom button .ic{font-size:20px;line-height:1}
 nav.bottom button.on{color:var(--shu);font-weight:700}
 
@@ -210,7 +221,8 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 #dOverlay.show{display:block}
 #dPanel{position:fixed;z-index:1600;background:var(--washi);display:none;overflow-y:auto;
   left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,94vw);max-height:88vh;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-@media(max-width:700px){#dPanel{left:0;top:auto;bottom:0;transform:none;width:100%;max-height:88vh;border-radius:18px 18px 0 0}}
+@media(max-width:700px){#dPanel{left:0;top:auto;bottom:0;transform:none;width:100%;max-height:90vh;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+#dPanel::before{content:"";display:block;position:sticky;top:8px;margin:8px auto 0;width:44px;height:5px;border-radius:3px;background:#C9BFae;z-index:3}}
 #dPanel.show{display:block}
 .d-hero{height:220px;background:linear-gradient(135deg,#E9E3D2,#DDD5C2);position:relative;overflow:hidden}
 .d-hero img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:.4s}
@@ -232,6 +244,40 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .stop .info h4 .nm{cursor:pointer;border-bottom:1px dotted #B9AF9E}
 footer{background:var(--ai-deep);color:#B9C4D6;font-size:12px;text-align:center;padding:22px 16px 26px;margin-top:40px}
 footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
+/* ── 手機整平 ── */
+@media(max-width:700px){
+  main{padding:0 12px}
+  .hero{padding:26px 14px 36px}
+  .plannercard{padding:14px 12px}
+  .rail{padding:16px 10px 8px}
+  .stop{gap:10px}
+  .stop .time{width:44px;font-size:12px}
+  .stop::before{left:61px}
+  .stop .dot{width:16px;height:16px;border-width:3.5px}
+  .stop .info h4{font-size:14.5px}
+  .stop .rmv{padding:3px 10px;font-size:12px} /* 加大點擊範圍 */
+  .stop .info h4 input[type=checkbox]{width:18px;height:18px}
+  .day-hd{padding:10px 12px;font-size:13px}
+  .day-hd .darea{font-size:12px}
+  .iti-actions button{flex:1 1 46%;padding:11px 6px}
+  .cardacts{flex-wrap:wrap}
+  .cardacts button{padding:9px 4px}
+  .cardacts .favb{max-width:none;flex:0 0 46px}
+  #map{height:62vh}
+  .wxcard .wxbtn{margin-left:0;width:100%}
+  .d-bd{padding:16px 14px calc(22px + env(safe-area-inset-bottom))}
+  .d-hero{height:180px}
+  .d-acts button,.d-acts a{min-width:46%}
+  .searchbox button{padding:10px 14px}
+  .sortrow{gap:8px}
+  .sortrow select{flex:1 1 40%}
+  .sortrow input[type=text]{flex:1 1 100%;order:9}
+  .sugbox{margin:4px 10px 14px}
+  .sugrow{flex-wrap:wrap}
+  .sugrow button{margin-left:auto}
+  .saveditm button{padding:7px 12px}
+  h2.sec{font-size:19px}
+}
 @media print{
   header,nav.bottom,.hero,.iti-actions,.plannercard,footer{display:none!important}
   body{padding:0;background:#fff}
@@ -255,7 +301,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r10</span>
+    <span class="build">build r15</span>
   </div>
 </header>
 
@@ -265,9 +311,14 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
     <div class="eyebrow">NIHON TABI PLANNER</div>
     <h1>輸入一個地點,<br>安排一趟剛剛好的日本旅行。</h1>
     <p class="sub">輸入城市、車站、飯店地址或任何地標,選好喜好與天數,和遊誌會從精選資料庫找出附近的景點、美食、購物與住宿,自動排成每日行程。</p>
-    <div class="searchbox">
-      <input id="q" type="text" placeholder="例:東京車站、大阪心齋橋、京都駅、新宿格拉斯麗飯店…" onkeydown="if(event.key==='Enter')doGeocode()">
-      <button onclick="doGeocode()">🔍 定位</button>
+    <div class="searchwrap">
+      <div class="searchbox" style="max-width:none">
+        <input id="q" type="text" placeholder="中/日/英都可:澀谷、渋谷、shibuya、しぶや、Tokyo Tower…" autocomplete="off"
+          oninput="onSugInput()" onfocus="onSugInput()" onblur="setTimeout(hideSug,180)"
+          onkeydown="if(event.key==='Enter'){doGeocode()}else if(event.key==='Escape'){hideSug()}">
+        <button onclick="doGeocode()">🔍 定位</button>
+      </div>
+      <div id="sugList"></div>
     </div>
     <div class="geo-hint">或直接快選熱門城市 ↓</div>
     <div class="citychips" id="cityChips"></div>
@@ -364,6 +415,8 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
 <section class="pane" id="pane-fav">
   <h2 class="sec">已儲存的行程 <small>SAVED PLANS</small></h2>
   <div id="favItiList"></div>
+  <h2 class="sec">旅遊足跡・我的評價 <small>TRAVEL LOG</small></h2>
+  <div id="visitLog"></div>
   <h2 class="sec">收藏的地點 <small>FAVORITES</small></h2>
   <div class="grid" id="favGrid"></div>
 </section>
@@ -380,7 +433,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 340 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r10
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r15
 </footer>
 
 <nav class="bottom">
@@ -788,10 +841,32 @@ const DB=[
 {n:"殘波岬",j:"残波岬",la:26.4420,lo:127.7120,c:"spot",t:["自然風景"],ad:"沖縄県中頭郡読谷村宇座",pr:"免費(燈塔 ¥300)",rt:4.2,a:"沖繩",d:"2km 隆起珊瑚斷崖,白色燈塔夕陽名所。",s:75,p:3}
 ];
 /* ═══════════════ 狀態 ═══════════════ */
-let S={center:{n:"東京",la:35.6812,lo:139.7671},days:3,pace:3,prefs:new Set(),cat:"all",iti:null,osm:[],month:(new Date().getMonth()+1),fav:new Set()};
+let S={center:{n:"東京",la:35.6812,lo:139.7671},centers:[],days:3,pace:3,prefs:new Set(),cat:"all",iti:null,osm:[],month:(new Date().getMonth()+1),fav:new Set()};
 /* 安全儲存:GitHub Pages 上可跨次保存;預覽環境自動改用記憶體 */
 const store={_m:{},get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):(this._m[k]??null)}catch(e){return this._m[k]??null}},set(k,v){this._m[k]=v;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 S.fav=new Set(store.get("wayu_fav")||[]);
+S.visited=new Set(store.get("wayu_visited")||[]);
+let NOTES=store.get("wayu_notes")||{}; // {景點名:{note,stars,ts}}
+function toggleVisited(name,silent){
+  if(S.visited.has(name)){S.visited.delete(name);if(!silent)toast("已取消「去過」標記")}
+  else{S.visited.add(name);if(!silent)toast("✔ 已標記去過:"+name)}
+  store.set("wayu_visited",[...S.visited]);
+  if(S.iti)renderIti();
+  if($("pane-fav").classList.contains("on"))renderFav();
+}
+function saveNote(name){
+  const note=($("noteTxt")?$("noteTxt").value:"").trim();
+  const stars=+($("dPanel").dataset.stars||0);
+  if(!note&&!stars){delete NOTES[name];}
+  else NOTES[name]={note,stars,ts:Date.now()};
+  store.set("wayu_notes",NOTES);
+  toast("📝 已儲存我的紀錄");
+  if(S.iti)renderIti();
+}
+function setStars(n){
+  $("dPanel").dataset.stars=n;
+  document.querySelectorAll("#starPick span").forEach((s,i)=>{s.style.color=i<n?"var(--kin)":"#D9D2BF"});
+}
 /* 各區月均溫 [高,低] 1–12月 */
 const CLIM={
  tokyo:[[10,2],[11,2],[14,5],[19,10],[23,15],[26,19],[30,23],[31,24],[27,21],[22,15],[17,9],[12,4]],
@@ -890,6 +965,21 @@ function renderFav(){
     <div class="si-meta">${it.center} ・ ${it.days.length} 天 ・ ${it.month}月出發 ・ 存於 ${new Date(it.ts).toLocaleDateString("zh-TW")}</div></div>
     <button onclick="loadIti(${i})">載入</button><button class="del" onclick="delIti(${i})">刪除</button></div>`).join("")
     :`<div class="empty"><b>還沒有儲存的行程</b>生成行程後按「♥ 存入最愛」就會出現在這裡。</div>`;
+  // 旅遊足跡:去過的 + 有筆記的,依紀錄時間新到舊
+  const logNames=[...new Set([...S.visited,...Object.keys(NOTES)])];
+  const logs=logNames.map(n=>({n,s:findByName(n),nt:NOTES[n]})).filter(x=>x.s||x.nt)
+    .sort((a,b)=>((b.nt&&b.nt.ts)||0)-((a.nt&&a.nt.ts)||0));
+  $("visitLog").innerHTML=logs.length?logs.map(x=>`<div class="saveditm">
+      <div style="flex:1;min-width:150px">
+        <div class="si-name" style="cursor:pointer" onclick="openDetail('${esc(x.n)}')">${S.visited.has(x.n)?"✔ ":""}${x.n}
+          ${x.nt&&x.nt.stars?`<span style="color:var(--kin);font-size:13px"> ${"★".repeat(x.nt.stars)}</span>`:""}</div>
+        <div class="si-meta">${x.s?CATN[x.s.c]+"・"+(x.s.a||""):""}${x.nt&&x.nt.ts?"・記錄於 "+new Date(x.nt.ts).toLocaleDateString("zh-TW"):""}</div>
+        ${x.nt&&x.nt.note?`<div style="font-size:12.5px;color:#8A6A1E;margin-top:4px">📝 ${x.nt.note.replace(/</g,"&lt;")}</div>`:""}
+      </div>
+      <button onclick="openDetail('${esc(x.n)}')">編輯</button>
+      <button class="del" onclick="toggleVisited('${esc(x.n)}',1);delete NOTES['${esc(x.n)}'];store.set('wayu_notes',NOTES);renderFav();toast('已移除足跡')">移除</button>
+    </div>`).join("")
+    :`<div class="empty"><b>還沒有足跡</b>在行程或景點詳情打勾「✔ 去過」、寫下評分筆記,你的旅遊記錄會集中在這裡。</div>`;
   const favs=[...S.fav].map(findByName).filter(Boolean);
   $("favGrid").innerHTML=favs.length?favs.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>還沒有收藏地點</b>在任何卡片按「♥」即可收藏。</div>`;
   watchImgs();
@@ -899,7 +989,7 @@ function saveIti(){
   const dft=S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊";
   const name=prompt("為這份行程取個名字:",dft); if(name===null)return;
   const itis=store.get("wayu_itis")||[];
-  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>d.list.map(x=>x.n))});
+  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null}))});
   store.set("wayu_itis",itis.slice(0,20));
   toast("♥ 行程已儲存到「最愛」");
 }
@@ -907,23 +997,63 @@ function delIti(i){const itis=store.get("wayu_itis")||[];itis.splice(i,1);store.
 function loadIti(i){
   const it=(store.get("wayu_itis")||[])[i]; if(!it)return;
   S.center={n:it.center,la:it.centerLa,lo:it.centerLo}; S.month=it.month||S.month;
-  S.iti={days:it.days.map(names=>({list:names.map(findByName).filter(Boolean),stops:[],areas:""})),hotel:null,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[])};
+  S.iti={days:it.days.map(dd=>{
+      const ns=Array.isArray(dd)?dd:dd.ns, c=Array.isArray(dd)?null:dd.c;
+      return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined};
+    }),hotel:null,hotels:null,multi:!!it.multi,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[])};
   S.iti.days=S.iti.days.filter(d=>d.list.length);
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
 function setCat(el){S.cat=el.dataset.c;document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");renderExplore()}
 function renderCenter(){
-  $("centerInfo").innerHTML=`<div class="centerbar">📍 目前中心點:<b>${S.center.n}</b><span style="margin-left:auto;font-size:12px;color:#8A8272">半徑 ${$("radius")?$("radius").value:25} km 內搜尋</span></div>`;
+  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:1.5px solid var(--shu);color:var(--shu);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700">${i+1}. ${c.n.split(",")[0]} <b style="cursor:pointer" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
+  $("centerInfo").innerHTML=`<div class="centerbar" style="flex-wrap:wrap">📍 目前中心點:<b>${S.center.n}</b>
+    <button style="border:1.5px solid var(--shu);background:#fff;color:var(--shu);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;min-height:32px" onclick="addCenter()">＋加入多地點行程</button>
+    <span style="margin-left:auto;font-size:12px;color:#8A8272">半徑 ${$("radius")?$("radius").value:25} km</span>
+    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(生成時會照順路重排並分配天數)</span></div>`:""}
+  </div>`;
 }
+function addCenter(){
+  if(S.centers.some(c=>Math.abs(c.la-S.center.la)<0.01&&Math.abs(c.lo-S.center.lo)<0.01)){toast("這個地點已在多地點清單");return}
+  if(S.centers.length>=8){toast("最多 8 個地點");return}
+  S.centers.push({...S.center}); renderCenter();
+  toast("✅ 已加入第 "+S.centers.length+" 個地點:"+S.center.n.split(",")[0]+"。繼續搜尋或快選下一個地點!");
+}
+function rmCenter(i){S.centers.splice(i,1);renderCenter()}
+
+/* ═══ 異體字歸一(台繁/簡體/日本漢字互通)═══ */
+const VART=[ /* 「變體字們=日本漢字」,無=者全組同型 */
+"澀涉澁=渋","濱滨=浜","龜龟=亀","廣广=広","榮荣=栄","惠=恵","齋齐斉=斎","條=条","櫻樱=桜","溫=温",
+"鐵铁=鉄","驛驿=駅","淺=浅","澤泽=沢","邊边=辺","藏=蔵","惡恶=悪","佛=仏","圓圆=円","學学=学",
+"國国=国","關关=関","觀观=観","靜静=静","縣县=県","灣湾=湾","燈灯=灯","舊=旧","兒儿=児","龍龙=竜",
+"豐丰=豊","實实=実","寶宝=宝","傳传=伝","應应=応","鹽盐=塩","氣气=気","黑=黒","戶户=戸","對对=対",
+"區区=区","內内=内","兩两=両","醫医=医","萬万=万","與与=与","來来=来","發发=発","樂乐=楽","亞亚=亜",
+"壽寿=寿","圖图=図","單单=単","專专=専","帶带=帯","濕湿=湿","燒烧=焼","繩绳=縄","聲声=声","賣卖=売",
+"讀读=読","變变=変","劍剑=剣","步=歩","每=毎","寫写=写","禮礼=礼","場场=場","門门=門","嶽=岳",
+"峽峡=峡","館馆舘=館","嚴严=厳","嶋岛=島","錢钱=銭","歐欧=欧","會会=会","車车=車","東东=東","馬马=馬",
+"鳥鸟=鳥","風风=風","雲云=雲","電电=電","長长=長","錦锦=錦","熱热=熱","湯汤=湯","橋桥=橋","經经=経",
+"繪绘=絵","鄉乡=郷","絲丝=糸","晝=昼","點点=点","靈灵=霊","彌弥=弥","顏颜=顔","縱縦=縦","戰战=戦",
+"鬥斗=闘","隱隐=隠","釀酿=醸","據拠=拠","窗窓=窓","橫横=横","濟济=済","曾曽=曽","巖岩=岩","冨富=富",
+"峯峰=峰","獻献=献","隨随=随","轉转=転","豬猪=猪","驒騨=騨","嶽岳=岳","瀧泷=滝","顯显=顕","鶴鹤=鶴"
+];
+const NORM={},TOJA={};
+VART.forEach(g=>{
+  const [vars,ja0]=g.split("=");
+  const ja=ja0||vars[0];
+  [...vars,ja].forEach(c=>{NORM[c]=ja;TOJA[c]=ja});
+});
+const kataFold=s=>s.replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+const zin=s=>[...kataFold((s||"").toLowerCase()).replace(/[\s・,、()()\-‐]/g,"")].map(c=>NORM[c]||c).join("");
+const toJa=s=>[...(s||"")].map(c=>TOJA[c]||c).join("");
 
 /* ═══════════════ 地理編碼:三層定位策略 ═══════════════ */
 const GEOALIAS=[
- [["東京","tokyo"],0],[["大阪","osaka"],1],[["京都","kyoto"],2],[["奈良","nara"],3],
- [["札幌","sapporo","北海道","hokkaido"],4],[["福岡","博多","fukuoka","hakata"],5],
- [["沖繩","沖縄","那霸","那覇","okinawa","naha"],6],[["名古屋","nagoya"],7],
- [["廣島","広島","hiroshima"],8],[["仙台","sendai"],9],[["金澤","金沢","kanazawa"],10],
- [["神戶","神戸","kobe"],11],[["函館","hakodate"],12]
+ [["東京","tokyo","とうきょう"],0],[["大阪","osaka","おおさか"],1],[["京都","kyoto","きょうと"],2],[["奈良","nara","なら"],3],
+ [["札幌","sapporo","さっぽろ","北海道","hokkaido"],4],[["福岡","博多","fukuoka","hakata","ふくおか","はかた"],5],
+ [["沖繩","沖縄","那霸","那覇","okinawa","naha"],6],[["名古屋","nagoya","なごや"],7],
+ [["廣島","広島","hiroshima","ひろしま"],8],[["仙台","sendai","せんだい"],9],[["金澤","金沢","kanazawa","かなざわ"],10],
+ [["神戶","神戸","kobe","こうべ"],11],[["函館","hakodate","はこだて"],12]
 ];
 const GEOEXTRA=[["橫濱",35.4437,139.6425],["横浜",35.4437,139.6425],["鎌倉",35.3167,139.5358],
  ["小樽",43.1990,141.0016],["箱根",35.2323,139.1069],["河口湖",35.5171,138.7510],
@@ -951,33 +1081,217 @@ const GEOEXTRA=[["橫濱",35.4437,139.6425],["横浜",35.4437,139.6425],["鎌倉
  ["指宿",31.2270,130.6520],["門司港",33.9456,130.9625],["北九州",33.8835,130.8752],["小倉",33.8835,130.8752],
  ["佐世保",33.1800,129.7150],["豪斯登堡",33.0857,129.7891],["柳川",33.1631,130.4059],["唐津",33.4503,129.9679],["糸島",33.5570,130.1990],
  ["石垣",24.3448,124.1572],["宮古島",24.8055,125.2811],["久米島",26.3401,126.8048],["奄美",28.3770,129.4938]];
+/* ═══ 英/日文別名表(romaji・かな・English → 景點/地區)═══ */
+const XALIAS=[
+ [["asakusa","あさくさ","sensoji","senso-ji"],"淺草寺・雷門"],
+ [["shibuya","しぶや","shibuya crossing","hachiko"],"澀谷十字路口・忠犬八公"],
+ [["shibuya sky"],"SHIBUYA SKY 展望台"],
+ [["shinjuku","しんじゅく"],"新宿伊勢丹・歌舞伎町"],
+ [["skytree","スカイツリー","すかいつりー","tokyo skytree"],"東京晴空塔"],
+ [["tokyo tower","とうきょうたわー"],"東京鐵塔"],
+ [["meiji jingu","meiji shrine","めいじじんぐう"],"明治神宮"],
+ [["ueno","うえの"],"上野公園・動物園"],
+ [["akihabara","akiba","あきはばら","アキバ"],"秋葉原電器街"],
+ [["ginza","ぎんざ"],"銀座"],
+ [["tsukiji","つきじ"],"築地場外市場"],
+ [["odaiba","おだいば","gundam"],"台場海濱公園・鋼彈"],
+ [["harajuku","はらじゅく","takeshita","omotesando"],"表參道・原宿竹下通"],
+ [["teamlab","チームラボ","teamlab planets"],"teamLab Planets 豐洲"],
+ [["disney","disneyland","ディズニー","でぃずにー"],"東京迪士尼樂園"],
+ [["disneysea","ディズニーシー"],"東京迪士尼海洋"],
+ [["ghibli","じぶり","ジブリ"],"三鷹之森吉卜力美術館"],
+ [["roppongi","ろっぽんぎ"],"六本木之丘・森美術館"],
+ [["kichijoji","きちじょうじ"],"吉祥寺 SUN ROAD"],
+ [["kawagoe","かわごえ"],"川越小江戶藏造老街"],
+ [["takao","たかおさん","mt takao"],"高尾山"],
+ [["enoshima","えのしま"],"江之島"],
+ [["kamakura daibutsu","great buddha"],"鎌倉大佛・長谷寺"],
+ [["fujikyu","fuji-q","ふじきゅう"],"富士急樂園"],
+ [["chureito","忠霊塔","arakurayama"],"新倉山淺間公園(忠靈塔)"],
+ [["oshino hakkai","おしのはっかい"],"忍野八海"],
+ [["kiyomizu","きよみずでら","kiyomizudera"],"清水寺"],
+ [["fushimi inari","ふしみいなり","inari"],"伏見稻荷大社"],
+ [["kinkakuji","きんかくじ","golden pavilion"],"金閣寺"],
+ [["ginkakuji","ぎんかくじ","silver pavilion"],"銀閣寺・哲學之道"],
+ [["arashiyama","あらしやま","bamboo"],"嵐山竹林・渡月橋"],
+ [["gion","ぎおん"],"祇園花見小路"],
+ [["nijo","にじょうじょう","nijo castle"],"二條城"],
+ [["nishiki","にしき"],"錦市場"],
+ [["byodoin","びょうどういん","uji"],"宇治平等院・抹茶老街"],
+ [["kifune","きふね","kibune"],"貴船神社"],
+ [["amanohashidate","あまのはしだて"],"天橋立(日本三景)"],
+ [["ine","いね"],"伊根舟屋"],
+ [["osaka castle","おおさかじょう"],"大阪城天守閣"],
+ [["dotonbori","どうとんぼり","glico"],"道頓堀・固力果跑跑人"],
+ [["usj","universal","ユニバ","ゆにば"],"日本環球影城 USJ"],
+ [["shinsekai","しんせかい","tsutenkaku"],"通天閣・新世界"],
+ [["kaiyukan","かいゆうかん","osaka aquarium"],"海遊館"],
+ [["umeda sky","うめだ"],"梅田藍天大廈 空中庭園"],
+ [["shinsaibashi","しんさいばし"],"心齋橋筋商店街"],
+ [["kuromon","くろもん"],"黑門市場"],
+ [["harukas","はるかす"],"阿倍野 HARUKAS 300"],
+ [["nara park","ならこうえん","deer park"],"奈良公園・小鹿"],
+ [["todaiji","とうだいじ"],"東大寺大佛殿"],
+ [["himeji","ひめじ","himeji castle"],"姬路城"],
+ [["arima","ありま"],"有馬溫泉"],
+ [["kinosaki","きのさき"],"城崎溫泉"],
+ [["koyasan","こうやさん","mount koya"],"高野山奧之院"],
+ [["nachi","なち"],"那智瀑布・熊野那智大社"],
+ [["ise","いせじんぐう","ise jingu","ise shrine"],"伊勢神宮(內宮)"],
+ [["kenrokuen","けんろくえん"],"兼六園"],
+ [["higashi chaya","ひがしちゃや"],"東茶屋街"],
+ [["omicho","おうみちょう"],"近江町市場"],
+ [["shirakawago","しらかわごう","shirakawa-go"],"白川鄉合掌村"],
+ [["takayama","たかやま"],"高山三町老街"],
+ [["gero","げろ"],"下呂溫泉"],
+ [["magome","まごめ"],"馬籠宿(中山道)"],
+ [["tsumago","つまご"],"妻籠宿(中山道)"],
+ [["matsumoto","まつもと","matsumoto castle"],"松本城"],
+ [["kamikochi","かみこうち"],"上高地(河童橋)"],
+ [["jigokudani","じごくだに","snow monkey"],"地獄谷野猿公苑"],
+ [["zenkoji","ぜんこうじ"],"善光寺"],
+ [["tateyama","たてやま","kurobe","alpen"],"立山黑部・室堂"],
+ [["kusatsu","くさつ"],"草津溫泉湯畑"],
+ [["ikaho","いかほ"],"伊香保溫泉石段街"],
+ [["hitachi seaside","ひたち"],"國營日立海濱公園"],
+ [["atami","あたみ"],"熱海溫泉街"],
+ [["hakone shrine","はこねじんじゃ"],"箱根神社(平和鳥居)"],
+ [["owakudani","おおわくだに"],"箱根・大涌谷"],
+ [["itsukushima","いつくしま","miyajima","みやじま"],"嚴島神社(宮島)"],
+ [["onomichi","おのみち"],"尾道千光寺"],
+ [["kurashiki","くらしき"],"倉敷美觀地區"],
+ [["korakuen","こうらくえん"],"岡山後樂園"],
+ [["izumo","いずもたいしゃ","izumo taisha"],"出雲大社"],
+ [["adachi","あだちびじゅつかん","adachi museum"],"足立美術館"],
+ [["tottori sand dunes","とっとりさきゅう"],"鳥取砂丘"],
+ [["motonosumi","もとのすみ"],"元乃隅神社"],
+ [["kotohira","ことひら","konpira"],"金刀比羅宮"],
+ [["ritsurin","りつりん"],"栗林公園"],
+ [["naoshima","なおしま"],"直島(藝術之島)"],
+ [["naruto","なると","whirlpool"],"鳴門漩渦"],
+ [["dogo","どうご","dogo onsen"],"道後溫泉本館"],
+ [["iya","いや","kazurabashi"],"祖谷藤蔓橋"],
+ [["dazaifu","だざいふ"],"太宰府天滿宮"],
+ [["nakasu","なかす","yatai"],"中洲屋台街"],
+ [["beppu","べっぷ","hells"],"別府海地獄(地獄巡禮)"],
+ [["yufuin","ゆふいん"],"由布院湯之坪街道・金鱗湖"],
+ [["kurokawa","くろかわ"],"黑川溫泉"],
+ [["takachiho","たかちほ"],"高千穗峽"],
+ [["kumamoto castle","くまもとじょう"],"熊本城"],
+ [["ibusuki","いぶすき","sand bath"],"指宿砂蒸溫泉"],
+ [["sakurajima","さくらじま"],"櫻島"],
+ [["yakushima","やくしま"],"屋久島白谷雲水峽"],
+ [["kirishima","きりしま"],"霧島神宮"],
+ [["huis ten bosch","ハウステンボス"],"豪斯登堡"],
+ [["gunkanjima","ぐんかんじま","hashima"],"軍艦島上陸船"],
+ [["churaumi","ちゅらうみ","okinawa aquarium"],"沖繩美麗海水族館"],
+ [["shuri","しゅりじょう","shuri castle"],"首里城公園"],
+ [["kokusai dori","こくさいどおり"],"國際通"],
+ [["kouri","こうり"],"古宇利大橋・心形岩"],
+ [["kabira","かびらわん","kabira bay"],"川平灣(石垣島)"],
+ [["matsushima","まつしま"],"松島海岸(日本三景)"],
+ [["ginzan","ぎんざんおんせん","ginzan onsen"],"銀山溫泉"],
+ [["zao","ざおう","juhyo","snow monster"],"藏王纜車(樹冰)"],
+ [["ouchijuku","おおうちじゅく","ouchi-juku"],"大內宿"],
+ [["hirosaki","ひろさき"],"弘前城・弘前公園"],
+ [["oirase","おいらせ"],"奧入瀨溪流"],
+ [["nyuto","にゅうとう"],"乳頭溫泉鄉 鶴之湯"],
+ [["furano","ふらの","lavender"],"富田農場(富良野薰衣草)"],
+ [["biei","びえい","blue pond"],"美瑛青池"],
+ [["asahiyama","あさひやまどうぶつえん","asahiyama zoo"],"旭山動物園"],
+ [["otaru","おたる"],"小樽運河"],
+ [["noboribetsu","のぼりべつ"],"登別地獄谷溫泉"],
+ [["shiretoko","しれとこ"],"知床五湖"],
+ [["hakodate yakei","mt hakodate"],"函館山夜景"],
+ [["nikko","にっこう","toshogu"],"日光東照宮"],
+ [["kegon","けごん"],"華嚴瀑布"],
+ [["yokohama","よこはま"],"山下公園・港未來21"],
+ [["cup noodles","カップヌードル"],"橫濱杯麵博物館"],
+ [["sanrio","サンリオ","puroland","kitty"],"三麗鷗彩虹樂園"],
+ [["doraemon","ドラえもん","fujiko"],"藤子・F・不二雄博物館"],
+ [["harry potter","ハリーポッター","はりーぽったー"],"華納兄弟哈利波特影城"],
+ [["golden gai","ゴールデン街"],"新宿黃金街"],
+ [["ichiran","いちらん","一蘭ラーメン"],"一蘭拉麵 澀谷店"]
+];
+function resolveAlias(target){
+  const s=findByName(target); if(s)return {n:s.n,la:s.la,lo:s.lo};
+  const g=GEOEXTRA.find(x=>x[0]===target); if(g)return {n:g[0],la:g[1],lo:g[2]};
+  return null;
+}
+
+/* ═══ 即時搜尋建議(異體字模糊比對)═══ */
+let NIDX=null,NIDX_N=0,SUGT=null;
+function buildNIdx(){
+  NIDX=[];
+  CITIES.forEach((c,i)=>NIDX.push({k:zin(c.n),label:c.n,sub:"城市",ic:"🏙️",act:()=>{pickCity(i,null);highlightCity(i)}}));
+  GEOEXTRA.forEach(([nm,la,lo])=>NIDX.push({k:zin(nm),label:nm,sub:"地區",ic:"📍",act:()=>{S.center={n:nm,la,lo};afterLocate("📍 已定位:"+nm)}}));
+  DB.forEach(s=>NIDX.push({k:zin(s.n)+"|"+zin(s.j||""),label:s.n,sub:CATN[s.c]+(s.a?"・"+s.a:""),ic:({spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"})[s.c]||"📍",
+    act:()=>{S.center={n:s.n,la:s.la,lo:s.lo};afterLocate("📍 已定位:"+s.n)}}));
+  XALIAS.forEach(([als,target])=>{
+    const r=resolveAlias(target); if(!r)return;
+    als.forEach(a=>NIDX.push({k:zin(a),label:r.n,sub:"英/日名:"+a,ic:"🌐",
+      act:()=>{S.center=r;afterLocate("📍 已定位:"+r.n)}}));
+  });
+  NIDX_N=DB.length;
+}
+function onSugInput(){
+  clearTimeout(SUGT);
+  SUGT=setTimeout(()=>{
+    const q=$("q").value.trim();
+    if(q.length<1){hideSug();return}
+    if(!NIDX||NIDX_N!==DB.length)buildNIdx(); // 擴充庫載入後自動重建索引
+    const qn=zin(q);
+    const starts=[],incl=[];
+    for(const it of NIDX){
+      if(it.k.startsWith(qn))starts.push(it);
+      else if(qn.length>=2&&it.k.includes(qn))incl.push(it);
+      if(starts.length>=8)break;
+    }
+    const list=[...starts,...incl].slice(0,8);
+    if(!list.length){hideSug();return}
+    window._SUG=list;
+    $("sugList").innerHTML=list.map((it,i)=>`<div class="si" onmousedown="event.preventDefault();_SUG[${i}].act();hideSug()"><span class="ic">${it.ic}</span><b>${it.label.split(",")[0]}</b><small>${it.sub}</small></div>`).join("");
+    $("sugList").classList.add("show");
+  },160);
+}
+function hideSug(){const el=$("sugList");if(el)el.classList.remove("show")}
+
 async function doGeocode(){
   const q=$("q").value.trim();
   if(!q){toast("請先輸入地點或地址");return}
-  const qn=q.toLowerCase().replace(/\s|市|県|府|都$/g,"");
-  // ① 內建城市別名直接命中(最可靠)
+  hideSug();
+  const qn=zin(q.replace(/市$|県$|府$|都$/,""));
+  // ① 內建城市別名直接命中(異體字歸一比對:涉谷=澀谷=渋谷)
   for(const [names,i] of GEOALIAS){
-    if(names.some(a=>qn===a||qn.startsWith(a)||a.startsWith(qn)&&qn.length>=2)){
+    if(names.some(a=>{const an=zin(a);return qn===an||qn.startsWith(an)||(an.startsWith(qn)&&qn.length>=2)})){
       pickCity(i,null); highlightCity(i);
       document.querySelector(".plannercard").scrollIntoView({behavior:"smooth"});
       return;
     }
   }
   for(const [nm,la,lo] of GEOEXTRA){
-    if(qn.includes(nm.toLowerCase())){
+    if(qn.includes(zin(nm))||zin(nm).includes(qn)&&qn.length>=2){
       S.center={n:nm,la,lo}; afterLocate("📍 已定位:"+nm); return;
     }
   }
-  // ② 比對精選資料庫名稱(打「心齋橋」「淺草」直接命中)
+  // ② 比對資料庫名稱(異體字通吃:打「涉谷」也能中「澀谷/渋谷」)
   if(q.length>=2){
-    const hit=DB.find(s=>s.n.includes(q)||(s.j&&s.j.includes(q)));
+    const hit=DB.find(s=>zin(s.n).includes(qn)||(s.j&&zin(s.j).includes(qn)));
     if(hit){S.center={n:hit.n,la:hit.la,lo:hit.lo}; afterLocate("📍 已定位:"+hit.n); return;}
+    // 英文/羅馬拼音/假名別名
+    for(const [als,target] of XALIAS){
+      if(als.some(a=>{const an=zin(a);return an===qn||an.startsWith(qn)&&qn.length>=3||qn.startsWith(an)})){
+        const r=resolveAlias(target);
+        if(r){S.center=r; afterLocate("📍 已定位:"+r.n); return;}
+      }
+    }
   }
   // ③ Nominatim:抓 6 筆,優先城市/行政區,剔除道路與停車場
   toast('<span class="spin"></span> 定位中…');
   try{
-    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(q));
-    let j=await r.json();
+    const nomi=async qq=>{const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(qq));return r.json()};
+    let j=await nomi(q);
+    if(!j.length&&toJa(q)!==q)j=await nomi(toJa(q)); // 轉日本漢字再試(涉谷→渋谷)
     if(!j.length){toast("找不到「"+q+"」,試試加上城市名,例:大阪 心齋橋");return}
     const rank=x=>{
       if(x.class==="highway"||x.type==="parking"||x.class==="waterway")return 9;
@@ -1023,6 +1337,8 @@ function card(s,inIti){
       <div class="meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
         <span class="tag dist">📍 ${fmtD(d)}</span>
+        ${S.visited.has(s.n)?`<span class="tag" style="background:#E4EEDD;color:#3F5A35;font-weight:900">✔ 去過</span>`:""}
+        ${NOTES[s.n]&&NOTES[s.n].stars?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">📝 我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}
         ${(s.t||[]).slice(0,2).map(t=>`<span class="tag">${t}</span>`).join("")}
       </div>
       <p class="d">${s.d||""}</p>
@@ -1203,8 +1519,14 @@ async function overpassSearch(){
 
 /* ═══════════════ 行程生成演算法 ═══════════════ */
 function foodsPool(rad){return DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad)}
+const isNight=s=>(s.t||[]).includes("夜景展望")&&!(s.t||[]).includes("市場老街");
+const isDayOnly=s=>(s.t||[]).some(t=>["神社寺廟","歷史古蹟","博物館藝術"].includes(t))&&!isNight(s);
 function makeStops(dayList,usedF,wantMeal,rad){
   const foods=foodsPool(rad);
+  // 時段感知排序:日間限定(寺社/博物館)→ 一般 → 夜景(各組內維持就近順序)
+  const early=dayList.filter(isDayOnly),night=dayList.filter(isNight),
+        mid=dayList.filter(s=>!isDayOnly(s)&&!isNight(s));
+  dayList=[...early,...mid,...night];
   let t=9*60; const stops=[];
   dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)});
   const nearestFood=pt=>{
@@ -1227,7 +1549,17 @@ function makeStops(dayList,usedF,wantMeal,rad){
       const f=nearestFood(s);
       if(f){stops.push({type:"stop",s:f,t,meal:1,snack:1});t+=Math.min(f.s||40,40);snack=true;}
     }
-    stops.push({type:"stop",s,t}); t+=s.s||60;
+    // 夜景點:等到入夜時段(17:30 後),空檔標示自由時間
+    if(isNight(s)&&t<17*60+30){
+      const gap=17*60+30-t;
+      if(gap>=25)stops.push({type:"gap",min:gap});
+      t=17*60+30;
+    }
+    const st={type:"stop",s,t};
+    // 關門警告:寺社/博物館/城 16:30 後才到
+    if(isDayOnly(s)&&t>16*60+30)st.warn="多數寺社・博物館・城 16:30–17:00 閉門,建議調到上午,或點景點名稱→「營業時間」確認";
+    if((s.c==="shop")&&t>19*60+30)st.warn="部分商店 20:00 打烊,留意打烊時間";
+    stops.push(st); t+=s.s||60;
   });
   if(wantMeal&&dayList.length){
     const last=dayList[dayList.length-1];
@@ -1239,10 +1571,12 @@ function makeStops(dayList,usedF,wantMeal,rad){
 }
 function rebuildDay(di){
   const it=S.iti,d=it.days[di];
+  const oc=S.center; if(d.center)S.center=d.center;
   const usedF=new Set(it.exclF||[]);
   it.days.forEach((o,i)=>{if(i!==di)o.stops.forEach(x=>{if(x.type==="stop"&&(x.meal||x.s.c==="food"))usedF.add(x.s.n)})});
   d.stops=makeStops(d.list,usedF,it.wantMeal,it.rad||25);
   d.areas=[...new Set(d.list.map(x=>x.a))].join("・");
+  S.center=oc;
 }
 function removeStop(di,name,isMeal){
   const it=S.iti,d=it.days[di];
@@ -1255,14 +1589,17 @@ function removeStop(di,name,isMeal){
 }
 function suggestFor(di,removed){
   const it=S.iti;
+  const oc=S.center; if(it.days[di].center)S.center=it.days[di].center;
   const used=new Set([removed,...(it.exclF||[])]);
   it.days.forEach(d=>{d.list.forEach(x=>used.add(x.n));d.stops.forEach(x=>{if(x.type==="stop")used.add(x.s.n)})});
   const anchor=it.days[di].list[0]||it.center;
-  return DB.filter(s=>s.c!=="hotel"&&!used.has(s.n)&&dKm(s)<=(it.rad||25)&&(s.c==="spot"||(s.t||[]).length))
+  const R=DB.filter(s=>s.c!=="hotel"&&!used.has(s.n)&&dKm(s)<=(it.rad||25)&&(s.c==="spot"||(s.t||[]).length))
     .sort((a,b)=>{
       const pa=(a.t||[]).some(t=>S.prefs.has(t))?-8:0,pb=(b.t||[]).some(t=>S.prefs.has(t))?-8:0;
       return (dist(anchor.la,anchor.lo,a.la,a.lo)+pa)-(dist(anchor.la,anchor.lo,b.la,b.lo)+pb);
     }).slice(0,3);
+  S.center=oc;
+  return R;
 }
 function addStopToDay(di,name){
   const s=findByName(name); if(!s||!S.iti)return;
@@ -1288,47 +1625,36 @@ function addToIti(name){
   addStopToDay(di,name);
   showPane("iti");
 }
-async function generate(reshuffle){
-  const rad=+$("radius").value;
-  const wantMeal=document.querySelector('#extraChips label[data-k=meals]').classList.contains("on");
-  const wantHotel=document.querySelector('#extraChips label[data-k=hotel]').classList.contains("on");
-  let pool=DB.filter(s=>s.c!=="hotel"&&dKm(s)<=rad&&(s.c==="spot"||(S.prefs.size&&(s.t||[]).some(t=>S.prefs.has(t)))));
-  let foods=DB.filter(s=>s.c==="food"&&dKm(s)<=rad);
+async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
+  let pool=DB.filter(s=>!usedGlobal.has(s.n)&&s.c!=="hotel"&&dKm(s)<=rad&&(s.c==="spot"||(S.prefs.size&&(s.t||[]).some(t=>S.prefs.has(t)))));
+  let foods=DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad);
   let hotels=DB.filter(s=>s.c==="hotel"&&dKm(s)<=rad).sort((a,b)=>dKm(a)-dKm(b));
-  // 精選不足 → 即時抓取 OSM 當地資料(全日本任何地點都能排)
-  if(pool.length<S.days*S.pace+2){
-    toast('<span class="spin"></span> 此區精選較少,正在即時抓取當地景點…(約 5–20 秒)');
+  if(pool.length<nDays*S.pace+2){
     try{
       const osm=await fetchOSM(Math.min(rad,20));
       const merged=osm.filter(x=>dKm(x)<=rad);
       S.osm=[...new Map([...S.osm,...merged].map(x=>[x.n,x])).values()];
-      pool=pool.concat(merged.filter(x=>x.c==="spot"||x.c==="shop"));
+      pool=pool.concat(merged.filter(x=>(x.c==="spot"||x.c==="shop")&&!usedGlobal.has(x.n)));
       foods=foods.concat(merged.filter(x=>x.c==="food"));
       hotels=hotels.concat(merged.filter(x=>x.c==="hotel")).sort((a,b)=>dKm(a)-dKm(b));
-    }catch(e){/* Overpass 忙碌時仍用既有精選 */}
+    }catch(e){}
     pool=[...new Map(pool.map(x=>[x.n,x])).values()];
   }
-  if(!pool.length){toast("此範圍連即時資料都找不到景點,請加大半徑或換個中心點");return}
+  if(!pool.length)return null;
   if(pool.length>400)pool=pool.sort((a,b)=>((b.rt?2:0)+(b.p||0))-((a.rt?2:0)+(a.p||0))).slice(0,400);
-
-  // 喜好加權:符合喜好 +10、人氣 + p、重洗牌加隨機
-  const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(reshuffle?Math.random()*4:0);
-  if(S.prefs.size)pool=pool.filter(s=>s.t.some(t=>S.prefs.has(t))).length>=S.days*2
-      ? pool.filter(s=>s.t.some(t=>S.prefs.has(t))) : pool; // 喜好太少就放寬
+  const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(s.rt?2:0)+(reshuffle?Math.random()*4:0);
+  if(S.prefs.size)pool=pool.filter(s=>s.t.some(t=>S.prefs.has(t))).length>=nDays*2
+      ? pool.filter(s=>s.t.some(t=>S.prefs.has(t))) : pool;
   pool.sort((a,b)=>score(b)-score(a));
-
-  const perDay=S.pace, need=Math.min(pool.length,S.days*perDay+2);
-  let cands=pool.slice(0,Math.max(need,S.days*perDay*2)); // 取前段候選
-  const usedF=new Set(), days=[];
-
+  const perDay=S.pace;
+  let cands=pool.slice(0,Math.max(nDays*perDay+2,nDays*perDay*2));
+  const days=[];
   let prevAnchor=S.center;
-  for(let d=0;d<S.days;d++){
+  for(let d=0;d<nDays;d++){
     if(!cands.length)break;
-    // 錨點:離前一天結束點最近的高分景點
     cands.sort((a,b)=>(dist(prevAnchor.la,prevAnchor.lo,a.la,a.lo)-dist(prevAnchor.la,prevAnchor.lo,b.la,b.lo)));
     const dayList=[cands.shift()];
-    // 就近鏈:每次接最近的下一點(大型樂園佔一整天)
-    while(dayList.length<perDay+ (Math.random()<.5?1:0) && cands.length){
+    while(dayList.length<perDay+(Math.random()<.5?1:0)&&cands.length){
       if(dayList.some(x=>x.s>=420))break;
       const last=dayList[dayList.length-1];
       cands.sort((a,b)=>dist(last.la,last.lo,a.la,a.lo)-dist(last.la,last.lo,b.la,b.lo));
@@ -1336,16 +1662,50 @@ async function generate(reshuffle){
       const nx=cands.shift();
       if(nx.s>=420&&dayList.length)cands.push(nx); else dayList.push(nx);
     }
+    const localF=foodsPool; // makeStops 內會用 dKm(依當前 S.center)
     const stops=makeStops(dayList,usedF,wantMeal,rad);
     const areas=[...new Set(dayList.map(x=>x.a))].join("・");
-    days.push({stops,areas,list:dayList});
+    days.push({stops,areas,list:dayList,center:{...S.center}});
+    dayList.forEach(x=>usedGlobal.add(x.n));
     prevAnchor=dayList[dayList.length-1]||prevAnchor;
   }
-  S.iti={days,hotel:wantHotel?hotels[0]:null,center:{...S.center},made:new Date(),rad,wantMeal,exclF:new Set(),month:S.month};
+  return {days,hotel:hotels[0]||null};
+}
+async function generate(reshuffle){
+  const rad=+$("radius").value;
+  const wantMeal=document.querySelector('#extraChips label[data-k=meals]').classList.contains("on");
+  const wantHotel=document.querySelector('#extraChips label[data-k=hotel]').classList.contains("on");
+  const multi=S.centers.length>=2;
+  let route=multi?[...S.centers]:[{...S.center}];
+  if(multi){ // 依地理順路重排(從第一個地點出發,貪婪最近鄰)
+    const ordered=[route.shift()];
+    while(route.length){
+      route.sort((a,b)=>dist(ordered[ordered.length-1].la,ordered[ordered.length-1].lo,a.la,a.lo)-dist(ordered[ordered.length-1].la,ordered[ordered.length-1].lo,b.la,b.lo));
+      ordered.push(route.shift());
+    }
+    route=ordered;
+    if(S.days<route.length){route=route.slice(0,S.days);toast("天數少於地點數,先排前 "+route.length+" 個地點");}
+  }
+  const per=Math.floor(S.days/route.length),rem=S.days%route.length;
+  const alloc=route.map((c,i)=>Math.max(1,per+(i<rem?1:0)));
+  if(multi)toast('<span class="spin"></span> 多地點行程生成中('+route.map(c=>c.n.split(",")[0]).join("→")+')…');
+  else toast('<span class="spin"></span> 行程生成中…');
+  const origin={...S.center};
+  const usedGlobal=new Set(),usedF=new Set(),days=[],hotels=[];
+  for(let i=0;i<route.length;i++){
+    S.center=route[i];
+    const r=await buildCenterDays(alloc[i],rad,wantMeal,reshuffle,usedGlobal,usedF);
+    if(r){days.push(...r.days);if(wantHotel&&r.hotel)hotels.push({cn:route[i].n.split(",")[0],h:r.hotel});}
+  }
+  S.center=multi?{...route[0]}:origin;
+  if(!days.length){S.center=origin;renderCenter();toast("此範圍連即時資料都找不到景點,請加大半徑或換個中心點");return}
+  renderCenter();
+  S.iti={days,hotel:(!multi&&wantHotel&&hotels[0])?hotels[0].h:null,hotels:multi?hotels:null,
+    center:{...S.center},made:new Date(),rad,wantMeal,exclF:new Set(),month:S.month,multi};
   S.sug=null;
   renderIti(); showPane("iti");
-  if(days.length<S.days)toast("⚠️ 此範圍精選景點只夠排 "+days.length+" 天,建議加大半徑或換中心點");
-  else toast("✅ 行程生成完成!共 "+days.reduce((a,d)=>a+d.list.length,0)+" 個景點");
+  if(days.length<S.days)toast("⚠️ 部分地點景點不足,共排出 "+days.length+" 天,可加大半徑再試");
+  else toast("✅ 行程生成完成!"+(multi?route.length+" 個地點・":"")+days.reduce((a,d)=>a+d.list.length,0)+" 個景點");
 }
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
@@ -1361,17 +1721,20 @@ function renderIti(){
     <div class="wxlive" id="wxLive"></div></div>`;
   let h="";
   S.iti.days.forEach((d,i)=>{
-    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span><span class="darea">${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
+    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span><span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
     d.stops.forEach(st=>{
       if(st.type==="travel"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">🚃 移動約 ${st.min} 分(${fmtD(st.km)})</div></div>`;return}
+      if(st.type==="gap"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:#8A6A1E">🌆 自由時間約 ${Math.round(st.min/5)*5} 分(逛街/咖啡/提早用餐),等待夜景時段</div></div>`;return}
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
-        <div class="info"><h4>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹">${s.n}</span><button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',${st.meal?1:0})">✕ 移除</button></h4><div class="ja">${s.j||""}</div>
+        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',${st.meal?1:0})">✕ 移除</button></h4><div class="ja">${s.j||""}</div>
         <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
         ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${s.la},${s.lo}" target="_blank" rel="noopener">${s.ad}</a></div>`:""}
-        ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}</div></div>`;
+        ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
+        ${st.warn?`<div class="inforow" style="color:#B4622A;background:#FBF0E2;border-radius:8px;padding:6px 10px;margin-top:6px"><span class="ic">⚠️</span><span>${st.warn}</span></div>`:""}
+        ${NOTES[s.n]&&NOTES[s.n].note?`<div class="inforow" style="color:#8A6A1E;background:#FDF8EC;border-radius:8px;padding:6px 10px;margin-top:6px"><span class="ic">📝</span><span>${NOTES[s.n].note.replace(/</g,"&lt;")}</span></div>`:""}</div></div>`;
     });
     h+=`</div>`;
     if(S.sug&&S.sug.di===i&&S.sug.cands.length){
@@ -1381,6 +1744,17 @@ function renderIti(){
     }
     h+=`</div>`;
   });
+  if(S.iti.hotels&&S.iti.hotels.length){
+    h+=`<div class="day-card"><div class="day-hd" style="background:var(--matcha)"><span class="dnum" style="background:#3F5A35">🏨 各地點住宿建議</span></div><div class="rail">`;
+    S.iti.hotels.forEach(x=>{
+      const ht=x.h;
+      h+=`<div class="stop hotel"><div class="time" style="font-size:11px">${x.cn}</div><div class="dot"></div>
+      <div class="info"><h4><span class="nm" onclick="openDetail('${esc(ht.n)}')">${ht.n}</span></h4><div class="ja">${ht.j||""}</div><p>${ht.d||""}</p>
+      ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
+      ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}</div></div>`;
+    });
+    h+=`</div></div>`;
+  }
   if(S.iti.hotel){
     const ht=S.iti.hotel;
     h+=`<div class="day-card"><div class="day-hd" style="background:var(--matcha)"><span class="dnum" style="background:#3F5A35">🏨 住宿建議</span><span class="darea">${ht.a}</span></div>
@@ -1430,6 +1804,17 @@ function openDetail(name){
       ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
       ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
       <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
+      <div style="background:#fff;border:1.5px dashed var(--kin);border-radius:12px;padding:12px 14px;margin:12px 0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <b style="font-size:13.5px;color:#8A6A1E">📝 我的紀錄</b>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer">
+            <input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:16px;height:16px"> ✔ 去過這裡
+          </label>
+          <span id="starPick" style="font-size:19px;cursor:pointer;letter-spacing:3px;margin-left:auto">${[1,2,3,4,5].map(n=>`<span onclick="setStars(${n})" style="color:${(NOTES[s.n]&&NOTES[s.n].stars>=n)?"var(--kin)":"#D9D2BF"}">★</span>`).join("")}</span>
+        </div>
+        <textarea id="noteTxt" placeholder="寫下你的心得、備註、想吃的東西…(只存在你自己的瀏覽器)" style="width:100%;margin-top:8px;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font-b);min-height:64px;resize:vertical;background:#FBF9F3">${(NOTES[s.n]&&NOTES[s.n].note?NOTES[s.n].note.replace(/</g,"&lt;"):"")}</textarea>
+        <button onclick="saveNote('${esc(s.n)}')" style="margin-top:6px;border:none;background:var(--kin);color:#fff;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b)">儲存紀錄</button>
+      </div>
       <div class="d-acts">
         <button class="fv ${S.fav.has(s.n)?"on":""}" onclick="toggleFav('${esc(s.n)}',this)">♥ 收藏</button>
         <button class="pri" onclick="addToIti('${esc(s.n)}');closeDetail()">➕ 排入行程</button>
@@ -1437,6 +1822,7 @@ function openDetail(name){
         ${s.w?`<a href="${s.w}" target="_blank" rel="noopener">官方網站</a>`:`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 公式サイト")}" target="_blank" rel="noopener">搜尋官網</a>`}
       </div>
     </div>`;
+  $("dPanel").dataset.stars=(NOTES[s.n]&&NOTES[s.n].stars)||0;
   $("dOverlay").classList.add("show"); $("dPanel").classList.add("show");
   document.body.style.overflow="hidden";
   // 大圖:優先 Wikidata 直連圖,否則沿用 Wikipedia 圖搜尋
@@ -1483,7 +1869,8 @@ function copyItinerary(){
     txt+="── DAY "+(i+1)+"("+d.areas+")──\n";
     d.stops.forEach(st=>{
       if(st.type==="travel"){txt+="   ↓ 移動約 "+st.min+" 分\n";return}
-      txt+=hhmm(st.t)+" "+(st.meal?(st.dinner?"[晚餐] ":st.snack?"[小吃] ":"[午餐] "):"")+st.s.n+(st.s.pr?"("+st.s.pr+")":"")+"\n";
+      if(st.type==="gap"){txt+="   … 自由時間約 "+Math.round(st.min/5)*5+" 分,等待夜景\n";return}
+      txt+=hhmm(st.t)+" "+(S.visited.has(st.s.n)?"✔":"□")+" "+(st.meal?(st.dinner?"[晚餐] ":st.snack?"[小吃] ":"[午餐] "):"")+st.s.n+(st.s.pr?"("+st.s.pr+")":"")+"\n";
     });
     txt+="\n";
   });
@@ -1502,8 +1889,8 @@ function renderMap(){
   if(LAYER)LAYER.remove();
   LAYER=L.layerGroup().addTo(MAP);
   const pts=[];
-  L.circleMarker([S.center.la,S.center.lo],{radius:9,color:"#20303F",fillColor:"#fff",fillOpacity:1,weight:3}).bindPopup("📍 中心:"+S.center.n).addTo(LAYER);
-  pts.push([S.center.la,S.center.lo]);
+  const ctrs=(S.iti&&S.iti.multi)?[...new Map(S.iti.days.filter(d=>d.center).map(d=>[d.center.n,d.center])).values()]:[S.center];
+  ctrs.forEach(c=>{L.circleMarker([c.la,c.lo],{radius:9,color:"#20303F",fillColor:"#fff",fillOpacity:1,weight:3}).bindPopup("📍 "+c.n.split(",")[0]).addTo(LAYER);pts.push([c.la,c.lo])});
   let legend="";
   if(S.iti){
     S.iti.days.forEach((d,i)=>{
