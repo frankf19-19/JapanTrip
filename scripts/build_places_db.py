@@ -8,10 +8,16 @@
 """
 import json, time, os, sys, urllib.request, urllib.parse
 
-EP = "https://overpass-api.de/api/interpreter"
-UA = "WAYU-TRIP-PlacesDB/1.0 (GitHub Actions; static travel planner)"
-CAP = 900   # 每格上限
-SLEEP = 4   # 禮貌間隔(秒)
+# 多鏡像輪替:被限流(429)或逾時(504)自動換下一台
+EPS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+]
+UA = "WAYU-TRIP-PlacesDB/3.0 (GitHub Actions; static travel planner; contact via repo)"
+CAP = 1600  # 每格上限(三分類共用)
+SLEEP = 6   # 禮貌間隔(秒)
+_ep_i = 0   # 目前鏡像索引
 
 # 日本大致陸地網格(緯度, 經度)— 跳過純海域省時間
 def japan_cells():
@@ -36,34 +42,77 @@ def japan_cells():
             cells.append((la, lo))
     return cells
 
-Q = """[out:json][timeout:90];
+Q = """[out:json][timeout:120];
 (
   node[amenity~"^(restaurant|cafe)$"][name]({s},{w},{n},{e});
   way[amenity~"^(restaurant|cafe)$"][name]({s},{w},{n},{e});
   node[tourism~"^(hotel|hostel|guest_house)$"][name]({s},{w},{n},{e});
   way[tourism~"^(hotel|hostel|guest_house)$"][name]({s},{w},{n},{e});
+  node[tourism~"^(attraction|viewpoint|museum|gallery|theme_park|zoo|aquarium)$"][name]({s},{w},{n},{e});
+  way[tourism~"^(attraction|viewpoint|museum|gallery|theme_park|zoo|aquarium)$"][name]({s},{w},{n},{e});
+  node[historic][name]({s},{w},{n},{e});
+  way[historic][name]({s},{w},{n},{e});
+  node[amenity=place_of_worship][name]({s},{w},{n},{e});
+  way[amenity=place_of_worship][name]({s},{w},{n},{e});
+  way[leisure=park][name]({s},{w},{n},{e});
 );out center tags {cap};"""
 
-def fetch(q, retries=3):
+# 景點子類 →(標籤, 建議停留分)
+SPOT_MAP = {
+    "attraction":  ([],                       60),
+    "viewpoint":   (["自然風景", "夜景展望"], 40),
+    "museum":      (["博物館藝術"],           90),
+    "gallery":     (["博物館藝術"],           60),
+    "theme_park":  (["主題樂園", "親子同樂"], 300),
+    "zoo":         (["親子同樂"],            150),
+    "aquarium":    (["親子同樂"],            120),
+}
+
+def fetch(q, retries=5):
+    global _ep_i
     data = urllib.parse.urlencode({"data": q}).encode()
     for i in range(retries):
+        ep = EPS[_ep_i % len(EPS)]
         try:
-            req = urllib.request.Request(EP, data=data, headers={"User-Agent": UA})
+            req = urllib.request.Request(ep, data=data, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=150) as r:
                 return json.load(r).get("elements", [])
+        except urllib.error.HTTPError as ex:
+            wait = 15
+            if ex.code == 429:  # 限流:遵守 Retry-After 並換鏡像
+                try:
+                    wait = min(int(ex.headers.get("Retry-After", "30")), 90)
+                except Exception:
+                    wait = 30
+                _ep_i += 1
+                print(f"    429 限流 → 換鏡像 {EPS[_ep_i % len(EPS)].split('/')[2]},等 {wait}s", file=sys.stderr)
+            elif ex.code in (504, 502, 503):
+                _ep_i += 1
+                wait = 12
+                print(f"    {ex.code} → 換鏡像重試", file=sys.stderr)
+            else:
+                print(f"    HTTP {ex.code},{wait}s 後重試", file=sys.stderr)
+            time.sleep(wait)
         except Exception as ex:
+            _ep_i += 1
             print(f"    重試 {i+1}: {ex}", file=sys.stderr)
-            time.sleep(20 * (i + 1))
-    return []
+            time.sleep(12)
+    return None  # 全部失敗:回 None 以保留上一次的分區檔
 
 def main():
     os.makedirs("data/osm", exist_ok=True)
     cells = japan_cells()
     total = 0
     print(f"掃描 {len(cells)} 個網格…", flush=True)
+    failed = []
     for idx, (la, lo) in enumerate(cells):
         q = Q.format(s=la, w=lo, n=la + 1, e=lo + 1, cap=CAP)
         els = fetch(q)
+        if els is None:  # 該格徹底失敗:保留上週檔案,下次再抓
+            failed.append(f"r{la}_{lo}")
+            print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: ⚠️ 失敗(保留舊檔,下週重試)", flush=True)
+            time.sleep(SLEEP)
+            continue
         out, seen = [], set()
         for el in els:
             t = el.get("tags", {})
@@ -75,12 +124,33 @@ def main():
             if lat is None:
                 continue
             is_food = t.get("amenity") in ("restaurant", "cafe")
+            is_hotel = t.get("tourism") in ("hotel", "hostel", "guest_house")
             # 品質過濾:餐廳需有 料理/時間/官網 其一
             if is_food and not (t.get("cuisine") or t.get("opening_hours") or t.get("website")):
                 continue
             seen.add(name)
-            e = {"n": name, "la": round(lat, 5), "lo": round(lon, 5),
-                 "c": "food" if is_food else "hotel"}
+            if is_food:
+                cat = "food"; tags = []; stay = 50
+            elif is_hotel:
+                cat = "hotel"; tags = []; stay = 0
+            else:  # 景點
+                cat = "spot"
+                if t.get("amenity") == "place_of_worship":
+                    tags, stay = ["神社寺廟"], 30
+                elif t.get("historic"):
+                    tags, stay = ["歷史古蹟"], 45
+                elif t.get("leisure") == "park":
+                    tags, stay = ["自然風景"], 45
+                else:
+                    tags, stay = SPOT_MAP.get(t.get("tourism"), ([], 60))
+            e = {"n": name, "la": round(lat, 5), "lo": round(lon, 5), "c": cat}
+            if cat == "spot":
+                if tags:
+                    e["t"] = tags
+                e["s"] = stay
+                wp = t.get("wikipedia", "")
+                if wp.startswith("ja:"):
+                    e["wt"] = wp[3:][:80]  # 維基條目名 → 前端介紹/相簿
             ja = t.get("name:ja") or (t.get("name") if t.get("name") != name else "")
             if ja and ja != name:
                 e["j"] = ja
@@ -112,7 +182,9 @@ def main():
     files = sorted(f[:-5] for f in os.listdir("data/osm") if f.endswith(".json") and f != "index.json")
     with open("data/osm/index.json", "w", encoding="utf-8") as f:
         json.dump(files, f)
-    print(f"✅ 完成:{len(files)} 個分區檔,共 {total:,} 筆餐廳/飯店")
+    print(f"✅ 完成:{len(files)} 個分區檔,本次新抓 {total:,} 筆餐廳/飯店")
+    if failed:
+        print(f"⚠️ {len(failed)} 格本次失敗(沿用舊檔):{', '.join(failed[:20])}{'…' if len(failed)>20 else ''}")
 
 if __name__ == "__main__":
     main()
