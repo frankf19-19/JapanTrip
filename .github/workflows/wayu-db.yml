@@ -8,6 +8,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,9 +18,11 @@ jobs:
         run: python scripts/build_spots_db.py
       - name: 從 OSM 抓取全日本餐廳/飯店(分區檔)
         run: python scripts/build_places_db.py
-      - name: 提交資料庫
+      - name: 最終提交(景點庫與收尾)
+        if: always()
         run: |
           git config user.name "wayu-bot"
           git config user.email "actions@users.noreply.github.com"
+          git pull --rebase --autostash || true
           git add data/
-          git diff --cached --quiet && echo "資料無變化" || (git commit -m "chore: 更新擴充景點資料庫" && git push)
+          git diff --cached --quiet && echo "資料無變化" || (git commit -m "chore: 更新資料庫(最終)" && git push)
