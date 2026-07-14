@@ -369,7 +369,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r33</span>
+    <span class="build">build r34</span>
   </div>
 </header>
 
@@ -461,17 +461,8 @@ button:active{transform:scale(.965)}
       <label data-v="中檔" onclick="pickPref(this,'fPricePref')">中檔 ¥1,500–4,500</label>
       <label data-v="高級" onclick="pickPref(this,'fPricePref')">高級 ¥4,500+</label>
     </div>
-    <div class="chips" style="margin-top:6px">
-      <label class="on" data-v="any" onclick="pickPref(this,'fCuiPref')">料理不限</label>
-      <label data-v="麵類拉麵" onclick="pickPref(this,'fCuiPref')">麵類拉麵</label>
-      <label data-v="壽司海鮮" onclick="pickPref(this,'fCuiPref')">壽司海鮮</label>
-      <label data-v="燒肉串燒" onclick="pickPref(this,'fCuiPref')">燒肉串燒</label>
-      <label data-v="居酒屋酒吧" onclick="pickPref(this,'fCuiPref')">居酒屋</label>
-      <label data-v="粉物小吃" onclick="pickPref(this,'fCuiPref')">粉物小吃</label>
-      <label data-v="日式料理" onclick="pickPref(this,'fCuiPref')">日式料理</label>
-      <label data-v="西式料理" onclick="pickPref(this,'fCuiPref')">西式</label>
-      <label data-v="咖啡甜點" onclick="pickPref(this,'fCuiPref')">咖啡甜點</label>
-    </div>
+    <div style="font-size:12px;color:#8A8272;margin:8px 0 4px">想吃什麼(可複選,不選=不限):</div>
+    <div class="chips" id="cuiChips"></div>
 
     <div class="f-label">🏨 住宿偏好(等級・每晚預算,影響飯店推薦)</div>
     <div class="chips">
@@ -567,7 +558,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r33
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r34
 </footer>
 
 <nav class="bottom">
@@ -1104,13 +1095,17 @@ const TMODES={
  charter:{v:35,min:8,ic:"🚐",n:"包車",gm:"driving"}
 };
 S.tmode="transit";
-S.fPricePref="any";S.fCuiPref="any";S.hTierPref="any";S.hBudget="any";
+S.fPricePref="any";S.fCui=new Set();S.hTierPref="any";S.hBudget="any";
 const HBUD={b1:[0,10000,"1萬內"],b2:[10000,20000,"1–2萬"],b3:[20000,42000,"2–4萬"],b4:[40000,9e9,"4萬以上"]};
 function pickPref(el,key){S[key]=el.dataset.v;[...el.parentElement.children].forEach(x=>x.classList.remove("on"));el.classList.add("on")}
 function foodMatch(f){
   if(S.fPricePref!=="any"){const p=foodPrice(f);if(p&&p!==S.fPricePref)return false}
-  if(S.fCuiPref!=="any"&&foodCui(f)!==S.fCuiPref)return false;
+  if(S.fCui.size&&!S.fCui.has(foodCui(f)))return false;
   return true;
+}
+function toggleCui(el,v){
+  if(S.fCui.has(v)){S.fCui.delete(v);el.classList.remove("on")}
+  else{S.fCui.add(v);el.classList.add("on")}
 }
 function hotelMatch(ht){
   if(S.hTierPref!=="any"&&hotelTier(ht)!==S.hTierPref)return false;
@@ -1180,6 +1175,8 @@ function showPane(k,fromPop){
 /* ═══════════════ 初始化控制項 ═══════════════ */
 function init(){
   $("cityChips").innerHTML=CITIES.map((c,i)=>`<button onclick="pickCity(${i},this)">${c.n}</button>`).join("");
+  const cc=$("cuiChips");
+  if(cc)cc.innerHTML=CUI_LIST.map(v=>`<label data-v="${v}" onclick="toggleCui(this,'${v}')">${v}</label>`).join("");
   const apOpts=AIRPORTS.map((a,i)=>`<option value="${i}">${a[0]} ${a[1]}</option>`).join("");
   $("fInAp").innerHTML+=apOpts; $("fOutAp").innerHTML+=apOpts;
   $("monChips").innerHTML=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${m===S.month?'on':''}" onclick="setMonth(${m},this)">${m}月</label>`).join("");
@@ -1261,7 +1258,7 @@ function loadIti(i){
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
-function setCat(el){S.cat=el.dataset.c;S.hTier="全部";S.fCui="全部";S.fPrice="全部";
+function setCat(el){S.cat=el.dataset.c;S.hTier="全部";S.fPrice="全部";
   document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");
   renderSubFilter();renderExplore()}
 function renderSubFilter(){
@@ -1269,7 +1266,9 @@ function renderSubFilter(){
   if(S.cat==="hotel"){
     box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">等級:</span>`+["全部","青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(t=>`<label class="${(S.hTier||"全部")===t?"on":""}" onclick="S.hTier='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
   }else if(S.cat==="food"){
-    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">料理:</span>`+["全部","麵類拉麵","壽司海鮮","燒肉串燒","居酒屋酒吧","粉物小吃","日式料理","西式料理","亞洲料理","咖啡甜點"].map(t=>`<label class="${(S.fCui||"全部")===t?"on":""}" onclick="S.fCui='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("")
+    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">料理(可複選):</span>`
+      +`<label class="${S.fCui.size===0?"on":""}" onclick="S.fCui.clear();renderSubFilter();renderExplore()">全部</label>`
+      +CUI_LIST.map(t=>`<label class="${S.fCui.has(t)?"on":""}" onclick="S.fCui.has('${t}')?S.fCui.delete('${t}'):S.fCui.add('${t}');renderSubFilter();renderExplore()">${t}</label>`).join("")
       +`<span style="font-size:12px;color:#8A8272;align-self:center;margin-left:6px">價位:</span>`+["全部","平價","中檔","高級"].map(t=>`<label class="${(S.fPrice||"全部")===t?"on":""}" onclick="S.fPrice='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
   }else box.innerHTML="";
 }
@@ -1669,21 +1668,34 @@ function hotelTier(s){
   return "中檔";
 }
 const CUIMAP=[
- [/ramen|noodle|udon|soba|拉麵|ラーメン|らーめん|そば|烏龍|沾麵|つけ麺|うどん/i,"麵類拉麵"],
- [/sushi|seafood|壽司|寿司|海鮮|刺身|海膽|蟹|海鮮丼/i,"壽司海鮮"],
- [/yakiniku|barbecue|bbq|steak|grill|燒肉|焼肉|牛排|ステーキ|ホルモン|燒鳥|焼鳥|串/i,"燒肉串燒"],
- [/izakaya|pub|bar|sake|居酒屋|酒場|屋台|餃子|立飲|バル/i,"居酒屋酒吧"],
- [/okonomiyaki|takoyaki|大阪燒|お好み|章魚燒|たこ焼|粉物|文字燒|もんじゃ/i,"粉物小吃"],
- [/cafe|coffee|dessert|ice_cream|bakery|sweets|cake|pancake|珈琲|咖啡|甜|冰|茶寮|菓子|麻糬|餅|蛋糕|パン|パフェ|鬆餅|クレープ/i,"咖啡甜點"],
- [/italian|french|pizza|pasta|spanish|western|義|法式|披薩|洋食|イタリアン|フレンチ/i,"西式料理"],
- [/chinese|korean|thai|indian|curry|vietnamese|asian|中華|韓|泰|咖哩|カレー|餃子/i,"亞洲料理"],
- [/tonkatsu|tempura|unagi|teishoku|kaiseki|japanese|豬排|とんかつ|天婦羅|天ぷら|定食|會席|懷石|和食|牛たん|牛舌|蕎麥|鰻|うなぎ|ひつまぶし|お節/i,"日式料理"]
+ [/ramen|らーめん|ラーメン|拉麵|沾麵|つけ麺|つけめん|油そば|一風堂|一蘭|天下一品|二郎|家系|博多/i,"拉麵"],
+ [/\budon\b|\bsoba\b|うどん|そば|蕎麥|烏龍麵|烏冬|丸亀|丸龜|はなまる/i,"蕎麥烏龍"],
+ [/sushi|寿司|壽司|廻転|回転|迴轉/i,"壽司"],
+ [/seafood|海鮮|刺身|海膽|蟹|海鮮丼|漁|魚介/i,"海鮮"],
+ [/unagi|鰻|うなぎ|ひつまぶし|穴子/i,"鰻魚"],
+ [/yakiniku|焼肉|燒肉|ホルモン|steak|ステーキ|牛排|牛たん|牛舌/i,"燒肉牛排"],
+ [/yakitori|焼き鳥|焼鳥|燒鳥|串焼|串揚|串カツ|くしかつ/i,"串燒串炸"],
+ [/tempura|天ぷら|天婦羅|天丼|かき揚/i,"天婦羅"],
+ [/tonkatsu|とんかつ|豬排|カツ丼|かつ/i,"豬排"],
+ [/丼|donburi|牛丼|親子丼|海鮮丼|鉄火/i,"丼飯"],
+ [/nabe|鍋|しゃぶ|すき焼|壽喜燒|涮涮|もつ鍋|ちゃんこ/i,"鍋物"],
+ [/curry|カレー|咖哩/i,"咖哩"],
+ [/izakaya|居酒屋|酒場|屋台|立飲|バル|pub|bar|sake|日本酒|餃子/i,"居酒屋"],
+ [/okonomiyaki|お好み|大阪燒|takoyaki|たこ焼|章魚燒|もんじゃ|文字燒|粉物/i,"粉物小吃"],
+ [/cafe|coffee|珈琲|咖啡|茶寮|喫茶|抹茶/i,"咖啡茶飲"],
+ [/dessert|sweets|ice_cream|cake|pancake|parfait|甜|冰淇淋|聖代|蛋糕|菓子|麻糬|餅|パフェ|鬆餅|クレープ|ドーナツ/i,"甜點冰品"],
+ [/bakery|パン|麵包|brunch|早午餐|モーニング|三明治|サンド/i,"麵包早餐"],
+ [/italian|french|pizza|pasta|spanish|western|義|法式|披薩|義大利麵|洋食|イタリアン|フレンチ|ビストロ|ハンバーグ|漢堡排/i,"西式料理"],
+ [/chinese|中華|中餐|餃子|拉麵館|担々|麻婆/i,"中華料理"],
+ [/korean|thai|indian|vietnamese|asian|韓|泰|越|印度|アジア/i,"亞洲料理"],
+ [/teishoku|kaiseki|japanese|定食|會席|懷石|和食|お節|割烹/i,"日式定食"]
 ];
 function foodCui(s){
   const src=(s.cu||"")+" "+s.n+" "+(s.j||"")+" "+(s.d||"").slice(0,20);
   for(const [re,lab] of CUIMAP)if(re.test(src))return lab;
   return "其他美食";
 }
+const CUI_LIST=["拉麵","蕎麥烏龍","壽司","海鮮","鰻魚","燒肉牛排","串燒串炸","天婦羅","豬排","丼飯","鍋物","咖哩","居酒屋","粉物小吃","咖啡茶飲","甜點冰品","麵包早餐","西式料理","中華料理","亞洲料理","日式定食"];
 function foodPrice(s){
   const mx=prMax(s.pr);
   if(!mx||mx>90000)return null; // 沒標價或誤抓
@@ -1866,7 +1878,7 @@ function renderExplore(){
   if(S.cat!=="all")list=list.filter(s=>s.c===S.cat);
   if(S.cat==="hotel"&&S.hTier&&S.hTier!=="全部")list=list.filter(s=>hotelTier(s)===S.hTier);
   if(S.cat==="food"){
-    if(S.fCui&&S.fCui!=="全部")list=list.filter(s=>foodCui(s)===S.fCui);
+    if(S.fCui.size)list=list.filter(s=>S.fCui.has(foodCui(s)));
     if(S.fPrice&&S.fPrice!=="全部")list=list.filter(s=>foodPrice(s)===S.fPrice);
   }
   if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
