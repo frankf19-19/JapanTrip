@@ -216,6 +216,16 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .saveditm .si-meta{font-size:11.5px;color:#8A8272}
 .saveditm button{border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:5px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
 .saveditm button.del{border-color:#D9CFBC;color:#B0A692}
+/* ── 照片燈箱 ── */
+#lbOverlay{position:fixed;inset:0;background:rgba(10,15,25,.93);z-index:2500;display:none;align-items:center;justify-content:center}
+#lbOverlay.show{display:flex}
+#lbImg{max-width:94vw;max-height:86vh;object-fit:contain;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.lb-x{position:absolute;top:14px;right:16px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:19px;cursor:pointer;z-index:2}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:76px;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:34px;cursor:pointer;border-radius:12px;z-index:2}
+.lb-nav:hover{background:rgba(255,255,255,.25)}
+.lb-prev{left:10px}.lb-next{right:10px}
+#lbCnt{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;background:rgba(0,0,0,.45);padding:4px 14px;border-radius:99px;letter-spacing:1px}
+.d-hero img.ok{cursor:zoom-in}
 /* ── 景點詳情面板 ── */
 #dOverlay{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:1500;display:none;backdrop-filter:blur(2px)}
 #dOverlay.show{display:block}
@@ -229,6 +239,10 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .d-hero img.ok{opacity:1}
 .d-hero .fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;opacity:.5}
 .d-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(20,30,45,.6);color:#fff;font-size:17px;cursor:pointer;z-index:2}
+.d-gal{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;background:#EFEADF;-webkit-overflow-scrolling:touch}
+.d-gal:empty{display:none}
+.d-gal img{height:72px;width:100px;object-fit:cover;border-radius:8px;cursor:pointer;flex-shrink:0;border:2px solid transparent}
+.d-gal img.on{border-color:var(--shu)}
 .d-bd{padding:18px 20px 26px}
 .d-bd h3{font-family:var(--font-d);font-size:22px;font-weight:900;letter-spacing:1px}
 .d-bd .ja{font-size:12px;color:#A39B87;letter-spacing:1px;margin-bottom:8px}
@@ -277,7 +291,39 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   .sugrow button{margin-left:auto}
   .saveditm button{padding:7px 12px}
   h2.sec{font-size:19px}
+  /* 雙欄緊湊卡片(App 風) */
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .spot .ph{height:96px}
+  .spot .bd{padding:9px 10px 10px}
+  .spot h3{font-size:13.5px;line-height:1.35}
+  .spot .ja{font-size:10px}
+  .spot p.d{font-size:11.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .spot .meta{gap:4px;margin:5px 0}
+  .tag{font-size:10px;padding:1px 6px}
+  .rate{font-size:11px}
+  .rate .glink{font-size:10px;padding:0 5px}
+  .inforow{font-size:11px}
+  .spot .foot{font-size:10.5px;margin-top:6px}
+  .cardacts{gap:4px;margin-top:7px}
+  .cardacts button{font-size:10.5px;padding:7px 2px}
+  .cardacts .liveb{display:none} /* 手機改在詳情面板查營業時間 */
+  .cardacts .favb{flex:0 0 38px}
+  /* 分類頁籤 + 日卡標題吸頂 */
+  .subtabs{position:sticky;top:54px;z-index:30;background:var(--washi);padding:8px 0 6px;margin:10px 0 8px}
+  .day-hd{position:sticky;top:54px;z-index:25}
+  /* 喜好/天數更緊湊 */
+  .chips label{padding:6px 11px;font-size:12.5px}
+  .daysel button{width:37px;height:38px;font-size:14px}
+  #dayCustom{width:56px!important;height:38px!important}
+  .hero{padding:20px 14px 30px}
+  .hero p.sub{font-size:13px}
+  .hero h1{font-size:23px}
 }
+/* 回頂按鈕 + 觸控回饋 */
+#toTop{position:fixed;right:14px;bottom:84px;width:44px;height:44px;border-radius:50%;border:none;background:var(--ai-deep);color:#fff;font-size:19px;box-shadow:0 6px 16px rgba(0,0,0,.3);cursor:pointer;z-index:900;opacity:0;pointer-events:none;transition:.25s;transform:translateY(8px)}
+#toTop.show{opacity:.92;pointer-events:auto;transform:none}
+@media(min-width:900px){#toTop{bottom:24px}}
+button:active{transform:scale(.965)}
 @media print{
   header,nav.bottom,.hero,.iti-actions,.plannercard,footer{display:none!important}
   body{padding:0;background:#fff}
@@ -301,7 +347,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r15</span>
+    <span class="build">build r18</span>
   </div>
 </header>
 
@@ -433,7 +479,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 340 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r15
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r18
 </footer>
 
 <nav class="bottom">
@@ -444,6 +490,14 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   <button id="nb-fav" onclick="showPane('fav')"><span class="ic">♥</span>最愛</button>
 </nav>
 
+<button id="toTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到頂端">↑</button>
+<div id="lbOverlay" onclick="if(event.target===this)closeLB()">
+  <button class="lb-x" onclick="closeLB()">✕</button>
+  <button class="lb-nav lb-prev" onclick="event.stopPropagation();openLB(LB.i-1)">‹</button>
+  <img id="lbImg" alt="照片">
+  <button class="lb-nav lb-next" onclick="event.stopPropagation();openLB(LB.i+1)">›</button>
+  <div id="lbCnt"></div>
+</div>
 <div id="dOverlay" onclick="closeDetail()"></div>
 <div id="dPanel"></div>
 
@@ -909,7 +963,8 @@ const CATN={spot:"景點",food:"美食",shop:"購物",hotel:"住宿"};
 const CATC={spot:"var(--ai)",food:"var(--kin)",shop:"var(--shu)",hotel:"var(--matcha)"};
 
 /* ═══════════════ 導覽 ═══════════════ */
-function showPane(k){
+function showPane(k,fromPop){
+  if(!fromPop&&history.state&&history.state.pane!==k)history.pushState({pane:k},"","#"+k);
   document.querySelectorAll("section.pane").forEach(s=>s.classList.remove("on"));
   $("pane-"+k).classList.add("on");
   ["home","explore","iti","map"].forEach(x=>{
@@ -1351,7 +1406,7 @@ function card(s,inIti){
       <div class="cardacts">
         <button class="favb ${S.fav.has(s.n)?"on":""}" onclick="toggleFav('${esc(s.n)}',this)">♥</button>
         <button onclick="addToIti('${esc(s.n)}')">➕ 排入行程</button>
-        <button onclick="liveInfo('${esc(s.n)}','${esc(s.j||"")}',${s.la},${s.lo},this)">🕐 營業時間</button>
+        <button class="liveb" onclick="liveInfo('${esc(s.n)}','${esc(s.j||"")}',${s.la},${s.lo},this)">🕐 營業時間</button>
       </div>
       <div class="liveout"></div>
     </div>
@@ -1386,6 +1441,11 @@ function parseOH(oh){
     return matched?(open?"open":"closed"):null;
   }catch(e){return null}
 }
+async function getLiveHtml(zh,ja,la,lo){
+  const key=la+","+lo;
+  if(LIVEC.has(key))return LIVEC.get(key);
+  return null;
+}
 async function liveInfo(zh,ja,la,lo,btn){
   const out=btn.closest(".spot").querySelector(".liveout");
   if(out.classList.contains("show")){out.classList.remove("show");return}
@@ -1415,6 +1475,36 @@ async function liveInfo(zh,ja,la,lo,btn){
     else html+='<span style="font-size:10.5px;color:#A39B87">資料即時取自 OpenStreetMap,日本時間 '+jstNow().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"})+' 判定;特殊假日請以官方為準</span>';
     LIVEC.set(key,html); out.innerHTML=html;
   }catch(e){out.innerHTML="查詢逾時,Overpass 伺服器忙碌,請稍後再試。"}
+}
+async function dLive(zh,ja,la,lo){
+  const out=$("dLiveOut"); if(!out)return;
+  out.style.display="block";
+  const key=la+","+lo;
+  if(LIVEC.has(key)){out.innerHTML=LIVEC.get(key);return}
+  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 即時查詢 OpenStreetMap 中…';
+  // 借用 liveInfo 的查詢:建假容器執行同邏輯不划算,直接重複核心查詢
+  const q=`[out:json][timeout:15];(node(around:150,${la},${lo})[name];way(around:150,${la},${lo})[name];);out tags 20;`;
+  try{
+    const r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});
+    const jj=await r.json();
+    const norm=s=>(s||"").replace(/[\s・()()]/g,"");
+    const el=(jj.elements||[]).find(e=>{const t=e.tags||{};const names=[t.name,t["name:ja"],t["name:zh"],t["name:en"]].map(norm);
+      return names.some(nm=>nm&&(nm.includes(norm(ja).slice(0,4))||norm(zh).slice(0,3)&&nm.includes(norm(zh).slice(0,3))));})
+      ||(jj.elements||[]).find(e=>e.tags&&e.tags.opening_hours);
+    let html="";
+    if(el&&el.tags){
+      const t=el.tags;
+      if(t.opening_hours){
+        const st=parseOH(t.opening_hours);
+        html+="🕐 營業時間:"+t.opening_hours+(st==="open"?' <span class="opennow">● 現在營業中</span>':st==="closed"?' <span class="closednow">● 現在休息中</span>':"")+"<br>";
+      }
+      if(t.website||t["contact:website"])html+='🔗 <a href="'+(t.website||t["contact:website"])+'" target="_blank" rel="noopener">官方網站(OSM 登錄)</a><br>';
+      if(t.phone||t["contact:phone"])html+="📞 "+(t.phone||t["contact:phone"])+"<br>";
+    }
+    if(!html)html="OpenStreetMap 尚無此店營業時間登錄,建議點官網或 Google 評價確認。";
+    else html+='<span style="font-size:10.5px;color:#A39B87">即時取自 OpenStreetMap,日本時間 '+jstNow().toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"})+' 判定</span>';
+    LIVEC.set(key,html); out.innerHTML=html;
+  }catch(e){out.innerHTML="查詢逾時,請稍後再試。"}
 }
 /* ═══ Wikipedia 免費圖片載入(懶載入+快取)═══ */
 const IMGC=new Map();
@@ -1767,31 +1857,96 @@ function renderIti(){
   $("itiBox").innerHTML=h;
 }
 
-/* ═══ 景點詳情面板(Wikipedia 即時介紹)═══ */
-const WIKIC=new Map();
-async function wikiSummary(title,lang){
+/* ═══ 景點詳情面板(Wikipedia 完整導言 + 相簿)═══ */
+const WIKIC=new Map(),GALC=new Map();
+async function wikiExtract(title,lang){
   try{
-    const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
-    if(!r.ok)return null;
-    const j=await r.json();
-    if(!j.extract||j.type==="disambiguation")return null;
-    return {text:j.extract,lang,url:(j.content_urls&&j.content_urls.desktop)?j.content_urls.desktop.page:"",thumb:j.thumbnail?j.thumbnail.source:null};
+    const u=`https://${lang}.wikipedia.org/w/api.php?action=query&prop=extracts|info&exintro=1&explaintext=1&redirects=1&inprop=url&format=json&origin=*&titles=${encodeURIComponent(title)}`;
+    const j=await(await fetch(u)).json();
+    const pg=Object.values(j.query.pages)[0];
+    if(!pg||pg.missing!==undefined||!pg.extract||pg.extract.length<30)return null;
+    return {text:pg.extract.trim(),lang,url:pg.fullurl||"",title:pg.title};
+  }catch(e){return null}
+}
+async function wikiFind(q,lang){ // 全文搜尋後援:找最相關條目名
+  try{
+    const u=`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&srsearch=${encodeURIComponent(q)}&format=json&origin=*`;
+    const j=await(await fetch(u)).json();
+    return (j.query.search&&j.query.search[0])?j.query.search[0].title:null;
   }catch(e){return null}
 }
 async function getIntro(s){
   const key=s.n;
   if(WIKIC.has(key))return WIKIC.get(key);
-  let r=await wikiSummary(s.n.split("・")[0].split("(")[0],"zh"); // 中文優先
-  if(!r||r.text.length<40){const r2=s.j?await wikiSummary(s.j.split(" ")[0],"ja"):null; if(r2&&(!r||r2.text.length>r.text.length))r=r2;}
+  let r=null;
+  const nClean=s.n.split("・")[0].split("(")[0];
+  // ① 擴充庫自帶維基條目名 → 直接命中
+  if(s.wt)r=await wikiExtract(s.wt,"ja");
+  // ② 中文條目
+  if(!r)r=await wikiExtract(nClean,"zh");
+  // ③ 日文名條目
+  if(!r&&s.j)r=await wikiExtract(s.j.split(" ")[0],"ja");
+  if(!r)r=await wikiExtract(nClean,"ja");
+  // ④ 全文搜尋後援(zh → ja)
+  if(!r){const t=await wikiFind(nClean,"zh"); if(t)r=await wikiExtract(t,"zh");}
+  if(!r){const t=await wikiFind(s.j||nClean,"ja"); if(t)r=await wikiExtract(t,"ja");}
   WIKIC.set(key,r); return r;
 }
-function openDetail(name){
+async function wikiGallery(title,lang){
+  const key=lang+"|"+title;
+  if(GALC.has(key))return GALC.get(key);
+  const badName=/(\.svg$|map|logo|icon|flag|seal|emblem|地図|位置図|位置|ロゴ)/i;
+  let pics=[];
+  // ① 官方 media-list API(專為條目圖片清單設計,最可靠)
+  try{
+    const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(title)}`);
+    if(r.ok){
+      const j=await r.json();
+      pics=(j.items||[]).filter(it=>it.type==="image"&&it.srcset&&it.srcset[0]&&!badName.test(it.title||""))
+        .map(it=>{let u=it.srcset[it.srcset.length-1].src;if(u.startsWith("//"))u="https:"+u;
+          let t=it.srcset[0].src;if(t.startsWith("//"))t="https:"+t;
+          return {t,f:u};})
+        .slice(0,12);
+    }
+  }catch(e){}
+  // ② 後援:generator=images
+  if(!pics.length){
+    try{
+      const u=`https://${lang}.wikipedia.org/w/api.php?action=query&generator=images&gimlimit=24&prop=imageinfo&iiprop=url&iiurlwidth=440&redirects=1&format=json&origin=*&titles=${encodeURIComponent(title)}`;
+      const j=await(await fetch(u)).json();
+      pics=Object.values((j.query&&j.query.pages)||{})
+        .filter(p=>p.imageinfo&&p.imageinfo[0]&&!badName.test(p.title||""))
+        .map(p=>({t:p.imageinfo[0].thumburl||p.imageinfo[0].url,f:p.imageinfo[0].url}))
+        .filter(p=>p.t).slice(0,12);
+    }catch(e){}
+  }
+  GALC.set(key,pics); return pics;
+}
+/* ═══ 照片燈箱(點大圖放大、左右翻頁)═══ */
+let LB={pics:[],i:0};
+function openLB(i){
+  if(!LB.pics.length)return;
+  LB.i=(i+LB.pics.length)%LB.pics.length;
+  $("lbImg").src=LB.pics[LB.i].f||LB.pics[LB.i].t;
+  $("lbCnt").textContent=(LB.i+1)+" / "+LB.pics.length;
+  $("lbOverlay").classList.add("show");
+}
+function closeLB(){$("lbOverlay").classList.remove("show")}
+document.addEventListener("keydown",e=>{
+  if(!$("lbOverlay")||!$("lbOverlay").classList.contains("show"))return;
+  if(e.key==="Escape")closeLB();
+  if(e.key==="ArrowRight")openLB(LB.i+1);
+  if(e.key==="ArrowLeft")openLB(LB.i-1);
+});
+function openDetail(name,fromPop){
   const s=findByName(name); if(!s)return;
+  if(!fromPop)history.pushState({pane:(history.state&&history.state.pane)||"home",detail:name},"","#spot");
   const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
   const gmap="https://www.google.com/maps/search/?api=1&query="+s.la+","+s.lo;
   const grev="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((s.j||s.n)+" "+(s.ad||""));
   $("dPanel").innerHTML=`
     <div class="d-hero"><div class="fb">${FB[s.c]||"📍"}</div><img id="dImg" alt="${s.n}"><button class="d-close" onclick="closeDetail()">✕</button></div>
+    <div class="d-gal" id="dGal"></div>
     <div class="d-bd">
       <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
       <div class="d-meta">
@@ -1816,11 +1971,13 @@ function openDetail(name){
         <button onclick="saveNote('${esc(s.n)}')" style="margin-top:6px;border:none;background:var(--kin);color:#fff;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b)">儲存紀錄</button>
       </div>
       <div class="d-acts">
+        <button onclick="dLive('${esc(s.n)}','${esc(s.j||"")}',${s.la},${s.lo})">🕐 營業時間</button>
         <button class="fv ${S.fav.has(s.n)?"on":""}" onclick="toggleFav('${esc(s.n)}',this)">♥ 收藏</button>
         <button class="pri" onclick="addToIti('${esc(s.n)}');closeDetail()">➕ 排入行程</button>
         <a href="${grev}" target="_blank" rel="noopener">Google 評價</a>
         ${s.w?`<a href="${s.w}" target="_blank" rel="noopener">官方網站</a>`:`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 公式サイト")}" target="_blank" rel="noopener">搜尋官網</a>`}
       </div>
+      <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
   $("dPanel").dataset.stars=(NOTES[s.n]&&NOTES[s.n].stars)||0;
   $("dOverlay").classList.add("show"); $("dPanel").classList.add("show");
@@ -1832,20 +1989,58 @@ function openDetail(name){
     if(!u&&s.j&&s.j.includes(" "))u=await fetchWiki(s.j.split(" ")[0],"ja");
     if(!u)u=await fetchWiki(s.n.split("・")[0].split("(")[0],"zh");
     if(u){im.onload=()=>im.classList.add("ok");im.src=u;}})();}
-  // 詳細介紹
+  // 詳細介紹 + 相簿
   (async()=>{
     const r=await getIntro(s);
-    const box=$("dWiki"); if(!box)return;
-    if(r){
-      box.innerHTML=r.text.replace(/</g,"&lt;")
-        +`<span class="src">${r.lang==="ja"?"(暫無中文條目,顯示日文介紹)":""} 資料來源:<a href="${r.url}" target="_blank" rel="noopener" style="color:var(--ai)">Wikipedia</a>(CC BY-SA)。${s.d&&!s.osm&&s.a!=="擴充庫"?"":""}</span>`;
-    }else{
-      box.innerHTML=(s.d||"暫無詳細介紹。")+`<span class="src">Wikipedia 查無此條目;可點「Google 評價」或「搜尋官網」了解更多。</span>`;
+    const box=$("dWiki");
+    if(box){
+      if(r){
+        const long=r.text.length>900;
+        const shown=long?r.text.slice(0,900):r.text;
+        box.innerHTML=`<span id="wikiTxt">${shown.replace(/</g,"&lt;")}</span>`
+          +(long?`<a href="javascript:void(0)" id="wikiMore" style="color:var(--shu);font-weight:700"> …展開全文</a>`:"")
+          +`<span class="src">${r.lang==="ja"?"(暫無中文條目,顯示日文介紹)":""} 資料來源:<a href="${r.url}" target="_blank" rel="noopener" style="color:var(--ai)">Wikipedia</a>(CC BY-SA)</span>`;
+        if(long)$("wikiMore").onclick=()=>{$("wikiTxt").textContent=r.text;$("wikiMore").remove()};
+      }else{
+        box.innerHTML=(s.d||"暫無詳細介紹。")+`<span class="src">Wikipedia 查無此條目;可點「Google 評價」或「搜尋官網」了解更多。</span>`;
+      }
+    }
+    // 相簿:多重標題後援(擴充庫條目名 → 日文名 → 解析到的條目 → 中文名)
+    const tries=[];
+    if(s.wt)tries.push([s.wt,"ja"]);
+    if(s.j)tries.push([s.j.split(" ")[0],"ja"]);
+    if(r&&r.title)tries.push([r.title,r.lang]);
+    tries.push([s.n.split("・")[0].split("(")[0],"zh"]);
+    let pics=[];
+    for(const [tt,ll] of tries){
+      pics=await wikiGallery(tt,ll);
+      if(pics.length)break;
+    }
+    const gal=$("dGal"); if(!gal)return;
+    LB.pics=pics; LB.i=0;
+    if(pics.length){
+      gal.innerHTML=pics.map((p,i)=>`<img src="${p.t}" loading="lazy" alt="照片${i+1}" onclick="LB.i=${i};document.getElementById('dImg').src='${p.t}';document.getElementById('dImg').classList.add('ok');document.querySelectorAll('#dGal img').forEach(x=>x.classList.remove('on'));this.classList.add('on')">`).join("")
+        +`<div style="flex-shrink:0;align-self:center;font-size:11px;color:#A39B87;padding:0 6px;white-space:nowrap">共 ${pics.length} 張<br>點大圖放大</div>`;
+      const im=$("dImg");
+      if(im&&!im.classList.contains("ok")){im.onload=()=>im.classList.add("ok");im.src=pics[0].t;}
+      if(im)im.onclick=()=>openLB(LB.i);
     }
   })();
 }
-function closeDetail(){$("dOverlay").classList.remove("show");$("dPanel").classList.remove("show");document.body.style.overflow=""}
+function closeDetail(fromPop){
+  if(!fromPop&&history.state&&history.state.detail){history.back();return} // 交給 popstate 統一處理
+  $("dOverlay").classList.remove("show");$("dPanel").classList.remove("show");document.body.style.overflow="";
+}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetail()});
+/* 返回鍵:先關詳情,再回上一分頁 */
+window.addEventListener("popstate",e=>{
+  const st=e.state||{pane:"home"};
+  if($("dPanel").classList.contains("show")&&!st.detail){closeDetail(true)}
+  if(st.detail){const s=findByName(st.detail);if(s)openDetail(st.detail,true);return}
+  showPane(st.pane||"home",true);
+});
+history.replaceState({pane:"home"},"","#home");
+window.addEventListener("scroll",()=>{$("toTop").classList.toggle("show",window.scrollY>600)},{passive:true});
 
 /* ═══ Open-Meteo 免費即時預報 ═══ */
 async function liveWx(){
@@ -1932,7 +2127,7 @@ init();
       names.add(e.n);
       DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c||"spot",t:e.t||[],a:"擴充庫",
         ad:e.ad||"",d:"來自 Wikidata 全國擴充資料庫;票價與時間請點「營業時間」即時查詢或搜尋官網。",
-        s:e.s||60,p:3,im:e.im});
+        s:e.s||60,p:3,im:e.im,wt:e.wt});
       add++;
     });
     if(add){
