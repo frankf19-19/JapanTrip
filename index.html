@@ -350,7 +350,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r20</span>
+    <span class="build">build r21</span>
   </div>
 </header>
 
@@ -510,7 +510,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 340 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r20
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r21
 </footer>
 
 <nav class="bottom">
@@ -2222,39 +2222,66 @@ function copyItinerary(){
 }
 
 /* ═══════════════ 地圖 ═══════════════ */
-let MAP,LAYER;
+let MAP,LAYER,CANVAS;
 const DAYCOLORS=["#C43B41","#28497C","#5E7B4F","#B98A2F","#7C4E8E","#2E8C8C","#B0553B"];
+const finite=s=>Number.isFinite(s.la)&&Number.isFinite(s.lo);
 function renderMap(){
   if(!window.L){$("map").innerHTML='<div class="loading-big">地圖元件載入失敗,請檢查網路後重新整理</div>';return}
-  if(!MAP){MAP=L.map("map");L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(MAP)}
+  if(!MAP){
+    MAP=L.map("map");
+    CANVAS=L.canvas({padding:.4}); // 高效渲染,數百點也順
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(MAP);
+  }
   if(LAYER)LAYER.remove();
   LAYER=L.layerGroup().addTo(MAP);
   const pts=[];
+  const CHEX={spot:"#28497C",food:"#B98A2F",shop:"#C43B41",hotel:"#5E7B4F"};
+  const mark=(s,opt)=>{ // 防呆:座標異常直接跳過,不讓整張圖掛掉
+    if(!finite(s))return;
+    try{
+      L.circleMarker([s.la,s.lo],Object.assign({renderer:CANVAS,radius:6,weight:1.5,fillOpacity:.85},opt))
+        .bindPopup(`<b style="cursor:pointer" onclick="openDetail('${esc(s.n)}')">${s.n}</b><br>${CATN[s.c]||""}${s.rt?"・★"+s.rt.toFixed(1):""}<br><a href="javascript:void(0)" onclick="openDetail('${esc(s.n)}')">看詳情</a>`)
+        .addTo(LAYER);
+      pts.push([s.la,s.lo]);
+    }catch(e){}
+  };
+  // 中心點
   const ctrs=(S.iti&&S.iti.multi)?[...new Map(S.iti.days.filter(d=>d.center).map(d=>[d.center.n,d.center])).values()]:[S.center];
-  ctrs.forEach(c=>{L.circleMarker([c.la,c.lo],{radius:9,color:"#20303F",fillColor:"#fff",fillOpacity:1,weight:3}).bindPopup("📍 "+c.n.split(",")[0]).addTo(LAYER);pts.push([c.la,c.lo])});
+  ctrs.forEach(c=>{if(!Number.isFinite(c.la))return;
+    L.circleMarker([c.la,c.lo],{radius:9,color:"#20303F",fillColor:"#fff",fillOpacity:1,weight:3}).bindPopup("📍 "+c.n.split(",")[0]).addTo(LAYER);pts.push([c.la,c.lo])});
   let legend="";
   if(S.iti){
+    // 行程模式:每日路線
     S.iti.days.forEach((d,i)=>{
       const col=DAYCOLORS[i%DAYCOLORS.length],line=[];
-      d.stops.filter(x=>x.type==="stop").forEach((st,k)=>{
-        const s=st.s;line.push([s.la,s.lo]);pts.push([s.la,s.lo]);
-        L.circleMarker([s.la,s.lo],{radius:8,color:col,fillColor:col,fillOpacity:.92,weight:2})
-          .bindPopup(`<b>DAY ${i+1}-${k+1}</b> ${hhmm(st.t)}<br>${s.n}`).addTo(LAYER);
+      d.stops.filter(x=>x.type==="stop"&&finite(x.s)).forEach((st,k)=>{
+        const s=st.s;line.push([s.la,s.lo]);
+        mark(s,{radius:8,color:col,fillColor:col,fillOpacity:.92,weight:2});
       });
-      if(line.length>1)L.polyline(line,{color:col,weight:3,dashArray:"6 6",opacity:.85}).addTo(LAYER);
-      legend+=`<span><i style="background:${DAYCOLORS[i%DAYCOLORS.length]}"></i>DAY ${i+1}</span>`;
+      if(line.length>1)try{L.polyline(line,{color:col,weight:3,dashArray:"6 6",opacity:.85}).addTo(LAYER)}catch(e){}
+      legend+=`<span><i style="background:${col}"></i>DAY ${i+1}</span>`;
     });
-    if(S.iti.hotel){L.circleMarker([S.iti.hotel.la,S.iti.hotel.lo],{radius:8,color:"#5E7B4F",fillColor:"#5E7B4F",fillOpacity:.95}).bindPopup("🏨 "+S.iti.hotel.n).addTo(LAYER);legend+=`<span><i style="background:#5E7B4F"></i>住宿</span>`}
+    const hs=S.iti.hotels?S.iti.hotels.map(x=>x.h):(S.iti.hotel?[S.iti.hotel]:[]);
+    hs.forEach(ht=>mark(ht,{radius:8,color:"#5E7B4F",fillColor:"#5E7B4F",fillOpacity:.95}));
+    if(hs.length)legend+=`<span><i style="background:#5E7B4F"></i>住宿</span>`;
   }else{
-    DB.filter(s=>dKm(s)<=+$("radius").value).slice(0,80).forEach(s=>{
-      pts.push([s.la,s.lo]);
-      L.circleMarker([s.la,s.lo],{radius:6,color:CATC[s.c].startsWith("var")?({spot:"#28497C",food:"#B98A2F",shop:"#C43B41",hotel:"#5E7B4F"})[s.c]:"#28497C",fillOpacity:.85,weight:1.5})
-        .bindPopup(`<b>${s.n}</b><br>${CATN[s.c]}・${fmtD(dKm(s))}`).addTo(LAYER);
+    // 無行程:全日本精選(有★評分者)+ 中心周邊所有點
+    const rad=+($("radius")?$("radius").value:25);
+    const seen=new Set();
+    DB.forEach(s=>{ // 全國精選
+      if(!s.rt||seen.has(s.n))return; seen.add(s.n);
+      mark(s,{color:CHEX[s.c]||"#28497C",fillColor:CHEX[s.c]||"#28497C"});
     });
+    let near=0;
+    for(const s of DB){ // 中心周邊(含擴充庫),上限 250 顆避免爆量
+      if(seen.has(s.n)||!finite(s))continue;
+      if(dKm(s)<=rad){seen.add(s.n);mark(s,{color:CHEX[s.c]||"#28497C",fillColor:CHEX[s.c]||"#28497C",fillOpacity:.6,radius:5});if(++near>=250)break}
+    }
     legend=`<span><i style="background:#28497C"></i>景點</span><span><i style="background:#B98A2F"></i>美食</span><span><i style="background:#C43B41"></i>購物</span><span><i style="background:#5E7B4F"></i>住宿</span>`;
   }
-  $("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span>`;
-  if(pts.length)MAP.fitBounds(pts,{padding:[30,30],maxZoom:14});
+  $("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點標記可看詳情${S.iti?"":"・生成行程後會顯示每日路線"}</span>`;
+  if(S.iti&&pts.length){try{MAP.fitBounds(pts,{padding:[30,30],maxZoom:14})}catch(e){MAP.setView([36.2,137.8],5)}}
+  else MAP.setView(S.iti?[36.2,137.8]:(pts.length>50?[37.0,137.5]:[S.center.la,S.center.lo]),pts.length>50?5:11);
 }
 
 init();
