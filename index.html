@@ -350,7 +350,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r23</span>
+    <span class="build">build r24</span>
   </div>
 </header>
 
@@ -458,6 +458,7 @@ button:active{transform:scale(.965)}
     <button data-c="shop" onclick="setCat(this)">🛍️ 購物</button>
     <button data-c="hotel" onclick="setCat(this)">🏨 住宿</button>
   </div>
+  <div class="chips" id="subFilter" style="margin:-4px 0 12px"></div>
   <div class="sortrow">
     <span>排序</span>
     <select id="sortSel" onchange="renderExplore()">
@@ -510,7 +511,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r23
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r24
 </footer>
 
 <nav class="bottom">
@@ -1191,7 +1192,18 @@ function loadIti(i){
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
-function setCat(el){S.cat=el.dataset.c;document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");renderExplore()}
+function setCat(el){S.cat=el.dataset.c;S.hTier="全部";S.fCui="全部";S.fPrice="全部";
+  document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");
+  renderSubFilter();renderExplore()}
+function renderSubFilter(){
+  const box=$("subFilter"); if(!box)return;
+  if(S.cat==="hotel"){
+    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">等級:</span>`+["全部","青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(t=>`<label class="${(S.hTier||"全部")===t?"on":""}" onclick="S.hTier='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
+  }else if(S.cat==="food"){
+    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">料理:</span>`+["全部","麵類拉麵","壽司海鮮","燒肉串燒","居酒屋酒吧","粉物小吃","日式料理","西式料理","亞洲料理","咖啡甜點"].map(t=>`<label class="${(S.fCui||"全部")===t?"on":""}" onclick="S.fCui='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("")
+      +`<span style="font-size:12px;color:#8A8272;align-self:center;margin-left:6px">價位:</span>`+["全部","平價","中檔","高級"].map(t=>`<label class="${(S.fPrice||"全部")===t?"on":""}" onclick="S.fPrice='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
+  }else box.innerHTML="";
+}
 function renderCenter(){
   const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:1.5px solid var(--shu);color:var(--shu);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700">${i+1}. ${c.n.split(",")[0]} <b style="cursor:pointer" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
   $("centerInfo").innerHTML=`<div class="centerbar" style="flex-wrap:wrap">📍 目前中心點:<b>${S.center.n}</b>
@@ -1536,6 +1548,47 @@ function afterLocate(msg){
 }
 
 /* ═══════════════ 卡片 ═══════════════ */
+/* ═══ 飯店/餐廳分級引擎 ═══ */
+const TIER_COLORS={"青旅民宿":"#7A8B99","平價":"#5E7B4F","中檔":"#28497C","高檔":"#8A6A1E","奢華":"#7C4E8E","溫泉旅館":"#C43B41"};
+function prMax(pr){const m=(pr||"").replace(/,/g,"").match(/\d{3,6}/g);return m?Math.max(...m.map(Number)):null}
+function hotelTier(s){
+  if(s.ht==="hostel")return "青旅民宿";
+  if(s.ht==="guest_house")return "青旅民宿";
+  const nm=s.n+(s.j||"");
+  if((s.t||[]).includes("溫泉")||/温泉|溫泉|旅館|の宿|山荘|山莊/.test(nm))return "溫泉旅館";
+  if(/虹夕諾雅|星のや|リッツ|ritz|four seasons|四季|aman|アマン|halekulani|ブルガリ|bvlgari/i.test(nm))return "奢華";
+  const st=parseFloat(s.st);
+  if(st>=5)return "奢華"; if(st>=4)return "高檔"; if(st>=3)return "中檔"; if(st>=1)return "平價";
+  // 品牌判斷優先於價格區間(APA 就算旺季貴也是平價定位)
+  if(/アパ|apa|東横|東橫|toyoko|スーパーホテル|super hotel|ルートイン|route inn|コンフォート|comfort|ホステル|hostel|ゲストハウス|カプセル|capsule/i.test(nm))return "平價";
+  if(/ヒルトン|hilton|マリオット|marriott|ハイアット|hyatt|シェラトン|sheraton|インターコンチ|intercontinental|オークラ|okura|ニューオータニ|皇家|royal park|凱悅|喜來登|希爾頓|萬豪|洲際/i.test(nm)){
+    const mx0=prMax(s.pr); return (mx0&&mx0>=55000)?"奢華":"高檔";
+  }
+  const mx=prMax(s.pr);
+  if(mx){if(mx>=55000)return "奢華";if(mx>=26000)return "高檔";if(mx>=13000)return "中檔";return "平價"}
+  return "中檔";
+}
+const CUIMAP=[
+ [/ramen|noodle|udon|soba|拉麵|ラーメン|らーめん|そば|烏龍|沾麵|つけ麺|うどん/i,"麵類拉麵"],
+ [/sushi|seafood|fish|壽司|寿司|海鮮|丼|魚|蟹|海膽|うなぎ|鰻/i,"壽司海鮮"],
+ [/yakiniku|barbecue|bbq|steak|grill|燒肉|焼肉|牛排|ステーキ|ホルモン|燒鳥|焼鳥|串/i,"燒肉串燒"],
+ [/izakaya|pub|bar|sake|居酒屋|酒場|屋台|餃子|立飲|バル/i,"居酒屋酒吧"],
+ [/okonomiyaki|takoyaki|大阪燒|お好み|章魚燒|たこ焼|粉物|文字燒|もんじゃ/i,"粉物小吃"],
+ [/cafe|coffee|dessert|ice_cream|bakery|sweets|cake|pancake|珈琲|咖啡|甜|冰|茶寮|菓子|麻糬|餅|蛋糕|パン|パフェ|鬆餅|クレープ/i,"咖啡甜點"],
+ [/italian|french|pizza|pasta|spanish|western|義|法式|披薩|洋食|イタリアン|フレンチ/i,"西式料理"],
+ [/chinese|korean|thai|indian|curry|vietnamese|asian|中華|韓|泰|咖哩|カレー|餃子/i,"亞洲料理"],
+ [/tonkatsu|tempura|unagi|teishoku|kaiseki|japanese|豬排|とんかつ|天婦羅|天ぷら|定食|會席|懷石|和食|牛たん|牛舌|蕎麥|お節/i,"日式料理"]
+];
+function foodCui(s){
+  const src=(s.cu||"")+" "+s.n+" "+(s.j||"")+" "+(s.d||"").slice(0,20);
+  for(const [re,lab] of CUIMAP)if(re.test(src))return lab;
+  return "其他美食";
+}
+function foodPrice(s){
+  const mx=prMax(s.pr);
+  if(!mx||mx>90000)return null; // 沒標價或誤抓
+  if(mx>=4500)return "高級"; if(mx>=1500)return "中檔"; return "平價";
+}
 function card(s,inIti){
   const d=dKm(s);
   const gq=encodeURIComponent((s.j||s.n)+" "+(s.ad||""));
@@ -1556,6 +1609,8 @@ function card(s,inIti){
       <div class="meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
         <span class="tag dist">📍 ${fmtD(d)}</span>
+        ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
+        ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
         ${S.visited.has(s.n)?`<span class="tag" style="background:#E4EEDD;color:#3F5A35;font-weight:900">✔ 去過</span>`:""}
         ${NOTES[s.n]&&NOTES[s.n].stars?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">📝 我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}
         ${(s.t||[]).slice(0,2).map(t=>`<span class="tag">${t}</span>`).join("")}
@@ -1708,6 +1763,11 @@ function renderExplore(){
   const kw=($("kw").value||"").trim();
   let list=[...DB,...S.osm].filter(s=>dKm(s)<=+$("radius").value);
   if(S.cat!=="all")list=list.filter(s=>s.c===S.cat);
+  if(S.cat==="hotel"&&S.hTier&&S.hTier!=="全部")list=list.filter(s=>hotelTier(s)===S.hTier);
+  if(S.cat==="food"){
+    if(S.fCui&&S.fCui!=="全部")list=list.filter(s=>foodCui(s)===S.fCui);
+    if(S.fPrice&&S.fPrice!=="全部")list=list.filter(s=>foodPrice(s)===S.fPrice);
+  }
   if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
   const m=$("sortSel").value;
   list.sort((a,b)=>m==="pop"?(((b.rt?1:0)-(a.rt?1:0))||(b.p||0)-(a.p||0)||((b.rt||0)-(a.rt||0))):m==="stay"?(a.s||0)-(b.s||0):dKm(a)-dKm(b));
@@ -2177,6 +2237,8 @@ function openDetail(name,fromPop){
       <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
       <div class="d-meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
+        ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
+        ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
         ${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)} 和遊誌推薦</span>`:""}
         <span class="tag dist">📍 距中心 ${fmtD(dKm(s))}</span>
         ${(s.t||[]).map(t=>`<span class="tag">${t}</span>`).join("")}
@@ -2184,6 +2246,7 @@ function openDetail(name,fromPop){
       </div>
       ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
       ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
+      ${s.oh?(()=>{const st2=parseOH(s.oh);return `<div class="inforow"><span class="ic">🕐</span><span>${s.oh} ${st2==="open"?'<b class="opennow">● 現在營業中</b>':st2==="closed"?'<b class="closednow">● 現在休息中</b>':""}</span></div>`})():""}
       <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
       <div style="background:#fff;border:1.5px dashed var(--kin);border-radius:12px;padding:12px 14px;margin:12px 0">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -2202,6 +2265,12 @@ function openDetail(name,fromPop){
         <button class="pri" onclick="addToIti('${esc(s.n)}');closeDetail()">➕ 排入行程</button>
         <a href="${grev}" target="_blank" rel="noopener">Google 評價</a>
         ${s.w?`<a href="${s.w}" target="_blank" rel="noopener">官方網站</a>`:`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 公式サイト")}" target="_blank" rel="noopener">搜尋官網</a>`}
+      </div>
+      <div class="d-acts" style="margin-top:8px">
+        <a href="https://www.google.com/search?q=${encodeURIComponent(s.j||s.n)}&tbm=isch" target="_blank" rel="noopener">📷 更多照片</a>
+        ${s.c==="food"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 食べログ")}" target="_blank" rel="noopener">🍽️ 食べログ評價</a>`:""}
+        ${s.c==="hotel"?`<a href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 訂房比價</a>`:""}
+        ${s.c==="hotel"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 楽天トラベル")}" target="_blank" rel="noopener">🎌 樂天訂房</a>`:""}
       </div>
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
@@ -2395,7 +2464,8 @@ async function loadArea(){
         if(!e||!e.n||names.has(e.n))return;
         names.add(e.n);
         DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:[],a:"OSM庫",ad:e.ad||"",w:e.w,
-          pr:e.st?("★"+e.st+" 飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網"),
+          cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,
+          pr:e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網"),
           d:(e.cu?("料理:"+e.cu.replace(/;/g,"、")+"。"):"")+(e.oh?("營業:"+e.oh):"來自 OpenStreetMap 全國資料庫。"),
           s:e.c==="food"?50:0,p:3});
         add++;
