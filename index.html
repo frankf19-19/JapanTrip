@@ -411,7 +411,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r36</span>
+    <span class="build">build r37</span>
   </div>
 </header>
 
@@ -600,7 +600,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r36
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r37
 </footer>
 
 <nav class="bottom">
@@ -1959,8 +1959,13 @@ async function fetchOSM(radKm){
     node(${A})[tourism=hotel][name];
     way(${A})[tourism=hotel][name];
   );out center 180;`;
-  const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});
-  const j=await res.json();
+  const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),12000);
+  let j;
+  try{
+    const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
+    j=await res.json();
+  }catch(e){clearTimeout(tid);return [];} // 逾時/失敗:回空,絕不卡住生成
+  clearTimeout(tid);
   const seen=new Set(DB.map(x=>x.n));
   const out=[];
   (j.elements||[]).forEach(e=>{
@@ -2213,12 +2218,18 @@ function wizRender(){
   const b=$("wzBody");b.scrollTop=0;
   if(WZ.step===0){
     nx.textContent="下一步";nx.disabled=!S.center;
-    b.innerHTML=`<div class="wz-q">要去哪裡?</div><div class="wz-sub">搜尋城市/景點,或直接選熱門城市</div>
-      <input class="wz-search" id="wzQ" placeholder="例:京都、澀谷、shibuya…" oninput="wizSug()" value="${S.center?S.center.n.split(",")[0]:""}">
+    const picked=[];
+    if(S.centers.length)S.centers.forEach(c=>picked.push(c.n.split(",")[0]));
+    else if(S.center)picked.push(S.center.n.split(",")[0]);
+    b.innerHTML=`<div class="wz-q">要去哪裡?</div><div class="wz-sub">可加入多個地點(多城市行程),或選一個就好</div>
+      <input class="wz-search" id="wzQ" placeholder="搜尋並點下方結果加入…例:京都、shibuya" oninput="wizSug()">
       <div class="wz-sug" id="wzSug"></div>
-      <div style="font-size:12px;color:#8A8272;margin:14px 0 8px">熱門城市</div>
-      <div class="wz-chips">${CITIES.slice(0,12).map((c,i)=>`<label class="${S.center&&S.center.n===c.n?"on":""}" onclick="wizPickCity(${i})">${c.n}</label>`).join("")}</div>
-      ${S.center?`<div style="margin-top:16px;padding:12px 16px;background:var(--shu-soft);border-radius:12px;font-size:15px">✅ 已選:<b style="color:var(--shu)">${S.center.n.split(",")[0]}</b></div>`:""}`;
+      <div style="font-size:12px;color:#8A8272;margin:14px 0 8px">熱門城市(點擊加入)</div>
+      <div class="wz-chips">${CITIES.slice(0,12).map((c,i)=>`<label class="${S.centers.some(x=>x.n===c.n)||(S.center&&S.center.n===c.n)?"on":""}" onclick="wizAddCity(${i})">${c.n}</label>`).join("")}</div>
+      ${picked.length?`<div style="margin-top:16px;padding:12px 14px;background:var(--shu-soft);border-radius:12px">
+        <div style="font-size:12px;color:#8A8272;margin-bottom:8px">已加入 ${picked.length} 個地點${picked.length>1?"(依順路自動排序)":""}</div>
+        <div class="wz-chips">${picked.map((n,k)=>`<label class="on" style="cursor:default">${k+1}. ${n} <b style="cursor:pointer;margin-left:2px" onclick="wizRmPicked(${k})">✕</b></label>`).join("")}</div>
+      </div>`:""}`;
   }else if(WZ.step===1){
     nx.textContent="下一步";nx.disabled=false;
     b.innerHTML=`<div class="wz-q">玩幾天?</div><div class="wz-sub">之後仍可在行程裡增減</div>
@@ -2257,8 +2268,28 @@ function wizSug(){
   box.innerHTML=out.map((it,i)=>`<div class="s" onclick="wizPickSug(${i})"><span>${it.ic}</span><b>${it.label.split(",")[0]}</b> <small style="color:#A39B87">${it.sub}</small></div>`).join("");
   window._WZSUG=out;
 }
-function wizPickSug(i){const it=window._WZSUG[i];S.center={n:it.label,la:it.la,lo:it.lo};renderCenter();loadArea();wizRender()}
-function wizPickCity(i){S.center={...CITIES[i]};S.center.n=CITIES[i].n;pickCity(i,null);wizRender()}
+function wizAddPoint(pt){
+  if(S.centers.some(c=>Math.abs(c.la-pt.la)<0.01&&Math.abs(c.lo-pt.lo)<0.01)){toast("已加入這個地點");return}
+  if(!S.center){S.center={...pt}} // 第一個兼中心
+  else if(!S.centers.length){S.centers.push({...S.center})} // 從單點轉多點,先把原中心放進清單
+  if(S.centers.length>=8){toast("最多 8 個地點");return}
+  S.centers.push({...pt});
+  // 只有一個時 centers 保持 [] 以維持單點模式;兩個以上才用 centers
+  if(S.centers.length===1)S.centers=[];
+  renderCenter();loadArea();wizRender();
+  toast("✅ 已加入:"+pt.n.split(",")[0]);
+}
+function wizPickSug(i){const it=window._WZSUG[i];wizAddPoint({n:it.label,la:it.la,lo:it.lo});$("wzQ")&&($("wzQ").value="");$("wzSug")&&($("wzSug").innerHTML="")}
+function wizAddCity(i){wizAddPoint({n:CITIES[i].n,la:CITIES[i].la,lo:CITIES[i].lo})}
+function wizRmPicked(k){
+  if(S.centers.length){
+    S.centers.splice(k,1);
+    if(S.centers.length===1){S.center={...S.centers[0]};S.centers=[]}
+    else if(S.centers.length===0)S.center=null;
+    else S.center={...S.centers[0]};
+  }else{S.center=null}
+  renderCenter();wizRender();
+}
 function wizTogglePref(t){WZ.prefs.has(t)?WZ.prefs.delete(t):WZ.prefs.add(t);wizRender()}
 function wizPrev(){if(WZ.step>0){WZ.step--;wizRender()}}
 function wizNext(){
@@ -2274,8 +2305,14 @@ function wizNext(){
   const cst=$("dayCustom");
   if(cst){if([1,2,3,4,5,6,7,8,9,10].includes(S.days))cst.value="";else cst.value=S.days}
   wizClose();
-  showPane("home");
-  generate(false);
+  showPane("iti");
+  $("itiBox").innerHTML='<div class="loading-big"><span class="spin"></span> 行程生成中,請稍候…</div>';
+  $("itiActions") && ($("itiActions").style.display="none");
+  // 讓畫面先渲染 loading,再非同步生成,避免同步大運算凍結 UI
+  setTimeout(async()=>{
+    try{ await generate(false); }
+    catch(err){ $("itiBox").innerHTML='<div class="loading-big">生成時發生問題,請返回規劃頁再試一次。</div>'; console.error(err); }
+  },60);
 }
 
 async function generate(reshuffle){
@@ -2805,7 +2842,9 @@ async function loadArea(){
   let add=0;
   await Promise.all(keys.map(async k=>{
     try{
-      const r=await fetch("data/osm/"+k+".json",{cache:"force-cache"});
+      const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),8000);
+      const r=await fetch("data/osm/"+k+".json",{cache:"force-cache",signal:ctl.signal});
+      clearTimeout(tid);
       if(!r.ok){if(OSMDB_ON===null&&r.status===404){/* 可能尚未建置 */}return}
       OSMDB_ON=true;
       const list=await r.json();
