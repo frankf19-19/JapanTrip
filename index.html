@@ -60,6 +60,12 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .searchbox button{background:var(--shu);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:15px;font-weight:700;font-family:var(--font-b);cursor:pointer;white-space:nowrap}
 .searchbox button:active{transform:scale(.97)}
 .geo-hint{font-size:12px;opacity:.7;margin-top:8px}
+#heroLoc:empty{display:none}
+#heroLoc{margin-top:10px;background:var(--washi);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14.5px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#heroLoc b{color:var(--shu);font-size:16px;letter-spacing:.5px}
+#heroLoc .hl-btn{border:1.5px solid #C9C2B2;background:transparent;color:#5C5A50;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b)}
+#heroLoc .hl-btn.pri{background:var(--shu);border-color:var(--shu);color:#fff}
+#heroLoc .hl-chips{font-size:12.5px;color:#8A8272}
 .searchwrap{position:relative;max-width:640px}
 #sugList{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);z-index:50;overflow:hidden;display:none;max-height:330px;overflow-y:auto}
 #sugList.show{display:block}
@@ -103,7 +109,9 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .fsel{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font-b);background:#FBF9F3;color:var(--ink);flex:1;min-width:0}
 .go-btn{margin-top:20px;width:100%;background:linear-gradient(135deg,var(--shu),#A72F35);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:4px;cursor:pointer;box-shadow:0 6px 16px rgba(196,59,65,.35)}
 .go-btn:active{transform:scale(.98)}
-.centerbar{display:flex;align-items:center;gap:8px;background:var(--shu-soft);border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:14px;border:1px solid #E4C2C3}
+.centerbar{display:flex;align-items:center;gap:12px;background:var(--shu-soft);border-radius:14px;padding:16px 18px;font-size:16px;margin-bottom:16px;border:2px solid var(--shu);box-shadow:0 3px 12px rgba(196,59,65,.14)}
+.centerbar b{font-size:19px;color:var(--shu);letter-spacing:1px}
+@media(max-width:700px){.centerbar{font-size:14.5px;padding:13px 14px}.centerbar b{font-size:17px}}
 .centerbar b{color:var(--shu)}
 
 /* ── 卡片列表 ── */
@@ -350,7 +358,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r24</span>
+    <span class="build">build r27</span>
   </div>
 </header>
 
@@ -366,12 +374,12 @@ button:active{transform:scale(.965)}
           oninput="onSugInput()" onfocus="onSugInput()" onblur="setTimeout(hideSug,180)"
           onkeydown="if(event.key==='Enter'){doGeocode()}else if(event.key==='Escape'){hideSug()}">
         <button onclick="doGeocode()">🔍 搜尋</button>
-        <button onclick="locateMe()" title="用 GPS 找出你現在的位置" style="background:var(--ai);padding:10px 13px">📍</button>
+        <button onclick="locateMe()" title="GPS 定位我現在的位置" style="background:transparent;border:1.5px solid #C9C2B2;color:#6E6754;padding:10px 13px;box-shadow:none">📍</button>
       </div>
-      <div class="geo-hint" style="margin-top:6px">🔍 搜尋地點設為中心|📍 GPS 定位我現在的位置|下拉建議按「＋」直接加入多地點行程</div>
+      <div id="heroLoc"></div>
       <div id="sugList"></div>
     </div>
-    <div class="geo-hint" style="margin-top:10px">或直接快選熱門城市 ↓</div>
+    <div class="geo-hint" style="margin-top:14px;opacity:.55;font-size:11.5px;letter-spacing:1px">快選城市</div>
     <div class="citychips" id="cityChips"></div>
   </div>
 </div>
@@ -511,7 +519,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r24
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r27
 </footer>
 
 <nav class="bottom">
@@ -1204,11 +1212,21 @@ function renderSubFilter(){
       +`<span style="font-size:12px;color:#8A8272;align-self:center;margin-left:6px">價位:</span>`+["全部","平價","中檔","高級"].map(t=>`<label class="${(S.fPrice||"全部")===t?"on":""}" onclick="S.fPrice='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
   }else box.innerHTML="";
 }
+function renderHeroLoc(){
+  const el=$("heroLoc"); if(!el)return;
+  const cs=S.centers.map(c=>c.n.split(",")[0]).join(" → ");
+  el.innerHTML=`📍 <b>${S.center.n.split(",")[0]}</b>
+    ${S.centers.length?`<span class="hl-chips">多地點:${cs}</span>`:""}
+    <span style="flex:1"></span>
+    <button class="hl-btn" onclick="addCenter()">＋加入多地點</button>
+    <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>`;
+}
 function renderCenter(){
-  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:1.5px solid var(--shu);color:var(--shu);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700">${i+1}. ${c.n.split(",")[0]} <b style="cursor:pointer" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
+  renderHeroLoc();
+  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:2px solid var(--shu);color:var(--shu);border-radius:99px;padding:6px 14px;font-size:14px;font-weight:700">${i+1}. ${c.n.split(",")[0]} <b style="cursor:pointer;font-size:15px" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
   $("centerInfo").innerHTML=`<div class="centerbar" style="flex-wrap:wrap">📍 目前中心點:<b>${S.center.n}</b>
-    <button style="border:1.5px solid var(--shu);background:#fff;color:var(--shu);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;min-height:32px" onclick="addCenter()">＋把「${S.center.n.split(",")[0]}」加入行程地點</button>
-    <span style="margin-left:auto;font-size:12px;color:#8A8272">半徑 ${$("radius")?$("radius").value:25} km</span>
+    <button style="border:2px solid var(--shu);background:#fff;color:var(--shu);border-radius:10px;padding:9px 16px;font-size:14.5px;font-weight:900;cursor:pointer;min-height:40px" onclick="addCenter()">＋把「${S.center.n.split(",")[0]}」加入行程地點</button>
+    <span style="margin-left:auto;font-size:13.5px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
     ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(生成時會照順路重排並分配天數)</span></div>`:""}
   </div>`;
 }
@@ -1496,7 +1514,6 @@ async function doGeocode(){
   for(const [names,i] of GEOALIAS){
     if(names.some(a=>{const an=zin(a);return qn===an||qn.startsWith(an)||(an.startsWith(qn)&&qn.length>=2)})){
       pickCity(i,null); highlightCity(i);
-      document.querySelector(".plannercard").scrollIntoView({behavior:"smooth"});
       return;
     }
   }
@@ -1544,7 +1561,7 @@ function highlightCity(i){
 function afterLocate(msg){
   document.querySelectorAll(".citychips button").forEach(b=>b.classList.remove("on"));
   renderCenter(); renderHomePicks(); toast(msg);
-  document.querySelector(".plannercard").scrollIntoView({behavior:"smooth"});
+  
 }
 
 /* ═══════════════ 卡片 ═══════════════ */
