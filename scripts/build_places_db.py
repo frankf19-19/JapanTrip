@@ -121,7 +121,16 @@ def main():
         except Exception as ex:
             print(f"  提交失敗(不影響續跑):{ex}", file=sys.stderr)
     failed = []
+    skipped = 0
+    RESUME = os.environ.get("WAYU_RESUME", "1") != "0"  # 預設開啟斷點續傳
     for idx, (la, lo) in enumerate(cells):
+        path = f"data/osm/r{la}_{lo}.json"
+        # 斷點續傳:已存在且有內容的分區檔直接跳過(只補沒抓到的)
+        if RESUME and os.path.exists(path) and os.path.getsize(path) > 2:
+            skipped += 1
+            if skipped % 20 == 0:
+                print(f"[{idx+1}/{len(cells)}] 已跳過 {skipped} 個既有分區檔…", flush=True)
+            continue
         q = Q.format(s=la, w=lo, n=la + 1, e=lo + 1, cap=CAP)
         els = fetch(q)
         if els is None:  # 該格徹底失敗:保留上週檔案,下次再抓
@@ -200,7 +209,7 @@ def main():
     files = sorted(f[:-5] for f in os.listdir("data/osm") if f.endswith(".json") and f != "index.json")
     with open("data/osm/index.json", "w", encoding="utf-8") as f:
         json.dump(files, f)
-    print(f"✅ 完成:{len(files)} 個分區檔,本次新抓 {total:,} 筆餐廳/飯店")
+    print(f"✅ 完成:{len(files)} 個分區檔(本次跳過 {skipped} 個既有、新抓 {total:,} 筆)")
     if failed:
         print(f"⚠️ {len(failed)} 格本次失敗(沿用舊檔):{', '.join(failed[:20])}{'…' if len(failed)>20 else ''}")
 
