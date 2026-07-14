@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>和遊誌 WAYU TRIP｜日本旅遊行程規劃所</title>
+<meta name="description" content="輸入地點、選擇喜好與天數,自動生成日本旅遊行程。住宿、景點、購物、美食一站搞定。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --washi:#F6F3EB;        /* 和紙底 */
+  --washi-2:#EFEADF;
+  --ink:#20303F;          /* 墨 */
+  --ai:#28497C;           /* 藍染 */
+  --ai-deep:#1B3357;
+  --shu:#C43B41;          /* 朱 */
+  --shu-soft:#F3DDDC;
+  --matcha:#5E7B4F;       /* 抹茶 */
+  --kin:#B98A2F;          /* 金 */
+  --line:#DDD5C2;
+  --card:#FFFFFF;
+  --r:14px;
+  --shadow:0 2px 10px rgba(32,48,63,.08);
+  --font-d:"Zen Old Mincho","Noto Serif TC",serif;
+  --font-b:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-b);background:var(--washi);color:var(--ink);line-height:1.65;padding-bottom:70px}
+@media(min-width:900px){body{padding-bottom:0}}
+
+/* ── Header ── */
+header{background:var(--ai-deep);color:#F4EFE2;position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.hd-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer}
+.mon{width:34px;height:34px;border-radius:50%;background:var(--shu);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:900;font-size:17px;color:#fff;border:2px solid #E8B4B6}
+.logo b{font-family:var(--font-d);font-size:19px;letter-spacing:2px}
+.logo small{display:block;font-size:10px;letter-spacing:3px;opacity:.7;font-weight:400}
+nav.top{margin-left:auto;display:none;gap:4px}
+@media(min-width:900px){nav.top{display:flex}}
+nav.top button{background:none;border:none;color:#D8D2C2;font-family:var(--font-b);font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;cursor:pointer}
+nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
+.build{margin-left:auto;font-size:10px;opacity:.5;letter-spacing:1px}
+@media(min-width:900px){.build{margin-left:8px}}
+
+/* ── Hero ── */
+.hero{background:linear-gradient(160deg,var(--ai-deep) 0%,var(--ai) 68%,#39619C 100%);color:#F4EFE2;padding:34px 16px 46px;position:relative;overflow:hidden}
+.hero::after{content:"旅";position:absolute;right:-20px;top:-38px;font-family:var(--font-d);font-size:220px;font-weight:900;color:rgba(255,255,255,.05);pointer-events:none}
+.hero-in{max-width:1100px;margin:0 auto;position:relative}
+.hero .eyebrow{font-size:12px;letter-spacing:5px;color:#E8B4B6;margin-bottom:8px}
+.hero h1{font-family:var(--font-d);font-size:clamp(26px,5vw,40px);font-weight:900;letter-spacing:3px;line-height:1.3}
+.hero p.sub{margin-top:10px;font-size:14px;opacity:.85;max-width:560px}
+
+/* ── 搜尋列 ── */
+.searchbox{margin-top:22px;background:#fff;border-radius:var(--r);padding:8px;display:flex;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.22);max-width:640px}
+.searchbox input{flex:1;border:none;outline:none;font-size:15px;font-family:var(--font-b);padding:10px 12px;color:var(--ink);background:none;min-width:0}
+.searchbox button{background:var(--shu);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:15px;font-weight:700;font-family:var(--font-b);cursor:pointer;white-space:nowrap}
+.searchbox button:active{transform:scale(.97)}
+.geo-hint{font-size:12px;opacity:.7;margin-top:8px}
+.citychips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;max-width:680px}
+.citychips button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#F4EFE2;border-radius:99px;padding:6px 14px;font-size:13px;font-family:var(--font-b);cursor:pointer;transition:.15s}
+.citychips button:hover,.citychips button.on{background:var(--shu);border-color:var(--shu)}
+
+/* ── 區塊 ── */
+main{max-width:1100px;margin:0 auto;padding:0 16px}
+section.pane{display:none;padding:26px 0 60px}
+section.pane.on{display:block}
+h2.sec{font-family:var(--font-d);font-size:22px;font-weight:900;letter-spacing:2px;display:flex;align-items:center;gap:10px;margin:26px 0 14px}
+h2.sec::before{content:"";width:6px;height:24px;background:var(--shu);border-radius:3px}
+h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:400;letter-spacing:1px}
+
+/* ── 篩選卡 ── */
+.plannercard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.f-label{font-size:13px;font-weight:700;color:var(--ai-deep);margin:14px 0 8px;display:flex;align-items:center;gap:6px}
+.f-label:first-child{margin-top:0}
+.f-label .jp{font-size:10px;color:#A39B87;letter-spacing:2px;font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{border:1.5px solid var(--line);background:#FBF9F3;border-radius:99px;padding:7px 14px;font-size:13.5px;cursor:pointer;user-select:none;transition:.15s;display:flex;align-items:center;gap:5px}
+.chips input{display:none}
+.chips label.on{background:var(--ai);border-color:var(--ai);color:#fff;font-weight:700}
+.chips.shu label.on{background:var(--shu);border-color:var(--shu)}
+.rowflex{display:flex;flex-wrap:wrap;gap:18px}
+.rowflex>div{flex:1;min-width:230px}
+.daysel{display:flex;gap:6px;flex-wrap:wrap}
+.daysel button{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--line);background:#FBF9F3;font-size:15px;font-weight:700;font-family:var(--font-b);cursor:pointer;color:var(--ink)}
+.daysel button.on{background:var(--shu);border-color:var(--shu);color:#fff}
+.radius-row{display:flex;align-items:center;gap:10px;font-size:13px}
+.radius-row input[type=range]{flex:1;accent-color:var(--shu)}
+.go-btn{margin-top:20px;width:100%;background:linear-gradient(135deg,var(--shu),#A72F35);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:4px;cursor:pointer;box-shadow:0 6px 16px rgba(196,59,65,.35)}
+.go-btn:active{transform:scale(.98)}
+.centerbar{display:flex;align-items:center;gap:8px;background:var(--shu-soft);border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:14px;border:1px solid #E4C2C3}
+.centerbar b{color:var(--shu)}
+
+/* ── 卡片列表 ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
+.spot{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:.15s}
+.spot:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(32,48,63,.14)}
+.spot .band{height:6px}
+.spot .bd{padding:13px 14px 14px;flex:1;display:flex;flex-direction:column}
+.spot h3{font-size:15.5px;font-weight:700;line-height:1.4}
+.spot .ja{font-size:11px;color:#A39B87;letter-spacing:1px}
+.spot .meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.tag{font-size:11px;background:#F1EDE0;color:#6E6754;border-radius:6px;padding:2px 8px}
+.tag.cat{background:var(--ai);color:#fff}
+.tag.dist{background:var(--shu-soft);color:var(--shu);font-weight:700}
+.spot p.d{font-size:12.5px;color:#5C5A50;flex:1}
+.spot .foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:12px;color:#8A8272}
+.spot .add{background:none;border:1.5px solid var(--ai);color:var(--ai);border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-b)}
+.spot .add.in{background:var(--matcha);border-color:var(--matcha);color:#fff}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0 14px}
+.subtabs button{border:1.5px solid var(--line);background:#FBF9F3;border-radius:99px;padding:7px 16px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font-b)}
+.subtabs button.on{background:var(--ai-deep);border-color:var(--ai-deep);color:#fff;font-weight:700}
+.sortrow{display:flex;align-items:center;gap:10px;font-size:13px;color:#6E6754;margin-bottom:12px;flex-wrap:wrap}
+.sortrow select,.sortrow input[type=text]{border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;font-family:var(--font-b);background:#fff;color:var(--ink)}
+
+/* ── 行程時間軸(鐵道路線圖)── */
+.day-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.day-hd{background:var(--ai-deep);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.day-hd .dnum{background:var(--shu);border-radius:8px;padding:3px 12px;font-weight:900;font-size:14px;letter-spacing:1px}
+.day-hd .darea{font-size:13px;opacity:.85}
+.day-hd .dstat{margin-left:auto;font-size:12px;opacity:.7}
+.rail{padding:18px 16px 10px;position:relative}
+.stop{display:flex;gap:14px;position:relative;padding-bottom:22px}
+.stop::before{content:"";position:absolute;left:75px;top:22px;bottom:-2px;width:4px;background:var(--shu);border-radius:2px}
+.stop:last-child::before{display:none}
+.stop .time{width:52px;text-align:right;font-size:13px;font-weight:900;color:var(--ai-deep);font-variant-numeric:tabular-nums;padding-top:1px;flex-shrink:0}
+.stop .dot{width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--shu);flex-shrink:0;margin-top:2px;position:relative;z-index:1}
+.stop.meal .dot{border-color:var(--kin)}
+.stop.hotel .dot{border-color:var(--matcha)}
+.stop .info{flex:1;margin-top:-3px}
+.stop .info h4{font-size:15px;font-weight:700}
+.stop .info .ja{font-size:11px;color:#A39B87}
+.stop .info .mrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.stop .info p{font-size:12.5px;color:#5C5A50;margin-top:4px}
+.stop .travel{font-size:11.5px;color:#8A8272;margin-top:8px;display:flex;align-items:center;gap:5px}
+.stop .rm{background:none;border:none;color:#B9AFa0;font-size:12px;cursor:pointer;margin-left:6px}
+.iti-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.iti-actions button{border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:10px;padding:9px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--font-b)}
+.iti-actions button.pri{background:var(--ai);color:#fff}
+.empty{background:var(--card);border:1.5px dashed var(--line);border-radius:var(--r);padding:44px 20px;text-align:center;color:#8A8272;font-size:14px}
+.empty b{display:block;font-family:var(--font-d);font-size:18px;color:var(--ink);margin-bottom:6px}
+
+/* ── 地圖 ── */
+#map{height:480px;border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow);z-index:1}
+.maplegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;margin-top:10px;color:#6E6754}
+.maplegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+
+/* ── 底部導覽(手機)── */
+nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:1000;padding-bottom:env(safe-area-inset-bottom)}
+@media(min-width:900px){nav.bottom{display:none}}
+nav.bottom button{flex:1;background:none;border:none;padding:8px 0 6px;font-size:10.5px;color:#8A8272;font-family:var(--font-b);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.bottom button .ic{font-size:20px;line-height:1}
+nav.bottom button.on{color:var(--shu);font-weight:700}
+
+/* ── Toast / Loading ── */
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:99px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:2000;max-width:88vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading-big{text-align:center;padding:50px 0;color:#8A8272;font-size:14px}
+.loading-big .spin{border-color:#D9D2BF;border-top-color:var(--shu);width:28px;height:28px;border-width:4px;display:block;margin:0 auto 14px}
+
+footer{background:var(--ai-deep);color:#B9C4D6;font-size:12px;text-align:center;padding:22px 16px 26px;margin-top:40px}
+footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
+@media print{
+  header,nav.bottom,.hero,.iti-actions,.plannercard,footer{display:none!important}
+  body{padding:0;background:#fff}
+  section.pane{display:none}
+  #pane-iti{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-in">
+    <div class="logo" onclick="showPane('home')">
+      <div class="mon">遊</div>
+      <div><b>和遊誌</b><small>WAYU TRIP・日本旅遊規劃所</small></div>
+    </div>
+    <nav class="top">
+      <button id="nt-home" class="on" onclick="showPane('home')">規劃行程</button>
+      <button id="nt-explore" onclick="showPane('explore')">探索景點</button>
+      <button id="nt-iti" onclick="showPane('iti')">我的行程</button>
+      <button id="nt-map" onclick="showPane('map')">地圖</button>
+    </nav>
+    <span class="build">build r2</span>
+  </div>
+</header>
+
+<!-- ═══ 首頁 Hero ═══ -->
+<div class="hero" id="heroBlock">
+  <div class="hero-in">
+    <div class="eyebrow">NIHON TABI PLANNER</div>
+    <h1>輸入一個地點,<br>安排一趟剛剛好的日本旅行。</h1>
+    <p class="sub">輸入城市、車站、飯店地址或任何地標,選好喜好與天數,和遊誌會從精選資料庫找出附近的景點、美食、購物與住宿,自動排成每日行程。</p>
+    <div class="searchbox">
+      <input id="q" type="text" placeholder="例:東京車站、大阪心齋橋、京都駅、新宿格拉斯麗飯店…" onkeydown="if(event.key==='Enter')doGeocode()">
+      <button onclick="doGeocode()">🔍 定位</button>
+    </div>
+    <div class="geo-hint">或直接快選熱門城市 ↓</div>
+    <div class="citychips" id="cityChips"></div>
+  </div>
+</div>
+
+<main>
+
+<!-- ═══ 規劃頁 ═══ -->
+<section class="pane on" id="pane-home">
+  <div id="centerInfo"></div>
+  <h2 class="sec">行程偏好設定 <small>PREFERENCES</small></h2>
+  <div class="plannercard">
+    <div class="f-label">🎯 喜好類型(可複選,排行程時優先安排)<span class="jp">KONOMI</span></div>
+    <div class="chips shu" id="prefChips"></div>
+
+    <div class="rowflex" style="margin-top:6px">
+      <div>
+        <div class="f-label">📅 旅遊天數 <span class="jp">DAYS</span></div>
+        <div class="daysel" id="daySel"></div>
+      </div>
+      <div>
+        <div class="f-label">🚶 每日節奏 <span class="jp">PACE</span></div>
+        <div class="chips" id="paceChips">
+          <label data-v="2" onclick="setPace(this)">🍵 輕鬆(2–3點)</label>
+          <label data-v="3" class="on" onclick="setPace(this)">⛩️ 標準(3–4點)</label>
+          <label data-v="4" onclick="setPace(this)">🚄 緊湊(4–5點)</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="f-label">📏 搜尋範圍:<span id="radLabel">25</span> km <span class="jp">RADIUS</span></div>
+    <div class="radius-row">
+      <span>5km</span><input type="range" id="radius" min="5" max="80" value="25" oninput="document.getElementById('radLabel').textContent=this.value"><span>80km</span>
+    </div>
+
+    <div class="f-label">🍜 用餐與住宿</div>
+    <div class="chips" id="extraChips">
+      <label class="on" data-k="meals" onclick="this.classList.toggle('on')">自動安排午餐・晚餐</label>
+      <label class="on" data-k="hotel" onclick="this.classList.toggle('on')">推薦住宿</label>
+    </div>
+
+    <button class="go-btn" onclick="generate()">生 成 行 程</button>
+  </div>
+
+  <h2 class="sec">熱門精選速覽 <small>PICKS NEARBY</small></h2>
+  <div class="grid" id="homePicks"></div>
+</section>
+
+<!-- ═══ 探索頁 ═══ -->
+<section class="pane" id="pane-explore">
+  <h2 class="sec">探索附近 <small>EXPLORE</small></h2>
+  <div class="subtabs" id="catTabs">
+    <button class="on" data-c="all" onclick="setCat(this)">全部</button>
+    <button data-c="spot" onclick="setCat(this)">⛩️ 景點</button>
+    <button data-c="food" onclick="setCat(this)">🍜 美食</button>
+    <button data-c="shop" onclick="setCat(this)">🛍️ 購物</button>
+    <button data-c="hotel" onclick="setCat(this)">🏨 住宿</button>
+  </div>
+  <div class="sortrow">
+    <span>排序</span>
+    <select id="sortSel" onchange="renderExplore()">
+      <option value="dist">距離最近</option>
+      <option value="pop">人氣推薦</option>
+      <option value="stay">停留時間短→長</option>
+    </select>
+    <input type="text" id="kw" placeholder="關鍵字搜尋…" oninput="renderExplore()" style="flex:1;min-width:140px">
+    <button class="add" style="border:1.5px solid var(--shu);color:var(--shu);border-radius:8px;background:#fff;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer" onclick="overpassSearch()">⚡ 即時搜尋更多(OSM)</button>
+  </div>
+  <div class="grid" id="exploreGrid"></div>
+  <div id="opsStatus"></div>
+</section>
+
+<!-- ═══ 行程頁 ═══ -->
+<section class="pane" id="pane-iti">
+  <h2 class="sec">我的行程 <small>ITINERARY</small></h2>
+  <div class="iti-actions" id="itiActions" style="display:none">
+    <button class="pri" onclick="copyItinerary()">📋 複製行程文字</button>
+    <button onclick="window.print()">🖨️ 列印 / 存 PDF</button>
+    <button onclick="showPane('map')">🗺️ 在地圖上看</button>
+    <button onclick="generate(true)">🎲 重新洗牌</button>
+  </div>
+  <div id="itiBox">
+    <div class="empty"><b>還沒有行程</b>回到「規劃行程」選好地點、喜好與天數,按下「生成行程」吧!</div>
+  </div>
+</section>
+
+<!-- ═══ 地圖頁 ═══ -->
+<section class="pane" id="pane-map">
+  <h2 class="sec">行程地圖 <small>MAP</small></h2>
+  <div id="map"></div>
+  <div class="maplegend" id="mapLegend"></div>
+</section>
+
+</main>
+
+<footer>
+  <b>和遊誌 WAYU TRIP</b><br>
+  精選資料庫 140+ 景點・地理編碼 © OpenStreetMap Nominatim・即時搜尋 Overpass API・地圖 © OSM 貢獻者<br>
+  本站為旅遊參考工具,營業時間與費用請以官方公告為準。build r2
+</footer>
+
+<nav class="bottom">
+  <button id="nb-home" class="on" onclick="showPane('home')"><span class="ic">⛩️</span>規劃</button>
+  <button id="nb-explore" onclick="showPane('explore')"><span class="ic">🧭</span>探索</button>
+  <button id="nb-iti" onclick="showPane('iti')"><span class="ic">📋</span>行程</button>
+  <button id="nb-map" onclick="showPane('map')"><span class="ic">🗺️</span>地圖</button>
+</nav>
+
+<div id="toast"></div>
+<script>
+/* ═══════════════ 精選資料庫 ═══════════════
+   c: spot景點 / food美食 / shop購物 / hotel住宿
+   t: 標籤  s: 建議停留(分) p: 人氣1~5           */
+const CITIES=[
+ {n:"東京",la:35.6812,lo:139.7671},{n:"大阪",la:34.6937,lo:135.5023},
+ {n:"京都",la:34.9858,lo:135.7588},{n:"奈良",la:34.6851,lo:135.8048},
+ {n:"札幌",la:43.0687,lo:141.3508},{n:"福岡",la:33.5902,lo:130.4207},
+ {n:"沖繩那霸",la:26.2124,lo:127.6809},{n:"名古屋",la:35.1709,lo:136.8815},{n:"廣島",la:34.3966,lo:132.4596}
+];
+const PREFS=["神社寺廟","歷史古蹟","自然風景","市場老街","美食巡禮","美酒微醺","主題樂園","動漫電玩","博物館藝術","夜景展望","溫泉","親子同樂"];
+const DB=[
+/* ── 東京 ── */
+{n:"淺草寺・雷門",j:"浅草寺",la:35.7148,lo:139.7967,c:"spot",t:["神社寺廟","歷史古蹟","市場老街"],a:"東京",d:"東京最古老寺院,雷門大燈籠與仲見世通老街是經典第一站。",s:90,p:5},
+{n:"東京晴空塔",j:"東京スカイツリー",la:35.7101,lo:139.8107,c:"spot",t:["夜景展望","親子同樂"],a:"東京",d:"634m 世界最高自立式電波塔,展望台可眺望關東平原。",s:120,p:5},
+{n:"明治神宮",j:"明治神宮",la:35.6764,lo:139.6993,c:"spot",t:["神社寺廟","自然風景"],a:"東京",d:"市中心的靜謐森林參道,大鳥居與酒樽牆必拍。",s:75,p:5},
+{n:"澀谷十字路口・忠犬八公",j:"渋谷スクランブル交差点",la:35.6595,lo:139.7005,c:"spot",t:["夜景展望"],a:"東京",d:"世界最繁忙的行人穿越道,SHIBUYA SKY 展望台就在旁邊。",s:60,p:5},
+{n:"新宿御苑",j:"新宿御苑",la:35.6852,lo:139.7100,c:"spot",t:["自然風景"],a:"東京",d:"日式、英式、法式庭園合一,春櫻秋楓皆是名所。",s:90,p:4},
+{n:"上野公園・動物園",j:"上野恩賜公園",la:35.7156,lo:139.7745,c:"spot",t:["自然風景","親子同樂","博物館藝術"],a:"東京",d:"賞櫻名所,園內有動物園(熊貓)與多座國立博物館。",s:120,p:4},
+{n:"東京鐵塔",j:"東京タワー",la:35.6586,lo:139.7454,c:"spot",t:["夜景展望"],a:"東京",d:"昭和地標紅色鐵塔,夜間點燈浪漫,芝公園角度最美。",s:75,p:4},
+{n:"皇居外苑・二重橋",j:"皇居外苑",la:35.6825,lo:139.7521,c:"spot",t:["歷史古蹟","自然風景"],a:"東京",d:"江戶城遺構與松林大道,東御苑免費開放。",s:60,p:3},
+{n:"秋葉原電器街",j:"秋葉原",la:35.6984,lo:139.7731,c:"spot",t:["動漫電玩"],a:"東京",d:"動漫、電玩、女僕咖啡與電器聖地,巷弄扭蛋店挖寶。",s:120,p:5},
+{n:"築地場外市場",j:"築地場外市場",la:35.6654,lo:139.7707,c:"spot",t:["市場老街","美食巡禮"],a:"東京",d:"玉子燒、海鮮丼、現切鮪魚,邊走邊吃的早午餐天堂。",s:90,p:5},
+{n:"teamLab Planets 豐洲",j:"チームラボプラネッツ",la:35.6494,lo:139.7898,c:"spot",t:["博物館藝術","親子同樂"],a:"東京",d:"赤腳入場的沉浸式數位藝術,水中花園超好拍。",s:120,p:5},
+{n:"台場海濱公園・鋼彈",j:"お台場海浜公園",la:35.6300,lo:139.7756,c:"spot",t:["親子同樂","夜景展望","動漫電玩"],a:"東京",d:"彩虹大橋海景、DiverCity 實物大獨角獸鋼彈。",s:120,p:4},
+{n:"東京迪士尼樂園",j:"東京ディズニーランド",la:35.6329,lo:139.8804,c:"spot",t:["主題樂園","親子同樂"],a:"東京",d:"經典夢幻王國,美女與野獸園區人氣最旺,建議留一整天。",s:540,p:5},
+{n:"東京迪士尼海洋",j:"東京ディズニーシー",la:35.6267,lo:139.8851,c:"spot",t:["主題樂園","親子同樂"],a:"東京",d:"全球唯一海洋主題迪士尼,2024 新園區 Fantasy Springs。",s:540,p:5},
+{n:"三鷹之森吉卜力美術館",j:"三鷹の森ジブリ美術館",la:35.6962,lo:139.5704,c:"spot",t:["動漫電玩","博物館藝術","親子同樂"],a:"東京",d:"宮崎駿的童話世界,需提前一個月線上購票。",s:150,p:4},
+{n:"東京國立博物館",j:"東京国立博物館",la:35.7188,lo:139.7765,c:"spot",t:["博物館藝術","歷史古蹟"],a:"東京",d:"日本最大博物館,國寶刀劍、佛像與浮世繪收藏。",s:120,p:3},
+{n:"六本木之丘・森美術館",j:"六本木ヒルズ",la:35.6605,lo:139.7292,c:"spot",t:["夜景展望","博物館藝術"],a:"東京",d:"52 樓展望台看東京鐵塔夜景的最佳角度。",s:120,p:4},
+{n:"井之頭恩賜公園",j:"井の頭公園",la:35.7004,lo:139.5757,c:"spot",t:["自然風景","親子同樂"],a:"東京",d:"吉祥寺旁的湖畔公園,天鵝船與櫻花隧道。",s:75,p:3},
+{n:"鎌倉大佛・長谷寺",j:"鎌倉大仏",la:35.3167,lo:139.5358,c:"spot",t:["神社寺廟","歷史古蹟"],a:"東京近郊",d:"高德院青銅大佛與繡球花名所長谷寺,搭江之電最有味道。",s:120,p:4},
+{n:"江之島",j:"江の島",la:35.2996,lo:139.4804,c:"spot",t:["自然風景","夜景展望"],a:"東京近郊",d:"湘南海岸小島,燈塔展望台可望富士山,吉拿棒與魩仔魚丼。",s:180,p:4},
+{n:"橫濱中華街・紅磚倉庫",j:"横浜中華街",la:35.4437,lo:139.6425,c:"spot",t:["市場老街","夜景展望"],a:"東京近郊",d:"日本最大中華街,港邊紅磚倉庫文創市集與港未來夜景。",s:180,p:4},
+{n:"箱根・大涌谷",j:"箱根 大涌谷",la:35.2444,lo:139.0194,c:"spot",t:["溫泉","自然風景"],a:"東京近郊",d:"火山谷黑蛋、蘆之湖海賊船、纜車富士山景,泡湯一日圈。",s:300,p:4},
+{n:"河口湖・富士山景",j:"河口湖",la:35.5171,lo:138.7510,c:"spot",t:["自然風景","溫泉"],a:"東京近郊",d:"富士五湖之首,大石公園逆富士倒影、天上山纜車。",s:300,p:5},
+{n:"一蘭拉麵 澀谷店",j:"一蘭 渋谷店",la:35.6614,lo:139.7008,c:"food",t:[],a:"東京",d:"天然豚骨拉麵,一人一格的味集中座位,24小時營業。",s:45,p:5},
+{n:"壽司大(豐洲市場)",j:"寿司大",la:35.6455,lo:139.7853,c:"food",t:[],a:"東京",d:"豐洲市場排隊名店,主廚無菜單握壽司,清晨去排最穩。",s:90,p:5},
+{n:"阿夫利柚子拉麵 恵比壽",j:"AFURI 恵比寿",la:35.6467,lo:139.7101,c:"food",t:[],a:"東京",d:"清爽柚子鹽拉麵始祖,女生也能輕鬆吃完的一碗。",s:45,p:4},
+{n:"挽肉と米 澀谷",j:"挽肉と米",la:35.6580,lo:139.6989,c:"food",t:[],a:"東京",d:"現烤漢堡排配白飯無限續,早上發整理券的超人氣店。",s:60,p:5},
+{n:"敘敘苑燒肉 新宿",j:"叙々苑",la:35.6920,lo:139.7005,c:"food",t:[],a:"東京",d:"高級燒肉代名詞,午間套餐 CP 值最高。",s:90,p:4},
+{n:"淺草 大黑家天婦羅",j:"大黒家天麩羅",la:35.7118,lo:139.7947,c:"food",t:[],a:"東京",d:"1887 年創業,黑色秘傳醬汁天丼,淺草老味道。",s:50,p:4},
+{n:"銀座",j:"銀座",la:35.6717,lo:139.7650,c:"shop",t:[],a:"東京",d:"精品旗艦與百年百貨,GINZA SIX、無印良品世界旗艦店。",s:150,p:4},
+{n:"新宿伊勢丹・歌舞伎町",j:"新宿",la:35.6910,lo:139.7043,c:"shop",t:[],a:"東京",d:"百貨一級戰區,伊勢丹地下美食街與唐吉訶德本舖。",s:150,p:5},
+{n:"表參道・原宿竹下通",j:"表参道・竹下通り",la:35.6702,lo:139.7027,c:"shop",t:[],a:"東京",d:"精品建築大道與少女系流行文化一次滿足,可麗餅必吃。",s:150,p:5},
+{n:"阿美橫丁",j:"アメ横",la:35.7106,lo:139.7745,c:"shop",t:["市場老街","美食巡禮"],a:"東京",d:"上野高架下市集,藥妝零食殺價、海鮮居酒屋林立。",s:90,p:4},
+{n:"東京車站一番街",j:"東京駅一番街",la:35.6796,lo:139.7686,c:"shop",t:[],a:"東京",d:"動漫街、零食樂園、東京香蕉伴手禮,雨天購物首選。",s:90,p:4},
+{n:"吉祥寺 SUN ROAD",j:"吉祥寺サンロード",la:35.7043,lo:139.5797,c:"shop",t:[],a:"東京",d:"最想居住街區的商店街,口琴橫丁小酒館與雜貨。",s:90,p:3},
+{n:"新宿格拉斯麗飯店(哥吉拉)",j:"ホテルグレイスリー新宿",la:35.6952,lo:139.7019,c:"hotel",t:[],a:"東京",d:"歌舞伎町哥吉拉頭地標飯店,交通購物極便利。",s:0,p:4},
+{n:"東橫INN 淺草雷門",j:"東横INN浅草雷門",la:35.7106,lo:139.7942,c:"hotel",t:[],a:"東京",d:"平價連鎖含早餐,步行雷門 3 分鐘。",s:0,p:3},
+{n:"三井花園飯店 銀座",j:"三井ガーデンホテル銀座",la:35.6690,lo:139.7622,c:"hotel",t:[],a:"東京",d:"高樓景觀浴場,銀座購物走路就到。",s:0,p:4},
+/* ── 京都 ── */
+{n:"清水寺",j:"清水寺",la:34.9949,lo:135.7850,c:"spot",t:["神社寺廟","歷史古蹟"],a:"京都",d:"世界遺產懸空舞台,二年坂三年坂老街散步最有京都味。",s:120,p:5},
+{n:"伏見稻荷大社",j:"伏見稲荷大社",la:34.9671,lo:135.7727,c:"spot",t:["神社寺廟"],a:"京都",d:"千本鳥居隧道,清晨前往人最少、光線最美。",s:120,p:5},
+{n:"金閣寺",j:"金閣寺",la:35.0394,lo:135.7292,c:"spot",t:["神社寺廟","歷史古蹟"],a:"京都",d:"金箔樓閣倒映鏡湖池,雪天的雪金閣是夢幻景。",s:60,p:5},
+{n:"嵐山竹林・渡月橋",j:"嵐山",la:35.0094,lo:135.6772,c:"spot",t:["自然風景"],a:"京都",d:"竹林小徑、保津川遊船與嵐電,秋楓時節最迷人。",s:180,p:5},
+{n:"祇園花見小路",j:"祇園",la:35.0037,lo:135.7752,c:"spot",t:["歷史古蹟","市場老街"],a:"京都",d:"石板路町家茶屋,黃昏偶遇藝妓,八坂神社就在盡頭。",s:90,p:5},
+{n:"二條城",j:"二条城",la:35.0142,lo:135.7481,c:"spot",t:["歷史古蹟"],a:"京都",d:"德川家康的居城,鶯聲地板與唐門金雕,世界遺產。",s:90,p:4},
+{n:"銀閣寺・哲學之道",j:"銀閣寺",la:35.0270,lo:135.7982,c:"spot",t:["神社寺廟","自然風景"],a:"京都",d:"侘寂美學代表,沿哲學之道散步到南禪寺約 30 分。",s:90,p:4},
+{n:"三十三間堂",j:"三十三間堂",la:34.9878,lo:135.7716,c:"spot",t:["神社寺廟","博物館藝術"],a:"京都",d:"1001 尊千手觀音立像排列,震撼度滿分。",s:60,p:4},
+{n:"宇治平等院・抹茶老街",j:"平等院",la:34.8894,lo:135.8077,c:"spot",t:["歷史古蹟","市場老街","美食巡禮"],a:"京都",d:"十円硬幣上的鳳凰堂,表參道抹茶甜點一條街。",s:150,p:4},
+{n:"貴船神社",j:"貴船神社",la:35.1216,lo:135.7628,c:"spot",t:["神社寺廟","自然風景"],a:"京都",d:"紅燈籠石階參道,夏季川床料理、冬季雪燈籠。",s:120,p:3},
+{n:"京都塔",j:"京都タワー",la:34.9875,lo:135.7594,c:"spot",t:["夜景展望"],a:"京都",d:"京都車站前白色燈塔,展望台環視古都盆地。",s:60,p:3},
+{n:"錦市場",j:"錦市場",la:35.0050,lo:135.7649,c:"shop",t:["市場老街","美食巡禮"],a:"京都",d:"京都的廚房,豆乳甜甜圈、玉子燒、漬物邊走邊吃。",s:90,p:5},
+{n:"新京極・寺町通商店街",j:"新京極",la:35.0068,lo:135.7671,c:"shop",t:[],a:"京都",d:"伴手禮、藥妝與文具老舖,雨天逛街好去處。",s:90,p:3},
+{n:"京都車站地下街 Porta",j:"京都駅ポルタ",la:34.9857,lo:135.7587,c:"shop",t:[],a:"京都",d:"車站直結,伴手禮最後採買與拉麵小路。",s:75,p:3},
+{n:"蟹道樂 京都本店",j:"かに道楽",la:35.0089,lo:135.7690,c:"food",t:[],a:"京都",d:"螃蟹會席料理,午間套餐較划算。",s:90,p:4},
+{n:"茶寮都路里 祇園本店",j:"茶寮都路里",la:35.0036,lo:135.7738,c:"food",t:[],a:"京都",d:"宇治抹茶聖代天花板,排隊也值得。",s:50,p:5},
+{n:"天下一品 總本店",j:"天下一品 総本店",la:35.0499,lo:135.7862,c:"food",t:[],a:"京都",d:"濃厚雞白湯拉麵發源地,京都人的靈魂宵夜。",s:45,p:3},
+{n:"京都世紀酒店",j:"京都センチュリーホテル",la:34.9866,lo:135.7620,c:"hotel",t:[],a:"京都",d:"京都車站旁老牌飯店,早餐評價極高。",s:0,p:4},
+{n:"京都格蘭比亞大酒店",j:"ホテルグランヴィア京都",la:34.9855,lo:135.7585,c:"hotel",t:[],a:"京都",d:"與京都車站共構,拖行李零負擔。",s:0,p:4},
+/* ── 大阪 ── */
+{n:"大阪城天守閣",j:"大阪城",la:34.6873,lo:135.5262,c:"spot",t:["歷史古蹟"],a:"大阪",d:"豐臣秀吉的名城,天守閣展望與西之丸庭園賞櫻。",s:120,p:5},
+{n:"道頓堀・固力果跑跑人",j:"道頓堀",la:34.6687,lo:135.5013,c:"spot",t:["市場老街","夜景展望"],a:"大阪",d:"大阪夜生活心臟,霓虹招牌、章魚燒與遊船。",s:120,p:5},
+{n:"日本環球影城 USJ",j:"ユニバーサル・スタジオ・ジャパン",la:34.6654,lo:135.4323,c:"spot",t:["主題樂園","親子同樂","動漫電玩"],a:"大阪",d:"瑪利歐園區與哈利波特魔法世界,快速通關建議先買。",s:540,p:5},
+{n:"通天閣・新世界",j:"通天閣",la:34.6525,lo:135.5063,c:"spot",t:["夜景展望","市場老街"],a:"大阪",d:"昭和復古街區,串炸店林立,比利肯福神摸腳底。",s:90,p:4},
+{n:"海遊館",j:"海遊館",la:34.6545,lo:135.4290,c:"spot",t:["親子同樂"],a:"大阪",d:"世界級水族館,巨大鯨鯊水槽,旁邊天保山摩天輪看夕陽。",s:150,p:4},
+{n:"梅田藍天大廈 空中庭園",j:"梅田スカイビル",la:34.7053,lo:135.4903,c:"spot",t:["夜景展望"],a:"大阪",d:"360 度露天展望台,大阪夜景第一名所。",s:75,p:4},
+{n:"四天王寺",j:"四天王寺",la:34.6533,lo:135.5163,c:"spot",t:["神社寺廟","歷史古蹟"],a:"大阪",d:"日本最古老官寺,聖德太子創建,五重塔可登。",s:75,p:3},
+{n:"黑門市場",j:"黒門市場",la:34.6654,lo:135.5065,c:"shop",t:["市場老街","美食巡禮"],a:"大阪",d:"大阪的廚房,河豚、和牛串、現開海膽邊走邊吃。",s:90,p:4},
+{n:"心齋橋筋商店街",j:"心斎橋筋",la:34.6726,lo:135.5011,c:"shop",t:[],a:"大阪",d:"600m 拱廊藥妝與潮牌一網打盡,美國村就在旁邊。",s:150,p:5},
+{n:"梅田 GRAND FRONT・阪急百貨",j:"グランフロント大阪",la:34.7043,lo:135.4959,c:"shop",t:[],a:"大阪",d:"梅田車站購物迷宮,阪急地下甜點街必逛。",s:150,p:4},
+{n:"臨空城 Outlet",j:"りんくうプレミアム・アウトレット",la:34.4053,lo:135.2986,c:"shop",t:[],a:"大阪",d:"關西機場對岸大型 Outlet,回程前最後血拚。",s:180,p:3},
+{n:"一蘭拉麵 道頓堀本店",j:"一蘭 道頓堀店",la:34.6690,lo:135.5011,c:"food",t:[],a:"大阪",d:"屋台造型別館氣氛滿點,24 小時不打烊。",s:45,p:4},
+{n:"蟹道樂 道頓堀本店",j:"かに道楽 本店",la:34.6689,lo:135.5017,c:"food",t:[],a:"大阪",d:"巨大機械蟹招牌就是本尊,觀光客必朝聖。",s:90,p:4},
+{n:"元祖串炸達摩 新世界總本店",j:"串かつだるま",la:34.6520,lo:135.5060,c:"food",t:[],a:"大阪",d:"「禁止二次沾醬」的串炸始祖,便宜爽快。",s:60,p:4},
+{n:"551蓬萊 本店",j:"551蓬莱 本店",la:34.6664,lo:135.5008,c:"food",t:[],a:"大阪",d:"豬肉包傳奇,現蒸熱騰騰,伴手禮首選。",s:30,p:4},
+{n:"大阪十字酒店",j:"クロスホテル大阪",la:34.6699,lo:135.5010,c:"hotel",t:[],a:"大阪",d:"道頓堀走路 1 分鐘,設計感十足。",s:0,p:4},
+{n:"大阪蒙特利格拉斯米爾酒店",j:"ホテルモントレグラスミア大阪",la:34.6614,lo:135.5004,c:"hotel",t:[],a:"大阪",d:"難波站旁高樓歐風飯店,高樓層景觀佳。",s:0,p:3},
+/* ── 奈良 ── */
+{n:"奈良公園・小鹿",j:"奈良公園",la:34.6851,lo:135.8430,c:"spot",t:["自然風景","親子同樂"],a:"奈良",d:"1200 頭野生小鹿會鞠躬討仙貝,注意牠們也會搶紙袋。",s:120,p:5},
+{n:"東大寺大佛殿",j:"東大寺",la:34.6890,lo:135.8398,c:"spot",t:["神社寺廟","歷史古蹟"],a:"奈良",d:"世界最大木造建築,15m 盧舍那大佛,鑽柱洞祈福。",s:90,p:5},
+{n:"春日大社",j:"春日大社",la:34.6811,lo:135.8484,c:"spot",t:["神社寺廟"],a:"奈良",d:"三千座石燈籠與朱紅迴廊,森林參道幽靜。",s:75,p:4},
+{n:"中谷堂高速搗麻糬",j:"中谷堂",la:34.6817,lo:135.8290,c:"food",t:[],a:"奈良",d:"電視冠軍高速搗麻糬表演,現搗艾草麻糬熱著吃。",s:20,p:4},
+{n:"東向商店街",j:"東向商店街",la:34.6832,lo:135.8287,c:"shop",t:[],a:"奈良",d:"近鐵奈良站前拱廊街,鹿造型伴手禮大本營。",s:60,p:3},
+/* ── 札幌/北海道 ── */
+{n:"大通公園・札幌電視塔",j:"大通公園",la:43.0610,lo:141.3563,c:"spot",t:["自然風景","夜景展望"],a:"札幌",d:"雪祭會場,夏天啤酒花園,電視塔展望夜景。",s:90,p:4},
+{n:"白色戀人公園",j:"白い恋人パーク",la:43.0898,lo:141.2711,c:"spot",t:["親子同樂","博物館藝術"],a:"札幌",d:"歐風城堡巧克力工廠,DIY 餅乾與夢幻中庭。",s:150,p:4},
+{n:"藻岩山夜景",j:"藻岩山",la:43.0221,lo:141.3220,c:"spot",t:["夜景展望","自然風景"],a:"札幌",d:"日本新三大夜景,纜車上山看札幌燈海。",s:120,p:4},
+{n:"北海道神宮",j:"北海道神宮",la:43.0545,lo:141.3079,c:"spot",t:["神社寺廟","自然風景"],a:"札幌",d:"圓山公園內的北海道總鎮守,春天櫻花梅花齊開。",s:75,p:3},
+{n:"小樽運河",j:"小樽運河",la:43.1990,lo:141.0016,c:"spot",t:["歷史古蹟","夜景展望","市場老街"],a:"札幌近郊",d:"煤油燈石造倉庫群,音樂盒堂與玻璃工房,黃昏最美。",s:240,p:5},
+{n:"登別地獄谷溫泉",j:"登別温泉",la:42.4966,lo:141.1471,c:"spot",t:["溫泉","自然風景"],a:"北海道",d:"硫磺蒸氣火山谷步道,溫泉街泡湯名所。",s:300,p:4},
+{n:"狸小路商店街",j:"狸小路",la:43.0576,lo:141.3524,c:"shop",t:[],a:"札幌",d:"北海道最老拱廊街,藥妝、海鮮居酒屋、驚安殿堂。",s:90,p:4},
+{n:"二條市場",j:"二条市場",la:43.0576,lo:141.3595,c:"food",t:["市場老街","美食巡禮"],a:"札幌",d:"百年海鮮市場,現剖海膽丼、帝王蟹腳當早餐。",s:75,p:4},
+{n:"湯咖哩 GARAKU",j:"スープカレーGARAKU",la:43.0570,lo:141.3540,c:"food",t:[],a:"札幌",d:"札幌湯咖哩人氣王,雞腿蔬菜滿滿一碗。",s:60,p:4},
+{n:"札幌京王廣場飯店",j:"京王プラザホテル札幌",la:43.0665,lo:141.3465,c:"hotel",t:[],a:"札幌",d:"札幌站步行 5 分,自助早餐海鮮丼吃到飽。",s:0,p:4},
+/* ── 福岡 ── */
+{n:"太宰府天滿宮",j:"太宰府天満宮",la:33.5214,lo:130.5347,c:"spot",t:["神社寺廟","歷史古蹟"],a:"福岡",d:"學問之神菅原道真,參道梅枝餅與星巴克概念店。",s:120,p:5},
+{n:"櫛田神社",j:"櫛田神社",la:33.5928,lo:130.4105,c:"spot",t:["神社寺廟"],a:"福岡",d:"博多總鎮守,祇園山笠祭飾山常設展示。",s:60,p:3},
+{n:"福岡塔・海濱百道",j:"福岡タワー",la:33.5932,lo:130.3515,c:"spot",t:["夜景展望"],a:"福岡",d:"234m 海濱鏡面塔,情人聖地夜景。",s:75,p:3},
+{n:"中洲屋台街",j:"中洲屋台",la:33.5932,lo:130.4066,c:"food",t:["美食巡禮","美酒微醺"],a:"福岡",d:"河畔路邊攤文化,豚骨拉麵、烤雞串配啤酒。",s:90,p:5},
+{n:"一蘭 總本店",j:"一蘭 本社総本店",la:33.5934,lo:130.4088,c:"food",t:[],a:"福岡",d:"一蘭發源地,限定重箱拉麵只有這裡吃得到。",s:45,p:4},
+{n:"博多運河城",j:"キャナルシティ博多",la:33.5898,lo:130.4114,c:"shop",t:[],a:"福岡",d:"運河貫穿的購物城,噴水秀與拉麵競技場。",s:150,p:4},
+{n:"博多站 AMU PLAZA",j:"アミュプラザ博多",la:33.5897,lo:130.4207,c:"shop",t:[],a:"福岡",d:"車站共構百貨,頂樓燕林廣場小火車。",s:120,p:3},
+{n:"博多東急 REI 飯店",j:"博多東急REIホテル",la:33.5913,lo:130.4160,c:"hotel",t:[],a:"福岡",d:"中洲與博多站中間,吃屋台走路就到。",s:0,p:3},
+/* ── 沖繩 ── */
+{n:"沖繩美麗海水族館",j:"美ら海水族館",la:26.6941,lo:127.8779,c:"spot",t:["親子同樂"],a:"沖繩",d:"黑潮之海巨型水槽,鯨鯊與鬼蝠魟同游。",s:180,p:5},
+{n:"首里城公園",j:"首里城",la:26.2170,lo:127.7195,c:"spot",t:["歷史古蹟"],a:"沖繩",d:"琉球王國宮殿,正殿重建中仍可參觀城郭石牆。",s:90,p:4},
+{n:"古宇利大橋・心形岩",j:"古宇利大橋",la:26.7078,lo:128.0182,c:"spot",t:["自然風景"],a:"沖繩",d:"跨海大橋兩側 Tiffany 藍海,戀之島傳說。",s:90,p:4},
+{n:"萬座毛",j:"万座毛",la:26.5051,lo:127.8508,c:"spot",t:["自然風景"],a:"沖繩",d:"象鼻珊瑚礁斷崖,夕陽名所。",s:45,p:4},
+{n:"瀨長島 Umikaji Terrace",j:"瀬長島ウミカジテラス",la:26.1774,lo:127.6459,c:"spot",t:["夜景展望","市場老街"],a:"沖繩",d:"純白希臘風小島商場,看飛機降落配夕陽。",s:120,p:4},
+{n:"國際通",j:"国際通り",la:26.2145,lo:127.6863,c:"shop",t:[],a:"沖繩",d:"那霸最熱鬧大街,鹽屋雪鹽冰淇淋、御菓子御殿。",s:120,p:4},
+{n:"美國村",j:"アメリカンビレッジ",la:26.3157,lo:127.7576,c:"shop",t:[],a:"沖繩",d:"美式復古商圈,摩天輪與日落海灘。",s:150,p:4},
+{n:"暖暮拉麵 那霸牧志店",j:"暖暮 那覇牧志店",la:26.2154,lo:127.6892,c:"food",t:[],a:"沖繩",d:"九州拉麵票選第一,國際通宵夜排隊王。",s:45,p:4},
+{n:"豬肉蛋飯糰 本店",j:"ポークたまごおにぎり本店",la:26.2129,lo:127.6742,c:"food",t:[],a:"沖繩",d:"牧志市場旁現做飯糰,沖繩早餐代表。",s:30,p:4},
+{n:"那霸凱悅飯店",j:"ハイアットリージェンシー那覇",la:26.2137,lo:127.6900,c:"hotel",t:[],a:"沖繩",d:"國際通旁高級選擇,頂樓泳池。",s:0,p:4},
+/* ── 名古屋 ── */
+{n:"名古屋城",j:"名古屋城",la:35.1856,lo:136.8998,c:"spot",t:["歷史古蹟"],a:"名古屋",d:"金鯱天守與本丸御殿障壁畫,德川家康築城。",s:120,p:4},
+{n:"熱田神宮",j:"熱田神宮",la:35.1278,lo:136.9086,c:"spot",t:["神社寺廟"],a:"名古屋",d:"供奉草薙神劍,參道蓬萊軒鰻魚飯三吃名店。",s:90,p:4},
+{n:"樂高樂園 LEGOLAND",j:"レゴランド・ジャパン",la:35.0555,lo:136.8443,c:"spot",t:["主題樂園","親子同樂"],a:"名古屋",d:"亞洲第二座樂高樂園,適合 2–12 歲親子。",s:420,p:3},
+{n:"大須商店街",j:"大須商店街",la:35.1595,lo:136.9028,c:"shop",t:[],a:"名古屋",d:"古著、電器、炸雞翅與觀音寺,名古屋的原宿+秋葉原。",s:120,p:4},
+{n:"蓬萊軒鰻魚飯 本店",j:"あつた蓬莱軒",la:35.1225,lo:136.9070,c:"food",t:[],a:"名古屋",d:"鰻魚飯三吃(ひつまぶし)創始老舖。",s:75,p:5},
+{n:"名古屋 JR 門樓酒店",j:"名古屋JRゲートタワーホテル",la:35.1710,lo:136.8822,c:"hotel",t:[],a:"名古屋",d:"名古屋站正上方,新幹線轉乘超方便。",s:0,p:4},
+/* ── 廣島 ── */
+{n:"原爆圓頂館・和平公園",j:"原爆ドーム",la:34.3955,lo:132.4536,c:"spot",t:["歷史古蹟","博物館藝術"],a:"廣島",d:"世界遺產,和平紀念資料館發人深省。",s:120,p:5},
+{n:"嚴島神社(宮島)",j:"厳島神社",la:34.2960,lo:132.3198,c:"spot",t:["神社寺廟","自然風景"],a:"廣島",d:"海上大鳥居,漲潮如浮宮殿,島上小鹿與烤牡蠣。",s:240,p:5},
+{n:"廣島城",j:"広島城",la:34.4027,lo:132.4594,c:"spot",t:["歷史古蹟"],a:"廣島",d:"鯉城復原天守,護城河櫻花。",s:75,p:3},
+{n:"御好燒村",j:"お好み村",la:34.3922,lo:132.4626,c:"food",t:["美食巡禮"],a:"廣島",d:"一棟樓 20+ 家廣島燒名店,鐵板前現煎。",s:60,p:4},
+{n:"本通商店街",j:"広島本通商店街",la:34.3937,lo:132.4589,c:"shop",t:[],a:"廣島",d:"廣島最大拱廊街,楓葉饅頭伴手禮。",s:90,p:3},
+{n:"廣島格蘭王子大飯店",j:"グランドプリンスホテル広島",la:34.3496,lo:132.4623,c:"hotel",t:[],a:"廣島",d:"海濱高塔飯店,有直達宮島的高速船。",s:0,p:3},
+/* ── 美酒微醺 ── */
+{n:"新宿黃金街",j:"新宿ゴールデン街",la:35.6938,lo:139.7049,c:"spot",t:["美酒微醺","夜景展望","市場老街"],a:"東京",d:"200 多間迷你酒吧擠在昭和小巷,每間只坐得下幾人,夜晚微醺聖地。",s:90,p:4},
+{n:"YEBISU BREWERY TOKYO 惠比壽啤酒",j:"ヱビスブルワリー東京",la:35.6425,lo:139.7137,c:"spot",t:["美酒微醺","博物館藝術"],a:"東京",d:"惠比壽啤酒發源地釀造所,現釀限定款只有這裡喝得到。",s:75,p:3},
+{n:"月桂冠大倉紀念館(伏見酒藏)",j:"月桂冠大倉記念館",la:34.9284,lo:135.7623,c:"spot",t:["美酒微醺","歷史古蹟"],a:"京都",d:"伏見清酒藏老街,參觀含三款吟釀試飲,附近黃櫻酒場可續攤。",s:90,p:4},
+{n:"裏天滿居酒屋橫丁",j:"裏天満",la:34.7049,lo:135.5107,c:"spot",t:["美酒微醺","美食巡禮","市場老街"],a:"大阪",d:"天滿市場旁立飲、串炸、海鮮居酒屋密集區,大阪人的深夜食堂。",s:90,p:4},
+{n:"札幌啤酒博物館",j:"サッポロビール博物館",la:43.0713,lo:141.3697,c:"spot",t:["美酒微醺","博物館藝術","歷史古蹟"],a:"札幌",d:"紅磚工廠改建,日本唯一啤酒博物館,試飲三款比較組必點。",s:90,p:4},
+{n:"西條酒藏通",j:"西条酒蔵通り",la:34.4310,lo:132.7430,c:"spot",t:["美酒微醺","歷史古蹟"],a:"廣島近郊",d:"日本三大酒都之一,紅磚煙囪白牆酒藏群,多家可免費試飲。",s:150,p:3},
+{n:"瑞泉酒造(首里泡盛)",j:"瑞泉酒造",la:26.2153,lo:127.7217,c:"spot",t:["美酒微醺","歷史古蹟"],a:"沖繩",d:"首里城旁 130 年泡盛老藏,古酒試飲與酒藏見學。",s:60,p:3}
+];
+/* ═══════════════ 狀態 ═══════════════ */
+let S={center:{n:"東京",la:35.6812,lo:139.7671},days:3,pace:3,prefs:new Set(),cat:"all",iti:null,osm:[]};
+const $=id=>document.getElementById(id);
+const toast=m=>{const t=$("toast");t.innerHTML=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),2600)};
+const dist=(a,b,c,d)=>{const R=6371,p=Math.PI/180,x=(c-a)*p,y=(d-b)*p,h=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+const dKm=s=>dist(S.center.la,S.center.lo,s.la,s.lo);
+const fmtD=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1)+" km";
+const CATN={spot:"景點",food:"美食",shop:"購物",hotel:"住宿"};
+const CATC={spot:"var(--ai)",food:"var(--kin)",shop:"var(--shu)",hotel:"var(--matcha)"};
+
+/* ═══════════════ 導覽 ═══════════════ */
+function showPane(k){
+  document.querySelectorAll("section.pane").forEach(s=>s.classList.remove("on"));
+  $("pane-"+k).classList.add("on");
+  ["home","explore","iti","map"].forEach(x=>{
+    const a=$("nt-"+x),b=$("nb-"+x);
+    if(a)a.classList.toggle("on",x===k); if(b)b.classList.toggle("on",x===k);
+  });
+  $("heroBlock").style.display=k==="home"?"":"none";
+  if(k==="explore")renderExplore();
+  if(k==="map")setTimeout(renderMap,60);
+  window.scrollTo({top:0});
+}
+
+/* ═══════════════ 初始化控制項 ═══════════════ */
+function init(){
+  $("cityChips").innerHTML=CITIES.map((c,i)=>`<button onclick="pickCity(${i},this)">${c.n}</button>`).join("");
+  $("prefChips").innerHTML=PREFS.map(p=>`<label onclick="togglePref(this,'${p}')">${p}</label>`).join("");
+  $("daySel").innerHTML=[1,2,3,4,5,6,7,8,9,10].map(d=>`<button class="${d===3?'on':''}" onclick="setDays(${d},this)">${d}</button>`).join("")
+    +`<input type="number" id="dayCustom" min="1" max="30" placeholder="自訂" onchange="setDaysCustom(this)" style="width:64px;height:42px;border:1.5px solid var(--line);border-radius:10px;background:#FBF9F3;font-size:14px;font-weight:700;font-family:var(--font-b);text-align:center;color:var(--ink)">`
+    +`<span style="font-size:11px;color:#8A8272;align-self:center">最多30天</span>`;
+  renderCenter(); renderHomePicks();
+}
+function pickCity(i,btn){
+  S.center={...CITIES[i]};
+  document.querySelectorAll(".citychips button").forEach(b=>b.classList.remove("on"));
+  if(btn)btn.classList.add("on");
+  renderCenter(); renderHomePicks(); toast("📍 已設定中心:"+S.center.n);
+}
+function togglePref(el,p){el.classList.toggle("on");el.classList.contains("on")?S.prefs.add(p):S.prefs.delete(p)}
+function setDays(d,el){S.days=d;document.querySelectorAll("#daySel button").forEach(b=>b.classList.remove("on"));el.classList.add("on");const c=$("dayCustom");if(c)c.value=""}
+function setDaysCustom(inp){
+  let v=Math.round(+inp.value||0);
+  if(!v){return}
+  v=Math.min(30,Math.max(1,v)); inp.value=v; S.days=v;
+  document.querySelectorAll("#daySel button").forEach(b=>b.classList.toggle("on",+b.textContent===v));
+  toast("📅 已設定 "+v+" 天行程");
+}
+function setPace(el){S.pace=+el.dataset.v;document.querySelectorAll("#paceChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
+function setCat(el){S.cat=el.dataset.c;document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");renderExplore()}
+function renderCenter(){
+  $("centerInfo").innerHTML=`<div class="centerbar">📍 目前中心點:<b>${S.center.n}</b><span style="margin-left:auto;font-size:12px;color:#8A8272">半徑 ${$("radius")?$("radius").value:25} km 內搜尋</span></div>`;
+}
+
+/* ═══════════════ 地理編碼(Nominatim,免金鑰)═══════════════ */
+async function doGeocode(){
+  const q=$("q").value.trim();
+  if(!q){toast("請先輸入地點或地址");return}
+  toast('<span class="spin"></span> 定位中…');
+  try{
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(q));
+    const j=await r.json();
+    if(!j.length){toast("找不到「"+q+"」,試試加上城市名,例:大阪 心齋橋");return}
+    S.center={n:j[0].display_name.split(",").slice(0,2).join(","),la:+j[0].lat,lo:+j[0].lon};
+    document.querySelectorAll(".citychips button").forEach(b=>b.classList.remove("on"));
+    renderCenter(); renderHomePicks();
+    toast("📍 定位成功:"+S.center.n);
+    document.querySelector(".plannercard").scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(e){toast("定位服務暫時無回應,請稍後再試或直接快選城市")}
+}
+
+/* ═══════════════ 卡片 ═══════════════ */
+function card(s,inIti){
+  const d=dKm(s);
+  return `<div class="spot">
+    <div class="band" style="background:${CATC[s.c]}"></div>
+    <div class="bd">
+      <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
+      <div class="meta">
+        <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
+        <span class="tag dist">📍 ${fmtD(d)}</span>
+        ${(s.t||[]).slice(0,2).map(t=>`<span class="tag">${t}</span>`).join("")}
+      </div>
+      <p class="d">${s.d||""}</p>
+      <div class="foot">
+        <span>${s.s?("建議停留 "+(s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+" 小時":s.s+" 分")):"—"}　${"★".repeat(s.p||3)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+function renderHomePicks(){
+  const list=DB.filter(s=>dKm(s)<=+($("radius")?.value||25)).sort((a,b)=>(b.p-a.p)||(dKm(a)-dKm(b))).slice(0,6);
+  $("homePicks").innerHTML=list.length?list.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>此範圍內沒有精選資料</b>試著加大搜尋半徑,或用「探索」頁的即時搜尋。</div>`;
+}
+function renderExplore(){
+  const kw=($("kw").value||"").trim();
+  let list=[...DB,...S.osm].filter(s=>dKm(s)<=+$("radius").value);
+  if(S.cat!=="all")list=list.filter(s=>s.c===S.cat);
+  if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
+  const m=$("sortSel").value;
+  list.sort((a,b)=>m==="pop"?(b.p||0)-(a.p||0):m==="stay"?(a.s||0)-(b.s||0):dKm(a)-dKm(b));
+  $("exploreGrid").innerHTML=list.length?list.slice(0,60).map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>沒有符合的結果</b>換個類別或關鍵字,或按「即時搜尋更多」抓取 OpenStreetMap 資料。</div>`;
+}
+
+/* ═══════════════ 即時附近搜尋(Overpass)═══════════════ */
+async function overpassSearch(){
+  $("opsStatus").innerHTML=`<div class="loading-big"><span class="spin"></span>正在從 OpenStreetMap 抓取附近店家(約 5–15 秒)…</div>`;
+  const r=Math.min(+$("radius").value,10)*1000; // 即時搜尋上限10km,避免逾時
+  const q=`[out:json][timeout:25];(
+    node(around:${r},${S.center.la},${S.center.lo})[tourism~"attraction|museum|viewpoint|theme_park|zoo|aquarium"];
+    node(around:${r},${S.center.la},${S.center.lo})[amenity~"restaurant|cafe"][name];
+    node(around:${r},${S.center.la},${S.center.lo})[shop~"mall|department_store|supermarket"][name];
+    node(around:${r},${S.center.la},${S.center.lo})[tourism="hotel"][name];
+  );out body 120;`;
+  try{
+    const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});
+    const j=await res.json();
+    S.osm=(j.elements||[]).filter(e=>e.tags&&(e.tags["name:zh"]||e.tags.name)).map(e=>{
+      const t=e.tags,c=t.tourism==="hotel"?"hotel":t.shop?"shop":t.amenity?"food":"spot";
+      return {n:t["name:zh"]||t.name,j:t["name:ja"]||"",la:e.lat,lo:e.lon,c,t:[],a:"OSM 即時",d:(t.cuisine?("料理:"+t.cuisine.replace(/;/g,"、")+"。"):"")+(t["opening_hours"]?("營業:"+t["opening_hours"]):"來自 OpenStreetMap 即時資料。"),s:c==="spot"?60:45,p:3,osm:1};
+    });
+    $("opsStatus").innerHTML="";
+    toast("⚡ 已載入 "+S.osm.length+" 筆 OSM 即時資料");
+    renderExplore();
+  }catch(e){
+    $("opsStatus").innerHTML="";
+    toast("即時搜尋逾時,Overpass 伺服器忙碌中,請稍後再試");
+  }
+}
+
+/* ═══════════════ 行程生成演算法 ═══════════════ */
+function generate(reshuffle){
+  const rad=+$("radius").value;
+  const wantMeal=document.querySelector('#extraChips label[data-k=meals]').classList.contains("on");
+  const wantHotel=document.querySelector('#extraChips label[data-k=hotel]').classList.contains("on");
+  let pool=DB.filter(s=>s.c!=="hotel"&&dKm(s)<=rad&&(s.c==="spot"||(S.prefs.size&&(s.t||[]).some(t=>S.prefs.has(t)))));
+  const foods=DB.filter(s=>s.c==="food"&&dKm(s)<=rad);
+  const hotels=DB.filter(s=>s.c==="hotel"&&dKm(s)<=rad).sort((a,b)=>dKm(a)-dKm(b));
+  if(!pool.length){toast("此範圍內沒有精選景點,請加大半徑或換個中心點");return}
+
+  // 喜好加權:符合喜好 +10、人氣 + p、重洗牌加隨機
+  const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(reshuffle?Math.random()*4:0);
+  if(S.prefs.size)pool=pool.filter(s=>s.t.some(t=>S.prefs.has(t))).length>=S.days*2
+      ? pool.filter(s=>s.t.some(t=>S.prefs.has(t))) : pool; // 喜好太少就放寬
+  pool.sort((a,b)=>score(b)-score(a));
+
+  const perDay=S.pace, need=Math.min(pool.length,S.days*perDay+2);
+  let cands=pool.slice(0,Math.max(need,S.days*perDay*2)); // 取前段候選
+  const usedF=new Set(), days=[];
+
+  let prevAnchor=S.center;
+  for(let d=0;d<S.days;d++){
+    if(!cands.length)break;
+    // 錨點:離前一天結束點最近的高分景點
+    cands.sort((a,b)=>(dist(prevAnchor.la,prevAnchor.lo,a.la,a.lo)-dist(prevAnchor.la,prevAnchor.lo,b.la,b.lo)));
+    const dayList=[cands.shift()];
+    // 就近鏈:每次接最近的下一點(大型樂園佔一整天)
+    while(dayList.length<perDay+ (Math.random()<.5?1:0) && cands.length){
+      if(dayList.some(x=>x.s>=420))break;
+      const last=dayList[dayList.length-1];
+      cands.sort((a,b)=>dist(last.la,last.lo,a.la,a.lo)-dist(last.la,last.lo,b.la,b.lo));
+      if(dist(last.la,last.lo,cands[0].la,cands[0].lo)>rad*1.2)break;
+      const nx=cands.shift();
+      if(nx.s>=420&&dayList.length)cands.push(nx); else dayList.push(nx);
+    }
+    // 時間軸
+    let t=9*60; const stops=[];
+    dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)}); // 已排入行程的美食點不再當午晚餐
+    const nearestFood=pt=>{
+      const f=foods.filter(x=>!usedF.has(x.n)).sort((a,b)=>dist(pt.la,pt.lo,a.la,a.lo)-dist(pt.la,pt.lo,b.la,b.lo))[0];
+      if(f)usedF.add(f.n); return f;
+    };
+    let lunch=false,snack=!S.prefs.has("美食巡禮"); // 選了美食巡禮才排午後小吃
+    dayList.forEach((s,i)=>{
+      if(i>0){
+        const km=dist(dayList[i-1].la,dayList[i-1].lo,s.la,s.lo);
+        const mv=Math.max(15,Math.round(km/25*60/5)*5);
+        stops.push({type:"travel",min:mv,km}); t+=mv;
+      }
+      if(wantMeal&&!lunch&&t>=11*60+30&&s.s<420){
+        const f=nearestFood(s);
+        if(f){stops.push({type:"stop",s:f,t,meal:1});t+=f.s||45;lunch=true;
+          stops.push({type:"travel",min:10,km:dist(f.la,f.lo,s.la,s.lo)});t+=10;}
+      }
+      if(wantMeal&&lunch&&!snack&&t>=14*60+30&&s.s<420){
+        const f=nearestFood(s);
+        if(f){stops.push({type:"stop",s:f,t,meal:1,snack:1});t+=Math.min(f.s||40,40);snack=true;}
+      }
+      stops.push({type:"stop",s,t}); t+=s.s||60;
+    });
+    if(wantMeal&&dayList.length){
+      const last=dayList[dayList.length-1];
+      if(t<19*60)t=Math.max(t+20,18*60);
+      const f=nearestFood(last);
+      if(f)stops.push({type:"stop",s:f,t,meal:1,dinner:1});
+    }
+    const areas=[...new Set(dayList.map(x=>x.a))].join("・");
+    days.push({stops,areas,list:dayList});
+    prevAnchor=dayList[dayList.length-1]||prevAnchor;
+  }
+  S.iti={days,hotel:wantHotel?hotels[0]:null,center:{...S.center},made:new Date()};
+  renderIti(); showPane("iti");
+  if(days.length<S.days)toast("⚠️ 此範圍精選景點只夠排 "+days.length+" 天,建議加大半徑或換中心點");
+  else toast("✅ 行程生成完成!共 "+days.reduce((a,d)=>a+d.list.length,0)+" 個景點");
+}
+const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+
+function renderIti(){
+  if(!S.iti){return}
+  $("itiActions").style.display="flex";
+  let h="";
+  S.iti.days.forEach((d,i)=>{
+    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span><span class="darea">${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
+    d.stops.forEach(st=>{
+      if(st.type==="travel"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">🚃 移動約 ${st.min} 分(${fmtD(st.km)})</div></div>`;return}
+      const s=st.s;
+      h+=`<div class="stop ${st.meal?"meal":""}">
+        <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
+        <div class="info"><h4>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}${s.n}</h4><div class="ja">${s.j||""}</div>
+        <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}</div>
+        <p>${s.d||""}</p></div></div>`;
+    });
+    h+=`</div></div>`;
+  });
+  if(S.iti.hotel){
+    const ht=S.iti.hotel;
+    h+=`<div class="day-card"><div class="day-hd" style="background:var(--matcha)"><span class="dnum" style="background:#3F5A35">🏨 住宿建議</span><span class="darea">${ht.a}</span></div>
+    <div class="rail"><div class="stop hotel" style="padding-bottom:6px"><div class="time"></div><div class="dot"></div>
+    <div class="info"><h4>${ht.n}</h4><div class="ja">${ht.j||""}</div><p>${ht.d} (距中心 ${fmtD(dKm(ht))})</p></div></div></div></div>`;
+  }
+  $("itiBox").innerHTML=h;
+}
+
+/* ═══════════════ 複製行程 ═══════════════ */
+function copyItinerary(){
+  if(!S.iti)return;
+  let txt="🇯🇵 和遊誌行程|中心:"+S.iti.center.n+"\n\n";
+  S.iti.days.forEach((d,i)=>{
+    txt+="── DAY "+(i+1)+"("+d.areas+")──\n";
+    d.stops.forEach(st=>{
+      if(st.type==="travel"){txt+="   ↓ 移動約 "+st.min+" 分\n";return}
+      txt+=hhmm(st.t)+" "+(st.meal?(st.dinner?"[晚餐] ":st.snack?"[小吃] ":"[午餐] "):"")+st.s.n+"\n";
+    });
+    txt+="\n";
+  });
+  if(S.iti.hotel)txt+="🏨 住宿建議:"+S.iti.hotel.n+"\n";
+  txt+="\n— 由 和遊誌 WAYU TRIP 生成";
+  navigator.clipboard.writeText(txt).then(()=>toast("📋 行程已複製,可貼到 LINE / 備忘錄"))
+    .catch(()=>{prompt("手動複製以下內容:",txt)});
+}
+
+/* ═══════════════ 地圖 ═══════════════ */
+let MAP,LAYER;
+const DAYCOLORS=["#C43B41","#28497C","#5E7B4F","#B98A2F","#7C4E8E","#2E8C8C","#B0553B"];
+function renderMap(){
+  if(!window.L){$("map").innerHTML='<div class="loading-big">地圖元件載入失敗,請檢查網路後重新整理</div>';return}
+  if(!MAP){MAP=L.map("map");L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(MAP)}
+  if(LAYER)LAYER.remove();
+  LAYER=L.layerGroup().addTo(MAP);
+  const pts=[];
+  L.circleMarker([S.center.la,S.center.lo],{radius:9,color:"#20303F",fillColor:"#fff",fillOpacity:1,weight:3}).bindPopup("📍 中心:"+S.center.n).addTo(LAYER);
+  pts.push([S.center.la,S.center.lo]);
+  let legend="";
+  if(S.iti){
+    S.iti.days.forEach((d,i)=>{
+      const col=DAYCOLORS[i%DAYCOLORS.length],line=[];
+      d.stops.filter(x=>x.type==="stop").forEach((st,k)=>{
+        const s=st.s;line.push([s.la,s.lo]);pts.push([s.la,s.lo]);
+        L.circleMarker([s.la,s.lo],{radius:8,color:col,fillColor:col,fillOpacity:.92,weight:2})
+          .bindPopup(`<b>DAY ${i+1}-${k+1}</b> ${hhmm(st.t)}<br>${s.n}`).addTo(LAYER);
+      });
+      if(line.length>1)L.polyline(line,{color:col,weight:3,dashArray:"6 6",opacity:.85}).addTo(LAYER);
+      legend+=`<span><i style="background:${DAYCOLORS[i%DAYCOLORS.length]}"></i>DAY ${i+1}</span>`;
+    });
+    if(S.iti.hotel){L.circleMarker([S.iti.hotel.la,S.iti.hotel.lo],{radius:8,color:"#5E7B4F",fillColor:"#5E7B4F",fillOpacity:.95}).bindPopup("🏨 "+S.iti.hotel.n).addTo(LAYER);legend+=`<span><i style="background:#5E7B4F"></i>住宿</span>`}
+  }else{
+    DB.filter(s=>dKm(s)<=+$("radius").value).slice(0,80).forEach(s=>{
+      pts.push([s.la,s.lo]);
+      L.circleMarker([s.la,s.lo],{radius:6,color:CATC[s.c].startsWith("var")?({spot:"#28497C",food:"#B98A2F",shop:"#C43B41",hotel:"#5E7B4F"})[s.c]:"#28497C",fillOpacity:.85,weight:1.5})
+        .bindPopup(`<b>${s.n}</b><br>${CATN[s.c]}・${fmtD(dKm(s))}`).addTo(LAYER);
+    });
+    legend=`<span><i style="background:#28497C"></i>景點</span><span><i style="background:#B98A2F"></i>美食</span><span><i style="background:#C43B41"></i>購物</span><span><i style="background:#5E7B4F"></i>住宿</span>`;
+  }
+  $("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span>`;
+  if(pts.length)MAP.fitBounds(pts,{padding:[30,30],maxZoom:14});
+}
+
+init();
+</script>
+</body>
+</html>
