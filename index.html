@@ -205,6 +205,31 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .saveditm .si-meta{font-size:11.5px;color:#8A8272}
 .saveditm button{border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:5px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
 .saveditm button.del{border-color:#D9CFBC;color:#B0A692}
+/* ── 景點詳情面板 ── */
+#dOverlay{position:fixed;inset:0;background:rgba(20,30,45,.55);z-index:1500;display:none;backdrop-filter:blur(2px)}
+#dOverlay.show{display:block}
+#dPanel{position:fixed;z-index:1600;background:var(--washi);display:none;overflow-y:auto;
+  left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,94vw);max-height:88vh;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+@media(max-width:700px){#dPanel{left:0;top:auto;bottom:0;transform:none;width:100%;max-height:88vh;border-radius:18px 18px 0 0}}
+#dPanel.show{display:block}
+.d-hero{height:220px;background:linear-gradient(135deg,#E9E3D2,#DDD5C2);position:relative;overflow:hidden}
+.d-hero img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:.4s}
+.d-hero img.ok{opacity:1}
+.d-hero .fb{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;opacity:.5}
+.d-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(20,30,45,.6);color:#fff;font-size:17px;cursor:pointer;z-index:2}
+.d-bd{padding:18px 20px 26px}
+.d-bd h3{font-family:var(--font-d);font-size:22px;font-weight:900;letter-spacing:1px}
+.d-bd .ja{font-size:12px;color:#A39B87;letter-spacing:1px;margin-bottom:8px}
+.d-meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.d-wiki{font-size:14px;line-height:1.85;color:#3C3A32;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;white-space:pre-wrap}
+.d-wiki .src{display:block;font-size:10.5px;color:#A39B87;margin-top:10px}
+.d-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.d-acts button,.d-acts a{flex:1;min-width:110px;text-align:center;border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:10px;padding:10px 6px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--font-b);text-decoration:none}
+.d-acts .pri{background:var(--ai);color:#fff}
+.d-acts .fv.on{background:var(--shu-soft);border-color:var(--shu);color:var(--shu)}
+.spot h3{cursor:pointer}
+.spot .ph{cursor:pointer}
+.stop .info h4 .nm{cursor:pointer;border-bottom:1px dotted #B9AF9E}
 footer{background:var(--ai-deep);color:#B9C4D6;font-size:12px;text-align:center;padding:22px 16px 26px;margin-top:40px}
 footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
 @media print{
@@ -230,7 +255,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r9</span>
+    <span class="build">build r10</span>
   </div>
 </header>
 
@@ -355,7 +380,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 340 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r9
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r10
 </footer>
 
 <nav class="bottom">
@@ -365,6 +390,9 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   <button id="nb-map" onclick="showPane('map')"><span class="ic">🗺️</span>地圖</button>
   <button id="nb-fav" onclick="showPane('fav')"><span class="ic">♥</span>最愛</button>
 </nav>
+
+<div id="dOverlay" onclick="closeDetail()"></div>
+<div id="dPanel"></div>
 
 <div id="toast"></div>
 <script>
@@ -983,11 +1011,11 @@ function card(s,inIti){
   const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
   return `<div class="spot">
     <div class="band" style="background:${CATC[s.c]}"></div>
-    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n]))}"${s.im?` data-direct="${s.im}"`:""}>
+    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n]))}"${s.im?` data-direct="${s.im}"`:""} onclick="openDetail('${esc(s.n)}')">
       <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">Wikipedia</span>
     </div>
     <div class="bd">
-      <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
+      <h3 onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹">${s.n}</h3><div class="ja">${s.j||""}</div>
       <div class="rate">
         ${s.rt?`<span class="stars">${"★".repeat(Math.round(s.rt))}${"☆".repeat(5-Math.round(s.rt))}</span><span class="num">${s.rt.toFixed(1)}</span><span style="color:#A39B87;font-size:11px">和遊誌推薦</span>`:`<span style="color:#A39B87;font-size:11px">OSM 即時資料</span>`}
         <a class="glink" href="${grev}" target="_blank" rel="noopener">Google評價</a>
@@ -1339,7 +1367,7 @@ function renderIti(){
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
-        <div class="info"><h4>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}${s.n}<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',${st.meal?1:0})">✕ 移除</button></h4><div class="ja">${s.j||""}</div>
+        <div class="info"><h4>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹">${s.n}</span><button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',${st.meal?1:0})">✕ 移除</button></h4><div class="ja">${s.j||""}</div>
         <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
         ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${s.la},${s.lo}" target="_blank" rel="noopener">${s.ad}</a></div>`:""}
@@ -1348,7 +1376,7 @@ function renderIti(){
     h+=`</div>`;
     if(S.sug&&S.sug.di===i&&S.sug.cands.length){
       h+=`<div class="sugbox"><button class="dismiss" onclick="S.sug=null;renderIti()">略過 ✕</button><h5>💡 想補一站嗎?這幾個離 DAY ${i+1} 很近:</h5>`
-        +S.sug.cands.map(cd=>`<div class="sugrow"><div><b>${cd.n}</b> <span class="sd">${CATN[cd.c]}${cd.rt?"・★"+cd.rt.toFixed(1):""}${cd.pr?"・"+cd.pr:""}</span><div class="sd">${(cd.d||"").slice(0,28)}…</div></div><button onclick="addStopToDay(${i},'${esc(cd.n)}')">加入</button></div>`).join("")
+        +S.sug.cands.map(cd=>`<div class="sugrow"><div><b style="cursor:pointer;border-bottom:1px dotted #C9B98A" onclick="openDetail('${esc(cd.n)}')">${cd.n}</b> <span class="sd">${CATN[cd.c]}${cd.rt?"・★"+cd.rt.toFixed(1):""}${cd.pr?"・"+cd.pr:""}</span><div class="sd">${(cd.d||"").slice(0,28)}…</div></div><button onclick="addStopToDay(${i},'${esc(cd.n)}')">加入</button></div>`).join("")
         +`</div>`;
     }
     h+=`</div>`;
@@ -1364,6 +1392,74 @@ function renderIti(){
   }
   $("itiBox").innerHTML=h;
 }
+
+/* ═══ 景點詳情面板(Wikipedia 即時介紹)═══ */
+const WIKIC=new Map();
+async function wikiSummary(title,lang){
+  try{
+    const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if(!r.ok)return null;
+    const j=await r.json();
+    if(!j.extract||j.type==="disambiguation")return null;
+    return {text:j.extract,lang,url:(j.content_urls&&j.content_urls.desktop)?j.content_urls.desktop.page:"",thumb:j.thumbnail?j.thumbnail.source:null};
+  }catch(e){return null}
+}
+async function getIntro(s){
+  const key=s.n;
+  if(WIKIC.has(key))return WIKIC.get(key);
+  let r=await wikiSummary(s.n.split("・")[0].split("(")[0],"zh"); // 中文優先
+  if(!r||r.text.length<40){const r2=s.j?await wikiSummary(s.j.split(" ")[0],"ja"):null; if(r2&&(!r||r2.text.length>r.text.length))r=r2;}
+  WIKIC.set(key,r); return r;
+}
+function openDetail(name){
+  const s=findByName(name); if(!s)return;
+  const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
+  const gmap="https://www.google.com/maps/search/?api=1&query="+s.la+","+s.lo;
+  const grev="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((s.j||s.n)+" "+(s.ad||""));
+  $("dPanel").innerHTML=`
+    <div class="d-hero"><div class="fb">${FB[s.c]||"📍"}</div><img id="dImg" alt="${s.n}"><button class="d-close" onclick="closeDetail()">✕</button></div>
+    <div class="d-bd">
+      <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
+      <div class="d-meta">
+        <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
+        ${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)} 和遊誌推薦</span>`:""}
+        <span class="tag dist">📍 距中心 ${fmtD(dKm(s))}</span>
+        ${(s.t||[]).map(t=>`<span class="tag">${t}</span>`).join("")}
+        ${s.s?`<span class="tag">建議停留 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+" 小時":s.s+" 分"}</span>`:""}
+      </div>
+      ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
+      ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
+      <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
+      <div class="d-acts">
+        <button class="fv ${S.fav.has(s.n)?"on":""}" onclick="toggleFav('${esc(s.n)}',this)">♥ 收藏</button>
+        <button class="pri" onclick="addToIti('${esc(s.n)}');closeDetail()">➕ 排入行程</button>
+        <a href="${grev}" target="_blank" rel="noopener">Google 評價</a>
+        ${s.w?`<a href="${s.w}" target="_blank" rel="noopener">官方網站</a>`:`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 公式サイト")}" target="_blank" rel="noopener">搜尋官網</a>`}
+      </div>
+    </div>`;
+  $("dOverlay").classList.add("show"); $("dPanel").classList.add("show");
+  document.body.style.overflow="hidden";
+  // 大圖:優先 Wikidata 直連圖,否則沿用 Wikipedia 圖搜尋
+  const im=$("dImg");
+  if(s.im){im.onload=()=>im.classList.add("ok");im.src=s.im;}
+  else{(async()=>{let u=s.j?await fetchWiki(s.j,"ja"):null;
+    if(!u&&s.j&&s.j.includes(" "))u=await fetchWiki(s.j.split(" ")[0],"ja");
+    if(!u)u=await fetchWiki(s.n.split("・")[0].split("(")[0],"zh");
+    if(u){im.onload=()=>im.classList.add("ok");im.src=u;}})();}
+  // 詳細介紹
+  (async()=>{
+    const r=await getIntro(s);
+    const box=$("dWiki"); if(!box)return;
+    if(r){
+      box.innerHTML=r.text.replace(/</g,"&lt;")
+        +`<span class="src">${r.lang==="ja"?"(暫無中文條目,顯示日文介紹)":""} 資料來源:<a href="${r.url}" target="_blank" rel="noopener" style="color:var(--ai)">Wikipedia</a>(CC BY-SA)。${s.d&&!s.osm&&s.a!=="擴充庫"?"":""}</span>`;
+    }else{
+      box.innerHTML=(s.d||"暫無詳細介紹。")+`<span class="src">Wikipedia 查無此條目;可點「Google 評價」或「搜尋官網」了解更多。</span>`;
+    }
+  })();
+}
+function closeDetail(){$("dOverlay").classList.remove("show");$("dPanel").classList.remove("show");document.body.style.overflow=""}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetail()});
 
 /* ═══ Open-Meteo 免費即時預報 ═══ */
 async function liveWx(){
