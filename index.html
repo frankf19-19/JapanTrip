@@ -230,7 +230,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r4</span>
+    <span class="build">build r5</span>
   </div>
 </header>
 
@@ -355,7 +355,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 126 筆・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r4
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r5
 </footer>
 
 <nav class="bottom">
@@ -634,21 +634,65 @@ function renderCenter(){
   $("centerInfo").innerHTML=`<div class="centerbar">📍 目前中心點:<b>${S.center.n}</b><span style="margin-left:auto;font-size:12px;color:#8A8272">半徑 ${$("radius")?$("radius").value:25} km 內搜尋</span></div>`;
 }
 
-/* ═══════════════ 地理編碼(Nominatim,免金鑰)═══════════════ */
+/* ═══════════════ 地理編碼:三層定位策略 ═══════════════ */
+const GEOALIAS=[
+ [["東京","tokyo"],0],[["大阪","osaka"],1],[["京都","kyoto"],2],[["奈良","nara"],3],
+ [["札幌","sapporo","北海道","hokkaido"],4],[["福岡","博多","fukuoka","hakata"],5],
+ [["沖繩","沖縄","那霸","那覇","okinawa","naha"],6],[["名古屋","nagoya"],7],
+ [["廣島","広島","hiroshima"],8]
+];
+const GEOEXTRA=[["橫濱",35.4437,139.6425],["横浜",35.4437,139.6425],["鎌倉",35.3167,139.5358],
+ ["小樽",43.1990,141.0016],["箱根",35.2323,139.1069],["河口湖",35.5171,138.7510],
+ ["宇治",34.8894,135.8077],["舞濱",35.6329,139.8804],["宮島",34.2960,132.3198]];
 async function doGeocode(){
   const q=$("q").value.trim();
   if(!q){toast("請先輸入地點或地址");return}
+  const qn=q.toLowerCase().replace(/\s|市|県|府|都$/g,"");
+  // ① 內建城市別名直接命中(最可靠)
+  for(const [names,i] of GEOALIAS){
+    if(names.some(a=>qn===a||qn.startsWith(a)||a.startsWith(qn)&&qn.length>=2)){
+      pickCity(i,null); highlightCity(i);
+      document.querySelector(".plannercard").scrollIntoView({behavior:"smooth"});
+      return;
+    }
+  }
+  for(const [nm,la,lo] of GEOEXTRA){
+    if(qn.includes(nm.toLowerCase())){
+      S.center={n:nm,la,lo}; afterLocate("📍 已定位:"+nm); return;
+    }
+  }
+  // ② 比對精選資料庫名稱(打「心齋橋」「淺草」直接命中)
+  if(q.length>=2){
+    const hit=DB.find(s=>s.n.includes(q)||(s.j&&s.j.includes(q)));
+    if(hit){S.center={n:hit.n,la:hit.la,lo:hit.lo}; afterLocate("📍 已定位:"+hit.n); return;}
+  }
+  // ③ Nominatim:抓 6 筆,優先城市/行政區,剔除道路與停車場
   toast('<span class="spin"></span> 定位中…');
   try{
-    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(q));
-    const j=await r.json();
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(q));
+    let j=await r.json();
     if(!j.length){toast("找不到「"+q+"」,試試加上城市名,例:大阪 心齋橋");return}
-    S.center={n:j[0].display_name.split(",").slice(0,2).join(","),la:+j[0].lat,lo:+j[0].lon};
-    document.querySelectorAll(".citychips button").forEach(b=>b.classList.remove("on"));
-    renderCenter(); renderHomePicks();
-    toast("📍 定位成功:"+S.center.n);
-    document.querySelector(".plannercard").scrollIntoView({behavior:"smooth",block:"start"});
+    const rank=x=>{
+      if(x.class==="highway"||x.type==="parking"||x.class==="waterway")return 9;
+      if(x.class==="place")return 0;
+      if(x.class==="boundary")return 1;
+      if(["railway","tourism","amenity","leisure","building","shop","aeroway"].includes(x.class))return 2;
+      return 4;
+    };
+    j.sort((a,b)=>rank(a)-rank(b)||(b.importance||0)-(a.importance||0));
+    const best=j[0];
+    if(rank(best)>=9){toast("只找到道路類結果,可能定位不準;請加上城市名,例:福岡市 "+q);return}
+    S.center={n:best.display_name.split(",").slice(0,2).join(",").replace(/日本[,,]?/,""),la:+best.lat,lo:+best.lon};
+    afterLocate("📍 定位成功:"+S.center.n);
   }catch(e){toast("定位服務暫時無回應,請稍後再試或直接快選城市")}
+}
+function highlightCity(i){
+  document.querySelectorAll(".citychips button").forEach((b,k)=>b.classList.toggle("on",k===i));
+}
+function afterLocate(msg){
+  document.querySelectorAll(".citychips button").forEach(b=>b.classList.remove("on"));
+  renderCenter(); renderHomePicks(); toast(msg);
+  document.querySelector(".plannercard").scrollIntoView({behavior:"smooth"});
 }
 
 /* ═══════════════ 卡片 ═══════════════ */
