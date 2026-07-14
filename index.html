@@ -411,7 +411,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r37</span>
+    <span class="build">build r38</span>
   </div>
 </header>
 
@@ -497,31 +497,31 @@ button:active{transform:scale(.965)}
     <div style="font-size:11px;color:#A39B87;margin-top:6px">＊入境+提領行李預估 90 分;回程以「起飛前 2.5 小時抵達機場」倒推(國際線標準)。航班號查詢請以航空公司 App 為準,這裡填時間即可。</div>
 
     <div class="f-label">🍜 餐廳偏好(價位・料理,影響行程中的午晚餐挑選)</div>
+    <div style="font-size:12px;color:#8A8272;margin-bottom:4px">價位(可複選,不選=不限):</div>
     <div class="chips">
-      <label class="on" data-v="any" onclick="pickPref(this,'fPricePref')">價位不限</label>
-      <label data-v="平價" onclick="pickPref(this,'fPricePref')">平價 &lt;¥1,500</label>
-      <label data-v="中檔" onclick="pickPref(this,'fPricePref')">中檔 ¥1,500–4,500</label>
-      <label data-v="高級" onclick="pickPref(this,'fPricePref')">高級 ¥4,500+</label>
+      <label data-v="平價" onclick="toggleSet(this,'fPrice','平價')">平價 &lt;¥1,500</label>
+      <label data-v="中檔" onclick="toggleSet(this,'fPrice','中檔')">中檔 ¥1,500–4,500</label>
+      <label data-v="高級" onclick="toggleSet(this,'fPrice','高級')">高級 ¥4,500+</label>
     </div>
     <div style="font-size:12px;color:#8A8272;margin:8px 0 4px">想吃什麼(可複選,不選=不限):</div>
     <div class="chips" id="cuiChips"></div>
 
     <div class="f-label">🏨 住宿偏好(等級・每晚預算,影響飯店推薦)</div>
+    <div style="font-size:12px;color:#8A8272;margin-bottom:4px">等級(可複選):</div>
     <div class="chips">
-      <label class="on" data-v="any" onclick="pickPref(this,'hTierPref')">等級不限</label>
-      <label data-v="青旅民宿" onclick="pickPref(this,'hTierPref')">青旅民宿</label>
-      <label data-v="平價" onclick="pickPref(this,'hTierPref')">平價</label>
-      <label data-v="中檔" onclick="pickPref(this,'hTierPref')">中檔</label>
-      <label data-v="高檔" onclick="pickPref(this,'hTierPref')">高檔</label>
-      <label data-v="奢華" onclick="pickPref(this,'hTierPref')">奢華</label>
-      <label data-v="溫泉旅館" onclick="pickPref(this,'hTierPref')">溫泉旅館</label>
+      <label data-v="青旅民宿" onclick="toggleSet(this,'hTier','青旅民宿')">青旅民宿</label>
+      <label data-v="平價" onclick="toggleSet(this,'hTier','平價')">平價</label>
+      <label data-v="中檔" onclick="toggleSet(this,'hTier','中檔')">中檔</label>
+      <label data-v="高檔" onclick="toggleSet(this,'hTier','高檔')">高檔</label>
+      <label data-v="奢華" onclick="toggleSet(this,'hTier','奢華')">奢華</label>
+      <label data-v="溫泉旅館" onclick="toggleSet(this,'hTier','溫泉旅館')">溫泉旅館</label>
     </div>
-    <div class="chips" style="margin-top:6px">
-      <label class="on" data-v="any" onclick="pickPref(this,'hBudget')">預算不限</label>
-      <label data-v="b1" onclick="pickPref(this,'hBudget')">¥1萬內/晚</label>
-      <label data-v="b2" onclick="pickPref(this,'hBudget')">¥1–2萬</label>
-      <label data-v="b3" onclick="pickPref(this,'hBudget')">¥2–4萬</label>
-      <label data-v="b4" onclick="pickPref(this,'hBudget')">¥4萬以上</label>
+    <div style="font-size:12px;color:#8A8272;margin:8px 0 4px">每晚預算(可複選,不選=不限):</div>
+    <div class="chips">
+      <label data-v="b1" onclick="toggleSet(this,'hBudget','b1')">¥1萬內/晚</label>
+      <label data-v="b2" onclick="toggleSet(this,'hBudget','b2')">¥1–2萬</label>
+      <label data-v="b3" onclick="toggleSet(this,'hBudget','b3')">¥2–4萬</label>
+      <label data-v="b4" onclick="toggleSet(this,'hBudget','b4')">¥4萬以上</label>
     </div>
 
     <div class="f-label">🍜 用餐與住宿</div>
@@ -600,7 +600,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r37
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r38
 </footer>
 
 <nav class="bottom">
@@ -1149,11 +1149,10 @@ const TMODES={
  charter:{v:35,min:8,ic:"🚐",n:"包車",gm:"driving"}
 };
 S.tmode="transit";
-S.fPricePref="any";S.fCui=new Set();S.hTierPref="any";S.hBudget="any";
+S.fPrice=new Set();S.fCui=new Set();S.hTier=new Set();S.hBudget=new Set();
 const HBUD={b1:[0,10000,"1萬內"],b2:[10000,20000,"1–2萬"],b3:[20000,42000,"2–4萬"],b4:[40000,9e9,"4萬以上"]};
-function pickPref(el,key){S[key]=el.dataset.v;[...el.parentElement.children].forEach(x=>x.classList.remove("on"));el.classList.add("on")}
 function foodMatch(f){
-  if(S.fPricePref!=="any"){const p=foodPrice(f);if(p&&p!==S.fPricePref)return false}
+  if(S.fPrice.size){const p=foodPrice(f);if(p&&!S.fPrice.has(p))return false}
   if(S.fCui.size&&!S.fCui.has(foodCui(f)))return false;
   return true;
 }
@@ -1162,9 +1161,17 @@ function toggleCui(el,v){
   else{S.fCui.add(v);el.classList.add("on")}
 }
 function hotelMatch(ht){
-  if(S.hTierPref!=="any"&&hotelTier(ht)!==S.hTierPref)return false;
-  if(S.hBudget!=="any"){const mx=prMax(ht.pr);if(mx){const b=HBUD[S.hBudget];if(mx<b[0]||mx>b[1])return false}}
+  if(S.hTier.size&&!S.hTier.has(hotelTier(ht)))return false;
+  if(S.hBudget.size){const mx=prMax(ht.pr);if(mx){ // 落在任一勾選的預算帶即可
+    const ok=[...S.hBudget].some(k=>{const b=HBUD[k];return mx>=b[0]&&mx<=b[1]});
+    if(!ok)return false;
+  }}
   return true;
+}
+function toggleSet(el,setName,v){
+  const set=S[setName];
+  if(set.has(v)){set.delete(v);el.classList.remove("on")}
+  else{set.add(v);el.classList.add("on")}
 }
 function setTmode(el){S.tmode=el.dataset.v;document.querySelectorAll("#tmodeChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
 const hm2min=t=>{if(!t)return null;const [a,b]=t.split(":").map(Number);return a*60+b};
@@ -1312,18 +1319,22 @@ function loadIti(i){
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
-function setCat(el){S.cat=el.dataset.c;S.hTier="全部";S.fPrice="全部";
+function setCat(el){S.cat=el.dataset.c;
   document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");
   renderSubFilter();renderExplore()}
 function renderSubFilter(){
   const box=$("subFilter"); if(!box)return;
   if(S.cat==="hotel"){
-    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">等級:</span>`+["全部","青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(t=>`<label class="${(S.hTier||"全部")===t?"on":""}" onclick="S.hTier='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
+    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">等級(可複選):</span>`
+      +`<label class="${S.hTier.size===0?"on":""}" onclick="S.hTier.clear();renderSubFilter();renderExplore()">全部</label>`
+      +["青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(t=>`<label class="${S.hTier.has(t)?"on":""}" onclick="S.hTier.has('${t}')?S.hTier.delete('${t}'):S.hTier.add('${t}');renderSubFilter();renderExplore()">${t}</label>`).join("");
   }else if(S.cat==="food"){
     box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">料理(可複選):</span>`
       +`<label class="${S.fCui.size===0?"on":""}" onclick="S.fCui.clear();renderSubFilter();renderExplore()">全部</label>`
       +CUI_LIST.map(t=>`<label class="${S.fCui.has(t)?"on":""}" onclick="S.fCui.has('${t}')?S.fCui.delete('${t}'):S.fCui.add('${t}');renderSubFilter();renderExplore()">${t}</label>`).join("")
-      +`<span style="font-size:12px;color:#8A8272;align-self:center;margin-left:6px">價位:</span>`+["全部","平價","中檔","高級"].map(t=>`<label class="${(S.fPrice||"全部")===t?"on":""}" onclick="S.fPrice='${t}';renderSubFilter();renderExplore()">${t}</label>`).join("");
+      +`<span style="font-size:12px;color:#8A8272;align-self:center;margin-left:6px">價位(可複選):</span>`
+      +`<label class="${S.fPrice.size===0?"on":""}" onclick="S.fPrice.clear();renderSubFilter();renderExplore()">全部</label>`
+      +["平價","中檔","高級"].map(t=>`<label class="${S.fPrice.has(t)?"on":""}" onclick="S.fPrice.has('${t}')?S.fPrice.delete('${t}'):S.fPrice.add('${t}');renderSubFilter();renderExplore()">${t}</label>`).join("");
   }else box.innerHTML="";
 }
 function renderHeroLoc(){
@@ -1930,10 +1941,10 @@ function renderExplore(){
   const kw=($("kw").value||"").trim();
   let list=S.center?[...DB,...S.osm].filter(s=>dKm(s)<=+$("radius").value):[...DB];
   if(S.cat!=="all")list=list.filter(s=>s.c===S.cat);
-  if(S.cat==="hotel"&&S.hTier&&S.hTier!=="全部")list=list.filter(s=>hotelTier(s)===S.hTier);
+  if(S.cat==="hotel"&&S.hTier.size)list=list.filter(s=>S.hTier.has(hotelTier(s)));
   if(S.cat==="food"){
     if(S.fCui.size)list=list.filter(s=>S.fCui.has(foodCui(s)));
-    if(S.fPrice&&S.fPrice!=="全部")list=list.filter(s=>foodPrice(s)===S.fPrice);
+    if(S.fPrice.size)list=list.filter(s=>{const p=foodPrice(s);return p&&S.fPrice.has(p)});
   }
   if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
   const m=$("sortSel").value;
