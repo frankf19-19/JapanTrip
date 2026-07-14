@@ -37,9 +37,9 @@ CLASSES = [
 ]
 
 Q_TMPL = """
-SELECT ?item ?ja ?zh ?coord ?img ?admL WHERE {{
+SELECT ?item ?ja ?zh ?coord ?img ?admL ?wt WHERE {{
   ?item {p31} wd:{cls} ; wdt:P17 wd:Q17 ; wdt:P625 ?coord .
-  ?article schema:about ?item ; schema:isPartOf <https://ja.wikipedia.org/> .
+  ?article schema:about ?item ; schema:isPartOf <https://ja.wikipedia.org/> ; schema:name ?wt .
   OPTIONAL {{ ?item wdt:P18 ?img }}
   OPTIONAL {{ ?item rdfs:label ?ja FILTER(lang(?ja)="ja") }}
   OPTIONAL {{ ?item rdfs:label ?zh FILTER(lang(?zh) IN ("zh-hant","zh-tw","zh")) }}
@@ -102,6 +102,9 @@ def main():
             e = {"n": name, "la": la, "lo": lo, "c": cat, "t": tags, "s": stay}
             if ja and ja != name:
                 e["j"] = ja
+            wt = b.get("wt", {}).get("value", "")
+            if wt and wt != name:
+                e["wt"] = wt  # 日文維基條目名(前端介紹/相簿精準命中)
             adm = b.get("admL", {}).get("value")
             if adm:
                 e["ad"] = adm
