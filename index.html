@@ -358,7 +358,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r27</span>
+    <span class="build">build r28</span>
   </div>
 </header>
 
@@ -519,7 +519,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r27
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r28
 </footer>
 
 <nav class="bottom">
@@ -2480,11 +2480,12 @@ async function loadArea(){
       list.forEach(e=>{
         if(!e||!e.n||names.has(e.n))return;
         names.add(e.n);
-        DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:[],a:"OSM庫",ad:e.ad||"",w:e.w,
-          cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,
-          pr:e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網"),
+        const isSpot=e.c==="spot";
+        DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:isSpot?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
+          cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,wt:e.wt,
+          pr:isSpot?"票價請點官網或 Google 查詢":(e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網")),
           d:(e.cu?("料理:"+e.cu.replace(/;/g,"、")+"。"):"")+(e.oh?("營業:"+e.oh):"來自 OpenStreetMap 全國資料庫。"),
-          s:e.c==="food"?50:0,p:3});
+          s:isSpot?(e.s||60):(e.c==="food"?50:0),p:3});
         add++;
       });
     }catch(err){}
@@ -2492,7 +2493,7 @@ async function loadArea(){
   if(add){
     if($("pane-explore").classList.contains("on"))renderExplore();
     renderHomePicks();
-    toast("🍜🏨 已載入本區餐廳住宿 +"+add.toLocaleString()+" 筆");
+    toast("⛩️🍜🏨 已載入本區景點餐廳住宿 +"+add.toLocaleString()+" 筆");
   }
 }
 // 定位後自動載入該區
