@@ -156,6 +156,8 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .day-hd .darea{font-size:13px;opacity:.85}
 .day-hd .dstat{margin-left:auto;font-size:12px;opacity:.7}
 .rail{padding:18px 16px 10px;position:relative}
+.stop{scroll-margin-top:90px}
+.day-card{scroll-margin-top:70px}
 .stop{display:flex;gap:14px;position:relative;padding-bottom:22px}
 .stop::before{content:"";position:absolute;left:75px;top:22px;bottom:-2px;width:4px;background:var(--shu);border-radius:2px}
 .stop:last-child::before{display:none}
@@ -324,8 +326,13 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   .cardacts .liveb{display:none} /* 手機改在詳情面板查營業時間 */
   .cardacts .favb{flex:0 0 38px}
   /* 分類頁籤 + 日卡標題吸頂 */
-  .subtabs{position:sticky;top:54px;z-index:30;background:var(--washi);padding:8px 0 6px;margin:10px 0 8px}
-  .day-hd{position:sticky;top:54px;z-index:25}
+  .subtabs{position:sticky;top:var(--hd-h,56px);z-index:30;background:var(--washi);padding:8px 0 6px;margin:10px 0 8px}
+  .day-hd{position:sticky;top:var(--hd-h,56px);z-index:25}
+  /* 捲動定位時,站與日標題不被上方吸頂列蓋住 */
+  .stop{scroll-margin-top:calc(var(--hd-h,56px) + 52px)}
+  .day-card{scroll-margin-top:calc(var(--hd-h,56px) + 8px)}
+  /* 首站與日標題間留白,避免第一站貼著標題被切 */
+  .rail{padding-top:22px}
   /* 喜好/天數更緊湊 */
   .chips label{padding:6px 11px;font-size:12.5px}
   .daysel button{width:37px;height:38px;font-size:14px}
@@ -362,7 +369,7 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r32</span>
+    <span class="build">build r33</span>
   </div>
 </header>
 
@@ -560,7 +567,7 @@ button:active{transform:scale(.965)}
 <footer>
   <b>和遊誌 WAYU TRIP</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r32
+  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r33
 </footer>
 
 <nav class="bottom">
@@ -2446,6 +2453,8 @@ window.addEventListener("popstate",e=>{
 });
 history.replaceState({pane:"home"},"","#home");
 window.addEventListener("scroll",()=>{$("toTop").classList.toggle("show",window.scrollY>600)},{passive:true});
+function syncHeaderH(){const hd=document.querySelector("header");if(hd)document.documentElement.style.setProperty("--hd-h",hd.offsetHeight+"px")}
+syncHeaderH();window.addEventListener("resize",syncHeaderH);window.addEventListener("orientationchange",syncHeaderH);
 
 /* ═══ Open-Meteo 免費即時預報 ═══ */
 async function liveWx(){
