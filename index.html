@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>和遊誌 WAYU TRIP｜日本旅遊行程規劃所</title>
+<title>旅日和 TABIBIYORI｜日本旅遊行程規劃</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
 <meta name="description" content="輸入地點、選擇喜好與天數,自動生成日本旅遊行程。住宿、景點、購物、美食一站搞定。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -11,34 +14,45 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
-  --washi:#F6F3EB;        /* 和紙底 */
-  --washi-2:#EFEADF;
-  --ink:#20303F;          /* 墨 */
-  --ai:#28497C;           /* 藍染 */
-  --ai-deep:#1B3357;
-  --shu:#C43B41;          /* 朱 */
-  --shu-soft:#F3DDDC;
-  --matcha:#5E7B4F;       /* 抹茶 */
-  --kin:#B98A2F;          /* 金 */
-  --line:#DDD5C2;
+  /* 現代日系・乾淨清爽:純白 × 墨黑 × 一點朱作為 accent */
+  --washi:#FFFFFF;        /* 純白底 */
+  --washi-2:#F7F7F5;      /* 淺灰白 */
+  --ink:#1A1A1A;          /* 近黑主文字 */
+  --ink-2:#6B6B6B;        /* 次要文字 */
+  --ai:#111111;           /* 主色=近黑(高級感) */
+  --ai-deep:#000000;
+  --shu:#E4571B;          /* accent 朱橘(僅點綴用) */
+  --shu-soft:#FCEEE6;
+  --matcha:#3A7D5C;       /* 深森綠(點綴) */
+  --kin:#B8893B;          /* 赭金(點綴) */
+  --grape:#5B54A8;
+  --sky:#2E6E9E;
+  --line:#EAEAE8;         /* 極細邊線 */
   --card:#FFFFFF;
-  --r:14px;
-  --shadow:0 2px 10px rgba(32,48,63,.08);
-  --font-d:"Zen Old Mincho","Noto Serif TC",serif;
-  --font-b:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --r:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.10);
+  --font-d:"Zen Kaku Gothic New","Noto Sans TC",-apple-system,sans-serif;
+  --font-b:"Zen Kaku Gothic New","Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
 }
+@keyframes pop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes bounceIn{0%{transform:translateY(14px) scale(.96);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{font-family:var(--font-b);background:var(--washi);color:var(--ink);line-height:1.65;padding-bottom:70px}
 @media(min-width:900px){body{padding-bottom:0}}
 
 /* ── Header ── */
-header{background:var(--ai-deep);color:#F4EFE2;position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+header{background:rgba(255,255,255,.85);backdrop-filter:blur(12px);color:var(--ink);position:sticky;top:0;z-index:1000;border-bottom:1px solid var(--line)}
 .hd-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
 .logo{display:flex;align-items:center;gap:10px;cursor:pointer}
-.mon{width:34px;height:34px;border-radius:50%;background:var(--shu);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:900;font-size:17px;color:#fff;border:2px solid #E8B4B6}
-.logo b{font-family:var(--font-d);font-size:19px;letter-spacing:2px}
-.logo small{display:block;font-size:10px;letter-spacing:3px;opacity:.7;font-weight:400}
+.logo:hover .mon{transform:scale(1.05)}
+.mon{width:44px;height:44px;border-radius:16px;background:#fff;color:var(--ai);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;font-family:var(--font-d);box-shadow:0 4px 12px rgba(0,0,0,.15);transition:.3s}
+.logo b{font-family:var(--font-d);font-size:19px;letter-spacing:2px;color:var(--ink)}
+.logo small{display:block;font-size:10px;letter-spacing:3px;opacity:.7;font-weight:400;color:var(--ink-2)}
 nav.top{margin-left:auto;display:none;gap:4px}
 @media(min-width:900px){nav.top{display:flex}}
 nav.top button{background:none;border:none;color:#D8D2C2;font-family:var(--font-b);font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;cursor:pointer}
@@ -47,24 +61,36 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 @media(min-width:900px){.build{margin-left:8px}}
 
 /* ── Hero ── */
-.hero{background:linear-gradient(160deg,var(--ai-deep) 0%,var(--ai) 68%,#39619C 100%);color:#F4EFE2;padding:34px 16px 46px;position:relative;overflow:hidden}
+.hero{background:var(--washi);padding:56px 16px 40px;position:relative;border-bottom:1px solid var(--line)}
 .hero::after{content:"旅";position:absolute;right:-20px;top:-38px;font-family:var(--font-d);font-size:220px;font-weight:900;color:rgba(255,255,255,.05);pointer-events:none}
 .hero-in{max-width:1100px;margin:0 auto;position:relative}
-.hero .eyebrow{font-size:12px;letter-spacing:5px;color:#E8B4B6;margin-bottom:8px}
-.hero h1{font-family:var(--font-d);font-size:clamp(26px,5vw,40px);font-weight:900;letter-spacing:3px;line-height:1.3}
+.hero .eyebrow{display:inline-block;font-size:12px;font-weight:700;color:var(--shu);letter-spacing:2px;margin-bottom:16px}
+.hero h1{font-family:var(--font-d);font-size:clamp(30px,5vw,46px);font-weight:900;color:var(--ink);line-height:1.25;letter-spacing:-.5px;margin-bottom:16px}
 .hero p.sub{margin-top:10px;font-size:14px;opacity:.85;max-width:560px}
 
 /* ── 搜尋列 ── */
-.searchbox{margin-top:22px;background:#fff;border-radius:var(--r);padding:8px;display:flex;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.22);max-width:640px}
-.searchbox input{flex:1;border:none;outline:none;font-size:15px;font-family:var(--font-b);padding:10px 12px;color:var(--ink);background:none;min-width:0}
-.searchbox button{background:var(--shu);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:15px;font-weight:700;font-family:var(--font-b);cursor:pointer;white-space:nowrap}
+.searchbox{display:flex;gap:8px;max-width:none;background:var(--washi);border:1.5px solid var(--ink);border-radius:14px;padding:6px 6px 6px 4px;box-shadow:var(--shadow)}
+.searchbox input{flex:1;border:none;background:transparent;padding:12px 14px;font-size:15px;font-family:var(--font-b);color:var(--ink);outline:none}
+.searchbox button{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-b);white-space:nowrap}
 .searchbox button:active{transform:scale(.97)}
 .geo-hint{font-size:12px;opacity:.7;margin-top:8px}
+.hero-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.hero-deco span{position:absolute;font-size:34px;opacity:.5;animation:floaty 4s ease-in-out infinite}
+.hero-deco span:nth-child(1){top:12%;right:8%;animation-delay:0s}
+.hero-deco span:nth-child(2){top:60%;right:16%;animation-delay:.6s;font-size:28px}
+.hero-deco span:nth-child(3){top:30%;right:26%;animation-delay:1.2s;font-size:24px}
+.hero-deco span:nth-child(4){top:78%;right:6%;animation-delay:1.8s;font-size:26px}
+.hero-deco span:nth-child(5){top:8%;right:34%;animation-delay:2.4s;font-size:22px}
+.hero-deco span:nth-child(6){top:48%;right:3%;animation-delay:3s}
+@media(max-width:700px){.hero-deco span{font-size:24px!important;opacity:.35}}
+.cg-label{font-size:11px;color:var(--ai);letter-spacing:1px;margin:12px 0 6px;font-weight:800}
+.cg-label:first-child{margin-top:0}
+.cg-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
 #heroLoc:empty{display:none}
 #heroLoc{margin-top:10px;background:var(--washi);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14.5px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18)}
 #heroLoc b{color:var(--shu);font-size:16px;letter-spacing:.5px}
 #heroLoc .hl-btn{border:1.5px solid #C9C2B2;background:transparent;color:#5C5A50;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b)}
-#heroLoc .hl-btn.pri{background:var(--shu);border-color:var(--shu);color:#fff}
+#heroLoc .hl-btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
 #heroLoc .hl-chips{font-size:12.5px;color:#8A8272}
 .searchwrap{position:relative;max-width:640px}
 #sugList{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);z-index:50;overflow:hidden;display:none;max-height:330px;overflow-y:auto}
@@ -79,6 +105,7 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 #sugList .si-add:hover{background:var(--shu);color:#fff}
 .citychips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;max-width:680px}
 .citychips button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#F4EFE2;border-radius:99px;padding:6px 14px;font-size:13px;font-family:var(--font-b);cursor:pointer;transition:.15s}
+.citychips button.on{background:var(--shu);border-color:var(--shu);color:#fff;font-weight:700}
 .citychips button:hover,.citychips button.on{background:var(--shu);border-color:var(--shu)}
 
 /* ── 區塊 ── */
@@ -95,9 +122,9 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .f-label:first-child{margin-top:0}
 .f-label .jp{font-size:10px;color:#A39B87;letter-spacing:2px;font-weight:400}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chips label{border:1.5px solid var(--line);background:#FBF9F3;border-radius:99px;padding:7px 14px;font-size:13.5px;cursor:pointer;user-select:none;transition:.15s;display:flex;align-items:center;gap:5px}
+.chips label{border:1px solid var(--line);background:var(--washi);color:var(--ink-2);border-radius:99px;padding:8px 15px;font-size:13.5px;cursor:pointer;transition:.15s;font-family:var(--font-b)}
 .chips input{display:none}
-.chips label.on{background:var(--ai);border-color:var(--ai);color:#fff;font-weight:700}
+.chips label.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
 .chips.shu label.on{background:var(--shu);border-color:var(--shu)}
 .rowflex{display:flex;flex-wrap:wrap;gap:18px}
 .rowflex>div{flex:1;min-width:230px}
@@ -107,7 +134,7 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .radius-row{display:flex;align-items:center;gap:10px;font-size:13px}
 .radius-row input[type=range]{flex:1;accent-color:var(--shu)}
 .fsel{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font-b);background:#FBF9F3;color:var(--ink);flex:1;min-width:0}
-.go-btn{margin-top:20px;width:100%;background:linear-gradient(135deg,var(--shu),#A72F35);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:4px;cursor:pointer;box-shadow:0 6px 16px rgba(196,59,65,.35)}
+.go-btn{margin-top:20px;width:100%;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:0;cursor:pointer;box-shadow:var(--shadow);border-radius:12px;box-shadow:var(--shadow);font-family:var(--font-b);letter-spacing:1px}
 .go-btn:active{transform:scale(.98)}
 .centerbar{display:flex;align-items:center;gap:12px;background:var(--shu-soft);border-radius:14px;padding:16px 18px;font-size:16px;margin-bottom:16px;border:2px solid var(--shu);box-shadow:0 3px 12px rgba(196,59,65,.14)}
 .centerbar b{font-size:19px;color:var(--shu);letter-spacing:1px}
@@ -116,8 +143,8 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 
 /* ── 卡片列表 ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
-.spot{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:.15s}
-.spot:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(32,48,63,.14)}
+.spot{background:var(--card);border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease;animation:bounceIn .35s ease both}
+.spot:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--ink)}
 .spot .band{height:6px}
 .spot .ph{height:150px;position:relative;overflow:hidden;background:linear-gradient(135deg,#E9E3D2,#DDD5C2)}
 .spot .ph img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s}
@@ -133,7 +160,7 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .rate .num{font-weight:900;color:var(--ink)}
 .rate .glink{margin-left:auto;font-size:11px;color:var(--ai);text-decoration:none;border:1px solid var(--ai);border-radius:6px;padding:1px 7px}
 .spot .bd{padding:13px 14px 14px;flex:1;display:flex;flex-direction:column}
-.spot h3{font-size:15.5px;font-weight:700;line-height:1.4}
+.spot h3{font-size:15.5px;font-weight:700;line-height:1.4;font-family:var(--font-d)}
 .spot .ja{font-size:11px;color:#A39B87;letter-spacing:1px}
 .spot .meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .tag{font-size:11px;background:#F1EDE0;color:#6E6754;border-radius:6px;padding:2px 8px}
@@ -151,13 +178,13 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 
 /* ── 行程時間軸(鐵道路線圖)── */
 .day-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
-.day-hd{background:var(--ai-deep);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.day-hd .dnum{background:var(--shu);border-radius:8px;padding:3px 12px;font-weight:900;font-size:14px;letter-spacing:1px}
+.day-hd{background:var(--ink);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.day-hd .dnum{background:var(--shu);border-radius:12px;padding:3px 12px;font-weight:900;font-size:14px;letter-spacing:1px}
 .day-hd .darea{font-size:13px;opacity:.85}
 .day-hd .dstat{margin-left:auto;font-size:12px;opacity:.7}
 .rail{padding:18px 16px 10px;position:relative}
-.stop{scroll-margin-top:90px}
-.day-card{scroll-margin-top:70px}
+.stop{scroll-margin-top:80px}
+.day-card{scroll-margin-top:80px}
 .stop{display:flex;gap:14px;position:relative;padding-bottom:22px}
 .stop::before{content:"";position:absolute;left:75px;top:22px;bottom:-2px;width:4px;background:var(--shu);border-radius:2px}
 .stop:last-child::before{display:none}
@@ -185,20 +212,21 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .maplegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 
 /* ── 底部導覽(手機)── */
-nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:1000;padding-bottom:env(safe-area-inset-bottom)}
+nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:1000;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -1px 0 var(--line)}
 @media(min-width:900px){nav.bottom{display:none}}
 nav.bottom button{flex:1;background:none;border:none;padding:7px 0 5px;font-size:10px;color:#8A8272;font-family:var(--font-b);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
 nav.bottom button .ic{font-size:19px}
 nav.bottom button .ic{font-size:20px;line-height:1}
-nav.bottom button.on{color:var(--shu);font-weight:700}
+nav.bottom button.on{color:var(--ink)}
+
 
 /* ── Toast / Loading ── */
-#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:99px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:2000;max-width:88vw;text-align:center}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:16px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:2000;max-width:88vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
 @keyframes sp{to{transform:rotate(360deg)}}
-.loading-big{text-align:center;padding:50px 0;color:#8A8272;font-size:14px}
-.loading-big .spin{border-color:#D9D2BF;border-top-color:var(--shu);width:28px;height:28px;border-width:4px;display:block;margin:0 auto 14px}
+.loading-big{text-align:center;padding:50px 0;color:#8A8272;font-size:14px;animation:floaty 2s ease-in-out infinite}
+.loading-big .spin{border-color:#D9D2BF;border-top-color:var(--ai);width:28px;height:28px;border-width:4px;display:block;margin:0 auto 14px}
 
 .cardacts{display:flex;gap:6px;margin-top:10px}
 .cardacts button{flex:1;border:1.5px solid var(--line);background:#FBF9F3;border-radius:8px;padding:6px 4px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font-b);color:var(--ink);white-space:nowrap}
@@ -246,7 +274,7 @@ nav.bottom button.on{color:var(--shu);font-weight:700}
 .hp-row.on{border-color:var(--shu);background:var(--shu-soft)}
 .hp-row:hover{background:#F6F1E4}
 /* ── 手機精靈引導 ── */
-#wizFab{display:none;position:fixed;right:16px;bottom:80px;z-index:880;background:var(--shu);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14.5px;font-weight:800;font-family:var(--font-b);box-shadow:0 8px 22px rgba(196,59,65,.45);cursor:pointer}
+#wizFab{display:none;position:fixed;right:16px;bottom:80px;z-index:880;background:var(--ink);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14.5px;font-weight:700;font-family:var(--font-b);box-shadow:var(--shadow-lg);cursor:pointer}
 #wiz{position:fixed;inset:0;z-index:2200;background:var(--washi);display:none;flex-direction:column}
 #wiz.show{display:flex}
 .wz-top{padding:16px 18px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
@@ -369,12 +397,12 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   .cardacts .favb{flex:0 0 38px}
   /* 分類頁籤 + 日卡標題吸頂 */
   .subtabs{position:sticky;top:var(--hd-h,56px);z-index:30;background:var(--washi);padding:8px 0 6px;margin:10px 0 8px}
-  .day-hd{position:sticky;top:var(--hd-h,56px);z-index:25}
-  /* 捲動定位時,站與日標題不被上方吸頂列蓋住 */
-  .stop{scroll-margin-top:calc(var(--hd-h,56px) + 52px)}
-  .day-card{scroll-margin-top:calc(var(--hd-h,56px) + 8px)}
-  /* 首站與日標題間留白,避免第一站貼著標題被切 */
-  .rail{padding-top:22px}
+  /* day-hd 不用 sticky:避免捲動時黏在頂端蓋住第一站 */
+  .day-hd{position:relative}
+  .stop{scroll-margin-top:calc(var(--hd-h,56px) + 12px)}
+  .day-card{scroll-margin-top:calc(var(--hd-h,56px) + 12px)}
+  /* 首站與日標題間留白 */
+  .rail{padding-top:20px}
   /* 喜好/天數更緊湊 */
   .chips label{padding:6px 11px;font-size:12.5px}
   .daysel button{width:37px;height:38px;font-size:14px}
@@ -384,10 +412,11 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   .hero h1{font-size:23px}
 }
 /* 回頂按鈕 + 觸控回饋 */
-#toTop{position:fixed;right:14px;bottom:84px;width:44px;height:44px;border-radius:50%;border:none;background:var(--ai-deep);color:#fff;font-size:19px;box-shadow:0 6px 16px rgba(0,0,0,.3);cursor:pointer;z-index:900;opacity:0;pointer-events:none;transition:.25s;transform:translateY(8px)}
+#toTop{position:fixed;right:14px;bottom:84px;width:44px;height:44px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:19px;box-shadow:var(--shadow-lg);cursor:pointer;z-index:900;opacity:0;pointer-events:none;transition:.25s;transform:translateY(8px)}
 #toTop.show{opacity:.92;pointer-events:auto;transform:none}
 @media(min-width:900px){#toTop{bottom:24px}}
-button:active{transform:scale(.965)}
+button:active{transform:scale(.97)}
+button{transition:transform .15s ease}
 @media print{
   header,nav.bottom,.hero,.iti-actions,.plannercard,footer{display:none!important}
   body{padding:0;background:#fff}
@@ -401,8 +430,8 @@ button:active{transform:scale(.965)}
 <header>
   <div class="hd-in">
     <div class="logo" onclick="showPane('home')">
-      <div class="mon">遊</div>
-      <div><b>和遊誌</b><small>WAYU TRIP・日本旅遊規劃所</small></div>
+      <div class="mon">和</div>
+      <div><b>旅日和</b><small>TABIBIYORI・適合旅行的好日子</small></div>
     </div>
     <nav class="top">
       <button id="nt-home" class="on" onclick="showPane('home')">規劃行程</button>
@@ -411,16 +440,16 @@ button:active{transform:scale(.965)}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r38</span>
+    <span class="build">build r47</span>
   </div>
 </header>
 
 <!-- ═══ 首頁 Hero ═══ -->
 <div class="hero" id="heroBlock">
   <div class="hero-in">
-    <div class="eyebrow">NIHON TABI PLANNER</div>
+    <div class="eyebrow">JAPAN TRIP PLANNER</div>
     <h1>輸入一個地點,<br>安排一趟剛剛好的日本旅行。</h1>
-    <p class="sub">輸入城市、車站、飯店地址或任何地標,選好喜好與天數,和遊誌會從精選資料庫找出附近的景點、美食、購物與住宿,自動排成每日行程。</p>
+    <p class="sub">輸入城市、車站、飯店地址或任何地標,選好喜好與天數,旅日和會從精選資料庫找出附近的景點、美食、購物與住宿,自動排成每日行程。</p>
     <div class="searchwrap">
       <div class="searchbox" style="max-width:none">
         <input id="q" type="text" placeholder="中/日/英都可:澀谷、shibuya、しぶや、Tokyo Tower…" autocomplete="off"
@@ -598,9 +627,9 @@ button:active{transform:scale(.965)}
 </main>
 
 <footer>
-  <b>和遊誌 WAYU TRIP</b><br>
+  <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「和遊誌推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r38
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r47
 </footer>
 
 <nav class="bottom">
@@ -640,13 +669,39 @@ button:active{transform:scale(.965)}
    c: spot景點 / food美食 / shop購物 / hotel住宿
    t: 標籤  s: 建議停留(分) p: 人氣1~5           */
 const CITIES=[
- {n:"東京",la:35.6812,lo:139.7671},{n:"大阪",la:34.6937,lo:135.5023},
- {n:"京都",la:34.9858,lo:135.7588},{n:"奈良",la:34.6851,lo:135.8048},
- {n:"札幌",la:43.0687,lo:141.3508},{n:"福岡",la:33.5902,lo:130.4207},
- {n:"沖繩那霸",la:26.2124,lo:127.6809},{n:"名古屋",la:35.1709,lo:136.8815},{n:"廣島",la:34.3966,lo:132.4596},
- {n:"仙台",la:38.2682,lo:140.8694},{n:"金澤",la:36.5613,lo:136.6562},
- {n:"神戶",la:34.6901,lo:135.1955},{n:"函館",la:41.7687,lo:140.7288}
+ // 關東
+ {n:"東京",la:35.6812,lo:139.7671,g:"關東"},{n:"橫濱",la:35.4437,lo:139.6425,g:"關東"},
+ {n:"鎌倉",la:35.3167,lo:139.5358,g:"關東"},{n:"箱根",la:35.2323,lo:139.1069,g:"關東"},
+ {n:"日光",la:36.7580,lo:139.5990,g:"關東"},{n:"川越",la:35.9251,lo:139.4830,g:"關東"},
+ // 富士・中部
+ {n:"河口湖",la:35.5171,lo:138.7510,g:"中部"},{n:"名古屋",la:35.1709,lo:136.8815,g:"中部"},
+ {n:"高山",la:36.1420,lo:137.2580,g:"中部"},{n:"白川鄉",la:36.2570,lo:136.9060,g:"中部"},
+ {n:"金澤",la:36.5613,lo:136.6562,g:"中部"},{n:"輕井澤",la:36.3599,lo:138.6350,g:"中部"},
+ {n:"松本",la:36.2386,lo:137.9689,g:"中部"},{n:"靜岡",la:34.9756,lo:138.3828,g:"中部"},
+ // 關西
+ {n:"大阪",la:34.6937,lo:135.5023,g:"關西"},{n:"京都",la:34.9858,lo:135.7588,g:"關西"},
+ {n:"奈良",la:34.6851,lo:135.8048,g:"關西"},{n:"神戶",la:34.6901,lo:135.1955,g:"關西"},
+ {n:"姬路",la:34.8394,lo:134.6939,g:"關西"},{n:"和歌山",la:34.2260,lo:135.1675,g:"關西"},
+ {n:"有馬溫泉",la:34.7975,lo:135.2478,g:"關西"},
+ // 中國・四國
+ {n:"廣島",la:34.3966,lo:132.4596,g:"中國四國"},{n:"宮島",la:34.2960,lo:132.3198,g:"中國四國"},
+ {n:"岡山",la:34.6551,lo:133.9195,g:"中國四國"},{n:"倉敷",la:34.5953,lo:133.7722,g:"中國四國"},
+ {n:"出雲",la:35.4020,lo:132.6854,g:"中國四國"},{n:"高松",la:34.3428,lo:134.0466,g:"中國四國"},
+ {n:"松山",la:33.8392,lo:132.7657,g:"中國四國"},{n:"高知",la:33.5597,lo:133.5311,g:"中國四國"},
+ // 九州・沖繩
+ {n:"福岡",la:33.5902,lo:130.4207,g:"九州沖繩"},{n:"長崎",la:32.7503,lo:129.8777,g:"九州沖繩"},
+ {n:"熊本",la:32.8032,lo:130.7079,g:"九州沖繩"},{n:"由布院",la:33.2646,lo:131.3606,g:"九州沖繩"},
+ {n:"別府",la:33.2846,lo:131.4913,g:"九州沖繩"},{n:"鹿兒島",la:31.5966,lo:130.5571,g:"九州沖繩"},
+ {n:"宮崎",la:31.9077,lo:131.4202,g:"九州沖繩"},{n:"沖繩那霸",la:26.2124,lo:127.6809,g:"九州沖繩"},
+ {n:"石垣島",la:24.3448,lo:124.1572,g:"九州沖繩"},
+ // 東北・北海道
+ {n:"仙台",la:38.2682,lo:140.8694,g:"東北北海道"},{n:"松島",la:38.3672,lo:141.0590,g:"東北北海道"},
+ {n:"青森",la:40.8222,lo:140.7474,g:"東北北海道"},{n:"山形",la:38.2554,lo:140.3396,g:"東北北海道"},
+ {n:"銀山溫泉",la:38.5700,lo:140.5290,g:"東北北海道"},{n:"札幌",la:43.0687,lo:141.3508,g:"東北北海道"},
+ {n:"函館",la:41.7687,lo:140.7288,g:"東北北海道"},{n:"小樽",la:43.1990,lo:141.0016,g:"東北北海道"},
+ {n:"富良野",la:43.4180,lo:142.4270,g:"東北北海道"},{n:"旭川",la:43.7706,lo:142.3650,g:"東北北海道"}
 ];
+const CITY_GROUPS=["關東","中部","關西","中國四國","九州沖繩","東北北海道"];
 const PREFS=["神社寺廟","歷史古蹟","自然風景","市場老街","美食巡禮","美酒微醺","主題樂園","動漫電玩","博物館藝術","夜景展望","溫泉","親子同樂"];
 const DB=[
 /* ── 東京 ── */
@@ -1235,7 +1290,7 @@ function showPane(k,fromPop){
 
 /* ═══════════════ 初始化控制項 ═══════════════ */
 function init(){
-  $("cityChips").innerHTML=CITIES.map((c,i)=>`<button onclick="pickCity(${i},this)">${c.n}</button>`).join("");
+  renderCityChips();
   const cc=$("cuiChips");
   if(cc)cc.innerHTML=CUI_LIST.map(v=>`<label data-v="${v}" onclick="toggleCui(this,'${v}')">${v}</label>`).join("");
   const apOpts=AIRPORTS.map((a,i)=>`<option value="${i}">${a[0]} ${a[1]}</option>`).join("");
@@ -1246,6 +1301,30 @@ function init(){
     +`<input type="number" id="dayCustom" min="1" max="30" placeholder="自訂" onchange="setDaysCustom(this)" style="width:64px;height:42px;border:1.5px solid var(--line);border-radius:10px;background:#FBF9F3;font-size:14px;font-weight:700;font-family:var(--font-b);text-align:center;color:var(--ink)">`
     +`<span style="font-size:11px;color:#8A8272;align-self:center">最多30天</span>`;
   renderCenter(); renderHomePicks();
+}
+function renderCityChips(){
+  const box=$("cityChips"); if(!box)return;
+  const picked=new Set(S.centers.map(c=>c.n).concat(S.center?[S.center.n]:[]));
+  box.innerHTML=CITY_GROUPS.map(g=>{
+    const items=CITIES.map((c,i)=>[c,i]).filter(([c])=>c.g===g);
+    return `<div class="cg-label">${g}</div><div class="cg-row">`+
+      items.map(([c,i])=>`<button class="${picked.has(c.n)?"on":""}" onclick="quickAddCity(${i})">${picked.has(c.n)?"✓ ":""}${c.n}</button>`).join("")+`</div>`;
+  }).join("");
+}
+function quickAddCity(i){
+  const c=CITIES[i];
+  const pt={n:c.n,la:c.la,lo:c.lo};
+  if(S.center&&S.center.n===pt.n||S.centers.some(x=>x.n===pt.n)){
+    // 已選 → 再按一次取消
+    if(S.centers.length){S.centers=S.centers.filter(x=>x.n!==pt.n);if(S.centers.length===1){S.center={...S.centers[0]};S.centers=[]}else if(!S.centers.length)S.center=null;else S.center={...S.centers[0]}}
+    else S.center=null;
+    renderCenter();renderCityChips();renderHomePicks();toast("已移除:"+pt.n);return;
+  }
+  if(!S.center){S.center={...pt}}
+  else{if(!S.centers.length)S.centers.push({...S.center});if(S.centers.length>=8){toast("最多 8 個地點");return}S.centers.push({...pt})}
+  if(S.centers.length===1)S.centers=[];
+  renderCenter();renderCityChips();loadArea();renderHomePicks();
+  toast((S.centers.length>1?"✅ 已加入行程地點:":"✅ 已設定:")+pt.n);
 }
 function pickCity(i,btn){
   S.center={...CITIES[i]};
@@ -1350,6 +1429,7 @@ function renderHeroLoc(){
 }
 function renderCenter(){
   renderHeroLoc();
+  if($("cityChips"))renderCityChips();
   if(!S.center){
     $("centerInfo").innerHTML=`<div class="centerbar" style="border-color:#D9D2BF;background:#F3EFE3;box-shadow:none">📍 <span style="color:#8A8272;font-size:15px">尚未選擇地點 — 請在上方搜尋或快選城市</span></div>`;
     return;
@@ -1780,7 +1860,7 @@ function card(s,inIti){
     <div class="bd">
       <h3 onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹">${s.n}</h3><div class="ja">${s.j||""}</div>
       <div class="rate">
-        ${s.rt?`<span class="stars">${"★".repeat(Math.round(s.rt))}${"☆".repeat(5-Math.round(s.rt))}</span><span class="num">${s.rt.toFixed(1)}</span><span style="color:#A39B87;font-size:11px">和遊誌推薦</span>`:`<span style="color:#A39B87;font-size:11px">OSM 即時資料</span>`}
+        ${s.rt?`<span class="stars">${"★".repeat(Math.round(s.rt))}${"☆".repeat(5-Math.round(s.rt))}</span><span class="num">${s.rt.toFixed(1)}</span><span style="color:#A39B87;font-size:11px">旅日和推薦</span>`:`<span style="color:#A39B87;font-size:11px">OSM 即時資料</span>`}
         <a class="glink" href="${grev}" target="_blank" rel="noopener">Google評價</a>
       </div>
       <div class="meta">
@@ -1847,7 +1927,7 @@ async function liveInfo(zh,ja,la,lo,btn){
   if(out.classList.contains("show")){out.classList.remove("show");return}
   const key=la+","+lo;
   if(LIVEC.has(key)){out.innerHTML=LIVEC.get(key);out.classList.add("show");return}
-  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 即時查詢 OpenStreetMap 中…';
+  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span> 即時查詢 OpenStreetMap 中…';
   out.classList.add("show");
   const q=`[out:json][timeout:15];(node(around:150,${la},${lo})[name];way(around:150,${la},${lo})[name];);out tags 20;`;
   try{
@@ -1877,7 +1957,7 @@ async function dLive(zh,ja,la,lo){
   out.style.display="block";
   const key=la+","+lo;
   if(LIVEC.has(key)){out.innerHTML=LIVEC.get(key);return}
-  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 即時查詢 OpenStreetMap 中…';
+  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span> 即時查詢 OpenStreetMap 中…';
   // 借用 liveInfo 的查詢:建假容器執行同邏輯不划算,直接重複核心查詢
   const q=`[out:json][timeout:15];(node(around:150,${la},${lo})[name];way(around:150,${la},${lo})[name];);out tags 20;`;
   try{
@@ -2219,7 +2299,7 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
 }
 /* ═══ 手機精靈引導 ═══ */
 let WZ={step:0,days:3,prefs:new Set()};
-const WZ_STEPS=5;
+const WZ_STEPS=7;
 function wizOpen(){WZ={step:0,days:S.days||3,prefs:new Set(S.prefs)};$("wiz").classList.add("show");document.body.style.overflow="hidden";wizRender()}
 function wizClose(){$("wiz").classList.remove("show");document.body.style.overflow=""}
 function wizRender(){
@@ -2236,7 +2316,7 @@ function wizRender(){
       <input class="wz-search" id="wzQ" placeholder="搜尋並點下方結果加入…例:京都、shibuya" oninput="wizSug()">
       <div class="wz-sug" id="wzSug"></div>
       <div style="font-size:12px;color:#8A8272;margin:14px 0 8px">熱門城市(點擊加入)</div>
-      <div class="wz-chips">${CITIES.slice(0,12).map((c,i)=>`<label class="${S.centers.some(x=>x.n===c.n)||(S.center&&S.center.n===c.n)?"on":""}" onclick="wizAddCity(${i})">${c.n}</label>`).join("")}</div>
+      <div class="wz-chips">${CITIES.map((c,i)=>`<label class="${S.centers.some(x=>x.n===c.n)||(S.center&&S.center.n===c.n)?"on":""}" onclick="wizAddCity(${i})">${c.n}</label>`).join("")}</div>
       ${picked.length?`<div style="margin-top:16px;padding:12px 14px;background:var(--shu-soft);border-radius:12px">
         <div style="font-size:12px;color:#8A8272;margin-bottom:8px">已加入 ${picked.length} 個地點${picked.length>1?"(依順路自動排序)":""}</div>
         <div class="wz-chips">${picked.map((n,k)=>`<label class="on" style="cursor:default">${k+1}. ${n} <b style="cursor:pointer;margin-left:2px" onclick="wizRmPicked(${k})">✕</b></label>`).join("")}</div>
@@ -2259,14 +2339,31 @@ function wizRender(){
         <button class="wz-opt ${S.tmode==="charter"?"on":""}" onclick="S.tmode='charter';wizRender()"><span class="em">🚐</span><div>包車<small>點對點接送</small></div></button>
       </div>`;
   }else if(WZ.step===4){
+    nx.textContent="下一步";nx.disabled=false;
+    b.innerHTML=`<div class="wz-q">吃的偏好?</div><div class="wz-sub">可複選,不選=不限。影響行程午晚餐安排</div>
+      <div style="font-size:12.5px;color:#8A8272;margin-bottom:6px">💴 價位</div>
+      <div class="wz-chips" style="margin-bottom:14px">${[["平價","平價 <¥1,500"],["中檔","中檔 ¥1,500–4,500"],["高級","高級 ¥4,500+"]].map(([v,t])=>`<label class="${S.fPrice.has(v)?"on":""}" onclick="wizToggle('fPrice','${v}')">${t}</label>`).join("")}</div>
+      <div style="font-size:12.5px;color:#8A8272;margin-bottom:6px">🍽️ 想吃什麼</div>
+      <div class="wz-chips">${CUI_LIST.map(v=>`<label class="${S.fCui.has(v)?"on":""}" onclick="wizToggle('fCui','${v}')">${v}</label>`).join("")}</div>`;
+  }else if(WZ.step===5){
+    nx.textContent="下一步";nx.disabled=false;
+    b.innerHTML=`<div class="wz-q">住宿偏好?</div><div class="wz-sub">可複選,不選=不限。影響飯店推薦</div>
+      <div style="font-size:12.5px;color:#8A8272;margin-bottom:6px">🏨 等級</div>
+      <div class="wz-chips" style="margin-bottom:14px">${["青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(v=>`<label class="${S.hTier.has(v)?"on":""}" onclick="wizToggle('hTier','${v}')">${v}</label>`).join("")}</div>
+      <div style="font-size:12.5px;color:#8A8272;margin-bottom:6px">💰 每晚預算</div>
+      <div class="wz-chips">${[["b1","¥1萬內"],["b2","¥1–2萬"],["b3","¥2–4萬"],["b4","¥4萬+"]].map(([v,t])=>`<label class="${S.hBudget.has(v)?"on":""}" onclick="wizToggle('hBudget','${v}')">${t}</label>`).join("")}</div>`;
+  }else if(WZ.step===6){
     nx.textContent="✨ 生成行程";nx.disabled=!S.center;
     const pf=[...WZ.prefs];
+    const fp=[...S.fPrice],fc=[...S.fCui],ht=[...S.hTier];
     b.innerHTML=`<div class="wz-q">確認一下</div><div class="wz-sub">沒問題就開始生成!</div>
       <div class="wz-opts">
-        <div class="wz-opt" style="cursor:default"><span class="em">📍</span><div>地點<small>${S.center?S.center.n.split(",")[0]:"未選"}${S.centers.length>1?" 等 "+S.centers.length+" 地":""}</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">📍</span><div>地點<small>${S.centers.length>1?S.centers.map(c=>c.n.split(",")[0]).join("→"):(S.center?S.center.n.split(",")[0]:"未選")}</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">📅</span><div>天數<small>${WZ.days} 天</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">🎯</span><div>玩法<small>${pf.length?pf.join("、"):"綜合安排"}</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">${S.tmode==="transit"?"🚃":S.tmode==="drive"?"🚗":"🚐"}</span><div>交通<small>${S.tmode==="transit"?"大眾運輸":S.tmode==="drive"?"租車自駕":"包車"}</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">🍜</span><div>吃<small>${(fp.concat(fc).join("、"))||"不限"}</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">🏨</span><div>住<small>${ht.join("、")||"不限"}</small></div></div>
       </div>`;
   }
 }
@@ -2302,6 +2399,7 @@ function wizRmPicked(k){
   renderCenter();wizRender();
 }
 function wizTogglePref(t){WZ.prefs.has(t)?WZ.prefs.delete(t):WZ.prefs.add(t);wizRender()}
+function wizToggle(setName,v){const s=S[setName];s.has(v)?s.delete(v):s.add(v);wizRender()}
 function wizPrev(){if(WZ.step>0){WZ.step--;wizRender()}}
 function wizNext(){
   if(WZ.step===0&&!S.center){toast("請先選一個地點");return}
@@ -2313,6 +2411,9 @@ function wizNext(){
   document.querySelectorAll("#prefChips label").forEach(l=>l.classList.toggle("on",S.prefs.has(l.textContent.trim())));
   // 同步天數按鈕
   document.querySelectorAll("#daySel button").forEach(b=>b.classList.toggle("on",+b.textContent===S.days));
+  // 同步餐廳/住宿多選 chips(用 data-v 對照 Set)
+  const syncChip=(sel,set)=>document.querySelectorAll(sel+" label[data-v]").forEach(l=>l.classList.toggle("on",set.has(l.dataset.v)));
+  syncChip("#cuiChips",S.fCui);
   const cst=$("dayCustom");
   if(cst){if([1,2,3,4,5,6,7,8,9,10].includes(S.days))cst.value="";else cst.value=S.days}
   wizClose();
@@ -2630,7 +2731,7 @@ function openDetail(name,fromPop){
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
         ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
         ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
-        ${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)} 和遊誌推薦</span>`:""}
+        ${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)} 旅日和推薦</span>`:""}
         ${Number.isFinite(dKm(s))?`<span class="tag dist">📍 距中心 ${fmtD(dKm(s))}</span>`:""}
         ${(s.t||[]).map(t=>`<span class="tag">${t}</span>`).join("")}
         ${s.s?`<span class="tag">建議停留 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+" 小時":s.s+" 分"}</span>`:""}
@@ -2638,7 +2739,7 @@ function openDetail(name,fromPop){
       ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
       ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
       ${s.oh?(()=>{const st2=parseOH(s.oh);return `<div class="inforow"><span class="ic">🕐</span><span>${s.oh} ${st2==="open"?'<b class="opennow">● 現在營業中</b>':st2==="closed"?'<b class="closednow">● 現在休息中</b>':""}</span></div>`})():""}
-      <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
+      <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
       <div style="background:#fff;border:1.5px dashed var(--kin);border-radius:12px;padding:12px 14px;margin:12px 0">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <b style="font-size:13.5px;color:#8A6A1E">📝 我的紀錄</b>
@@ -2749,7 +2850,7 @@ async function liveWx(){
 function copyItinerary(){
   if(!S.iti)return;
   const c=climate(S.iti.month,S.iti.center);
-  let txt="🇯🇵 和遊誌行程|中心:"+S.iti.center.n+"\n"
+  let txt="🇯🇵 旅日和行程|中心:"+S.iti.center.n+"\n"
     +c.emoji+" "+c.m+"月・"+c.region+"一帶約 "+c.hi+"°C/"+c.lo+"°C|"+c.wear+"\n📌 "+c.note+"\n\n";
   S.iti.days.forEach((d,i)=>{
     txt+="── DAY "+(i+1)+"("+d.areas+")──\n";
@@ -2762,7 +2863,7 @@ function copyItinerary(){
     txt+="\n";
   });
   S.iti.days.forEach((d,i)=>{if(d.hotel){const ni=nightInfo(i);txt+="🏨 DAY "+(i+1)+" 住:"+d.hotel.n+(ni&&ni.total>1?"(第"+ni.night+"/"+ni.total+"晚)":"")+"\n"}});
-  txt+="\n— 由 和遊誌 WAYU TRIP 生成";
+  txt+="\n— 由 旅日和 TABIBIYORI 生成";
   navigator.clipboard.writeText(txt).then(()=>toast("📋 行程已複製,可貼到 LINE / 備忘錄"))
     .catch(()=>{prompt("手動複製以下內容:",txt)});
 }
