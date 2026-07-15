@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r50</span>
+    <span class="build">build r51</span>
   </div>
 </header>
 
@@ -628,7 +628,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r50
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r51
 </footer>
 
 <nav class="bottom">
@@ -2294,14 +2294,18 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
     if(!cands.length)break;
     cands.sort((a,b)=>(dist(prevAnchor.la,prevAnchor.lo,a.la,a.lo)-dist(prevAnchor.la,prevAnchor.lo,b.la,b.lo)));
     const dayList=[cands.shift()];
-    while(dayList.length<perDay+(Math.random()<.5?1:0)&&cands.length){
+    const target=perDay+(Math.random()<.5?1:0); // 目標一次算定,不在迴圈內反覆擲骰
+    const deferred=[]; // 主題樂園等大點:本日不收,移到暫存(絕不放回本輪候選,避免死迴圈)
+    while(dayList.length<target&&cands.length){
       if(dayList.some(x=>x.s>=420))break;
       const last=dayList[dayList.length-1];
       cands.sort((a,b)=>dist(last.la,last.lo,a.la,a.lo)-dist(last.la,last.lo,b.la,b.lo));
       if(dist(last.la,last.lo,cands[0].la,cands[0].lo)>rad*1.2)break;
       const nx=cands.shift();
-      if(nx.s>=420&&dayList.length)cands.push(nx); else dayList.push(nx);
+      if(nx.s>=420&&dayList.length){deferred.push(nx);continue}
+      dayList.push(nx);
     }
+    cands.push(...deferred); // 大點還回候選池,之後的日子可當「單獨一日」的主角
     const localF=foodsPool; // makeStops 內會用 dKm(依當前 S.center)
     const stops=makeStops(dayList,usedF,wantMeal,rad);
     const areas=[...new Set(dayList.map(x=>x.a))].join("・");
