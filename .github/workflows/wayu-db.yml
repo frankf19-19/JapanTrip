@@ -17,6 +17,9 @@ jobs:
       - name: 從 Wikidata 抓取全日本景點
         run: python scripts/build_spots_db.py
       - name: 從 OSM 抓取全日本餐廳/飯店(分區檔)
+        env:
+          # 排程(每週日)=全量重抓更新資料;手動 Run=續傳只補缺格
+          WAYU_RESUME: ${{ github.event_name == 'schedule' && '0' || '1' }}
         run: python scripts/build_places_db.py
       - name: 最終提交(景點庫與收尾)
         if: always()
