@@ -133,11 +133,26 @@ def main():
             continue
         q = Q.format(s=la, w=lo, n=la + 1, e=lo + 1, cap=CAP)
         els = fetch(q)
-        if els is None:  # 該格徹底失敗:保留上週檔案,下次再抓
-            failed.append(f"r{la}_{lo}")
-            print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: ⚠️ 失敗(保留舊檔,下週重試)", flush=True)
-            time.sleep(SLEEP)
-            continue
+        if els is None:
+            # 整格查詢一直逾時 → 多半是超高密度格(東京/大阪),切成四個 0.5° 子格分批抓
+            print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: 整格逾時 → 切四子格分批抓…", flush=True)
+            els = []
+            sub_fail = 0
+            for sla, slo in [(la, lo), (la, lo + 0.5), (la + 0.5, lo), (la + 0.5, lo + 0.5)]:
+                sq = Q.format(s=sla, w=slo, n=sla + 0.5, e=slo + 0.5, cap=600)
+                sub = fetch(sq)
+                if sub is None:
+                    sub_fail += 1
+                    print(f"    子格 {sla},{slo}: 失敗", flush=True)
+                else:
+                    els.extend(sub)
+                    print(f"    子格 {sla},{slo}: {len(sub)} 元素", flush=True)
+                time.sleep(SLEEP)
+            if sub_fail == 4:  # 四個子格全掛才算徹底失敗
+                failed.append(f"r{la}_{lo}")
+                print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: ⚠️ 失敗(保留舊檔,下週重試)", flush=True)
+                time.sleep(SLEEP)
+                continue
         out, seen = [], set()
         for el in els:
             t = el.get("tags", {})
