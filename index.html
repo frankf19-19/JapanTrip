@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r48</span>
+    <span class="build">build r50</span>
   </div>
 </header>
 
@@ -628,7 +628,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r48
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r50
 </footer>
 
 <nav class="bottom">
@@ -2037,24 +2037,29 @@ async function fetchOSM(radKm){
   if(!S.center)return [];
   const r=Math.round(radKm*1000),A=`around:${r},${S.center.la},${S.center.lo}`;
   const q=`[out:json][timeout:25];(
-    node(${A})[tourism~"attraction|museum|viewpoint|theme_park|zoo|aquarium"][name];
-    way(${A})[tourism~"attraction|museum|theme_park|zoo|aquarium"][name];
-    node(${A})[historic~"castle|monument|memorial|ruins"][name];
-    way(${A})[historic~"castle|ruins"][name];
+    node(${A})[tourism~"attraction|museum|viewpoint|theme_park|zoo|aquarium|gallery|artwork"][name];
+    way(${A})[tourism~"attraction|museum|theme_park|zoo|aquarium|gallery"][name];
+    node(${A})[historic][name];
+    way(${A})[historic~"castle|ruins|monument|memorial|temple|shrine|archaeological_site"][name];
     node(${A})[amenity=place_of_worship][name];
     way(${A})[amenity=place_of_worship][name];
-    way(${A})[leisure=park][name];
-    node(${A})[amenity~"restaurant|cafe"][name];
-    node(${A})[shop~"mall|department_store|supermarket"][name];
-    node(${A})[tourism=hotel][name];
-    way(${A})[tourism=hotel][name];
-  );out center 180;`;
-  const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),12000);
+    way(${A})[leisure~"park|garden"][name];
+    node(${A})[leisure~"park|garden"][name];
+    node(${A})[natural~"peak|waterfall|hot_spring|beach|bay"][name];
+    node(${A})[amenity~"restaurant|cafe|fast_food"][name];
+    way(${A})[amenity~"restaurant|cafe"][name];
+    node(${A})[shop~"mall|department_store|supermarket|convenience"][name];
+    node(${A})[tourism~"hotel|hostel|guest_house|ryokan"][name];
+    way(${A})[tourism~"hotel|hostel|guest_house|ryokan"][name];
+  );out center 400;`;
+  // 逾時取「剩餘預算」與 8 秒的較小值,確保多地點時最後一站不會拖太久
+  const budget=(typeof GEN_BUDGET==="number"&&GEN_BUDGET>Date.now())?Math.min(8000,GEN_BUDGET-Date.now()):8000;
+  const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),Math.max(3000,budget));
   let j;
   try{
     const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
     j=await res.json();
-  }catch(e){clearTimeout(tid);return [];} // 逾時/失敗:回空,絕不卡住生成
+  }catch(e){clearTimeout(tid);return [];}
   clearTimeout(tid);
   const seen=new Set(DB.map(x=>x.n));
   const out=[];
@@ -2063,15 +2068,20 @@ async function fetchOSM(radKm){
     const n=t["name:zh"]||t["name:zh-Hant"]||t.name;
     if(!la||!n||seen.has(n))return; seen.add(n);
     // 避免與精選重複(120m 內同類跳過)
-    if(DB.some(x=>dist(x.la,x.lo,la,lo)<0.12))return;
+    if(DB.some(x=>dist(x.la,x.lo,la,lo)<0.08&&x.n===n))return;
     let c="spot",tg=[],st=60,ds="";
-    if(t.tourism==="hotel"){c="hotel";st=0}
-    else if(t.amenity==="restaurant"||t.amenity==="cafe"){c="food";st=50;ds=t.cuisine?("料理:"+t.cuisine.replace(/;/g,"、")+"。"):""}
+    if(t.tourism==="hotel"||t.tourism==="hostel"||t.tourism==="guest_house"||t.tourism==="ryokan"){c="hotel";st=0}
+    else if(t.amenity==="restaurant"||t.amenity==="cafe"||t.amenity==="fast_food"){c="food";st=50;ds=t.cuisine?("料理:"+t.cuisine.replace(/;/g,"、")+"。"):""}
     else if(t.shop){c="shop";st=90}
     else if(t.amenity==="place_of_worship"){tg=["神社寺廟"];st=40}
     else if(t.historic){tg=["歷史古蹟"];st=60}
-    else if(t.leisure==="park"){tg=["自然風景"];st=60}
-    else if(t.tourism==="museum"){tg=["博物館藝術"];st=90}
+    else if(t.leisure==="park"||t.leisure==="garden"){tg=["自然風景"];st=60}
+    else if(t.natural==="hot_spring"){tg=["溫泉"];st=90}
+    else if(t.natural==="waterfall"){tg=["自然風景"];st=40}
+    else if(t.natural==="beach"||t.natural==="bay"){tg=["自然風景","親子同樂"];st=90}
+    else if(t.natural==="peak"){tg=["自然風景","夜景展望"];st=60}
+    else if(t.tourism==="museum"||t.tourism==="gallery"){tg=["博物館藝術"];st=90}
+    else if(t.tourism==="artwork"){tg=["博物館藝術"];st=30}
     else if(t.tourism==="viewpoint"){tg=["夜景展望","自然風景"];st=40}
     else if(t.tourism==="theme_park"){tg=["主題樂園","親子同樂"];st=300}
     else if(t.tourism==="zoo"||t.tourism==="aquarium"){tg=["親子同樂"];st=120}
@@ -2084,7 +2094,7 @@ async function fetchOSM(radKm){
 async function overpassSearch(){
   $("opsStatus").innerHTML=`<div class="loading-big"><span class="spin"></span>正在從 OpenStreetMap 抓取附近店家(約 5–20 秒)…</div>`;
   try{
-    S.osm=await fetchOSM(Math.min(+$("radius").value,15));
+    S.osm=await fetchOSM(Math.min(Math.max(+$("radius").value,25),35));
     $("opsStatus").innerHTML="";
     toast("⚡ 已載入 "+S.osm.length+" 筆 OSM 即時資料");
     renderExplore();
@@ -2252,9 +2262,9 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
   let pool=DB.filter(s=>!usedGlobal.has(s.n)&&s.c!=="hotel"&&dKm(s)<=rad&&(s.c==="spot"||(S.prefs.size&&(s.t||[]).some(t=>S.prefs.has(t)))));
   let foods=DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad);
   let hotels=DB.filter(s=>s.c==="hotel"&&dKm(s)<=rad).sort((a,b)=>dKm(a)-dKm(b));
-  if(pool.length<nDays*S.pace+2){
+  if(pool.length<nDays*S.pace+6 && Date.now()<GEN_BUDGET){
     try{
-      const osm=await fetchOSM(Math.min(rad,20));
+      const osm=await fetchOSM(Math.min(Math.max(rad,25),35));
       const merged=osm.filter(x=>dKm(x)<=rad);
       S.osm=[...new Map([...S.osm,...merged].map(x=>[x.n,x])).values()];
       pool=pool.concat(merged.filter(x=>(x.c==="spot"||x.c==="shop")&&!usedGlobal.has(x.n)));
@@ -2265,8 +2275,13 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
   }
   const hPref=hotels.filter(hotelMatch);
   if(hPref.length)hotels=hPref; // 有符合偏好的就只用符合的
+  // 保底:若池為空(常因超時未抓到即時資料),放寬用該區最近的精選景點,避免整天空白
+  if(!pool.length){
+    pool=DB.filter(s=>(s.c==="spot"||s.c==="shop")&&!usedGlobal.has(s.n)&&dKm(s)<=rad*2)
+      .sort((a,b)=>dKm(a)-dKm(b)).slice(0,Math.max(nDays*S.pace+4,8));
+  }
   if(!pool.length)return null;
-  if(pool.length>400)pool=pool.sort((a,b)=>((b.rt?2:0)+(b.p||0))-((a.rt?2:0)+(a.p||0))).slice(0,400);
+  if(pool.length>600)pool=pool.sort((a,b)=>((b.rt?2:0)+(b.p||0))-((a.rt?2:0)+(a.p||0))).slice(0,600);
   const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(s.rt?2:0)+(reshuffle?Math.random()*4:0);
   if(S.prefs.size)pool=pool.filter(s=>s.t.some(t=>S.prefs.has(t))).length>=nDays*2
       ? pool.filter(s=>s.t.some(t=>S.prefs.has(t))) : pool;
@@ -2421,13 +2436,20 @@ function wizNext(){
   $("itiActions") && ($("itiActions").style.display="none");
   // 讓畫面先渲染 loading,再非同步生成,避免同步大運算凍結 UI
   setTimeout(async()=>{
+    const guard=setTimeout(()=>{ // 總逾時保護:30 秒仍未完成就提示
+      if($("itiBox").querySelector(".loading-big"))
+        $("itiBox").innerHTML='<div class="loading-big">生成較久,可能是網路不穩。<br>請返回規劃頁再按一次生成,或縮小天數/範圍。</div>';
+    },30000);
     try{ await generate(false); }
     catch(err){ $("itiBox").innerHTML='<div class="loading-big">生成時發生問題,請返回規劃頁再試一次。</div>'; console.error(err); }
+    finally{ clearTimeout(guard); }
   },60);
 }
 
+let GEN_BUDGET=0; // 生成的 OSM 查詢截止時間戳
 async function generate(reshuffle){
   if(!requireCenter())return;
+  GEN_BUDGET=Date.now()+18000; // 全程 OSM 即時查詢總預算 18 秒,到點就只用現有資料
   const rad=+$("radius").value;
   const wantMeal=document.querySelector('#extraChips label[data-k=meals]').classList.contains("on");
   const wantHotel=document.querySelector('#extraChips label[data-k=hotel]').classList.contains("on");
@@ -2451,7 +2473,8 @@ async function generate(reshuffle){
   const usedGlobal=new Set(),usedF=new Set(),days=[],hotels=[];
   for(let i=0;i<route.length;i++){
     S.center=route[i];
-    try{await loadArea()}catch(e){}
+    if(Date.now()<GEN_BUDGET){try{await loadArea()}catch(e){}}
+    await new Promise(r=>setTimeout(r,0)); // yield:讓「生成中」動畫持續轉動,不凍結
     const r=await buildCenterDays(alloc[i],rad,wantMeal,reshuffle,usedGlobal,usedF);
     if(r){days.push(...r.days);if(wantHotel&&r.hotel)hotels.push({cn:route[i].n.split(",")[0],h:r.hotel});}
   }
@@ -2475,6 +2498,7 @@ async function generate(reshuffle){
     flight:{inAp:$("fInAp").value!==""?AIRPORTS[+$("fInAp").value]:null,inT:hm2min($("fInT").value),
             outAp:$("fOutAp").value!==""?AIRPORTS[+$("fOutAp").value]:null,outT:hm2min($("fOutT").value)}};
   setupFlights();
+  GEN_BUDGET=0;
   S.sug=null;
   renderIti(); showPane("iti");
   if(days.length<S.days)toast("⚠️ 部分地點景點不足,共排出 "+days.length+" 天,可加大半徑再試");
@@ -2944,7 +2968,8 @@ function cellsFor(la,lo,radKm){
 }
 async function loadArea(){
   if(!S.center)return;
-  if(OSMDB_ON===false)return; // 確認過分區庫不存在就不再打
+  if(OSMDB_ON===false)return;
+  if(typeof GEN_BUDGET==="number"&&GEN_BUDGET>0&&Date.now()>GEN_BUDGET)return; // 超預算不再抓 // 確認過分區庫不存在就不再打
   const rad=Math.max(+($("radius")?$("radius").value:25),25);
   const keys=cellsFor(S.center.la,S.center.lo,rad).filter(k=>!OSMCELLS.has(k));
   if(!keys.length)return;
