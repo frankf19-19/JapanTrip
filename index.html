@@ -6,7 +6,7 @@
 <title>旅日和 TABIBIYORI｜日本旅遊行程規劃</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700;900&family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <meta name="description" content="輸入地點、選擇喜好與天數,自動生成日本旅遊行程。住宿、景點、購物、美食一站搞定。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -14,26 +14,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
-  /* 現代日系・乾淨清爽:純白 × 墨黑 × 一點朱作為 accent */
-  --washi:#FFFFFF;        /* 純白底 */
-  --washi-2:#F7F7F5;      /* 淺灰白 */
-  --ink:#1A1A1A;          /* 近黑主文字 */
-  --ink-2:#6B6B6B;        /* 次要文字 */
-  --ai:#111111;           /* 主色=近黑(高級感) */
-  --ai-deep:#000000;
-  --shu:#E4571B;          /* accent 朱橘(僅點綴用) */
-  --shu-soft:#FCEEE6;
-  --matcha:#3A7D5C;       /* 深森綠(點綴) */
-  --kin:#B8893B;          /* 赭金(點綴) */
-  --grape:#5B54A8;
-  --sky:#2E6E9E;
-  --line:#EAEAE8;         /* 極細邊線 */
+  --washi:#F6F3EB;        /* 和紙底 */
+  --washi-2:#EFEADF;
+  --ink:#20303F;          /* 墨 */
+  --ink-2:#5C6A76;
+  --ai:#28497C;           /* 藍染 */
+  --ai-deep:#1B3357;
+  --shu:#C43B41;          /* 朱 */
+  --shu-soft:#F3DDDC;
+  --matcha:#5E7B4F;       /* 抹茶 */
+  --kin:#B98A2F;          /* 金 */
+  --grape:#6B5B8E;
+  --sky:#4A7CA6;
+  --line:#DDD5C2;
   --card:#FFFFFF;
-  --r:16px;
-  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --shadow-lg:0 8px 30px rgba(0,0,0,.10);
-  --font-d:"Zen Kaku Gothic New","Noto Sans TC",-apple-system,sans-serif;
-  --font-b:"Zen Kaku Gothic New","Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --r:14px;
+  --shadow:0 2px 10px rgba(32,48,63,.08);
+  --shadow-lg:0 8px 26px rgba(32,48,63,.14);
+  --font-d:"Zen Old Mincho","Noto Serif TC",serif;
+  --font-b:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
 }
 @keyframes pop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
@@ -46,7 +45,7 @@ body{font-family:var(--font-b);background:var(--washi);color:var(--ink);line-hei
 @media(min-width:900px){body{padding-bottom:0}}
 
 /* ── Header ── */
-header{background:rgba(255,255,255,.85);backdrop-filter:blur(12px);color:var(--ink);position:sticky;top:0;z-index:1000;border-bottom:1px solid var(--line)}
+header{background:var(--ai-deep);color:#F4EFE2;position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .hd-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
 .logo{display:flex;align-items:center;gap:10px;cursor:pointer}
 .logo:hover .mon{transform:scale(1.05)}
@@ -61,17 +60,17 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 @media(min-width:900px){.build{margin-left:8px}}
 
 /* ── Hero ── */
-.hero{background:var(--washi);padding:56px 16px 40px;position:relative;border-bottom:1px solid var(--line)}
+.hero{background:linear-gradient(180deg,var(--washi),var(--washi-2));padding:44px 16px 40px;position:relative;border-bottom:1px solid var(--line)}
 .hero::after{content:"旅";position:absolute;right:-20px;top:-38px;font-family:var(--font-d);font-size:220px;font-weight:900;color:rgba(255,255,255,.05);pointer-events:none}
 .hero-in{max-width:1100px;margin:0 auto;position:relative}
-.hero .eyebrow{display:inline-block;font-size:12px;font-weight:700;color:var(--shu);letter-spacing:2px;margin-bottom:16px}
-.hero h1{font-family:var(--font-d);font-size:clamp(30px,5vw,46px);font-weight:900;color:var(--ink);line-height:1.25;letter-spacing:-.5px;margin-bottom:16px}
+.hero .eyebrow{display:inline-block;font-size:12px;font-weight:700;color:var(--ai);letter-spacing:3px;margin-bottom:14px}
+.hero h1{font-family:var(--font-d);font-size:clamp(28px,4.5vw,42px);font-weight:900;color:var(--ink);line-height:1.35;margin-bottom:16px}
 .hero p.sub{margin-top:10px;font-size:14px;opacity:.85;max-width:560px}
 
 /* ── 搜尋列 ── */
-.searchbox{display:flex;gap:8px;max-width:none;background:var(--washi);border:1.5px solid var(--ink);border-radius:14px;padding:6px 6px 6px 4px;box-shadow:var(--shadow)}
+.searchbox{display:flex;gap:8px;max-width:none;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:5px 5px 5px 4px;box-shadow:var(--shadow)}
 .searchbox input{flex:1;border:none;background:transparent;padding:12px 14px;font-size:15px;font-family:var(--font-b);color:var(--ink);outline:none}
-.searchbox button{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-b);white-space:nowrap}
+.searchbox button{background:var(--shu);color:#fff;border:none;border-radius:9px;padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-b);white-space:nowrap}
 .searchbox button:active{transform:scale(.97)}
 .geo-hint{font-size:12px;opacity:.7;margin-top:8px}
 .hero-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden}
@@ -83,14 +82,14 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .hero-deco span:nth-child(5){top:8%;right:34%;animation-delay:2.4s;font-size:22px}
 .hero-deco span:nth-child(6){top:48%;right:3%;animation-delay:3s}
 @media(max-width:700px){.hero-deco span{font-size:24px!important;opacity:.35}}
-.cg-label{font-size:11px;color:var(--ai);letter-spacing:1px;margin:12px 0 6px;font-weight:800}
+.cg-label{font-size:11px;color:var(--ink-2);letter-spacing:1px;margin:14px 0 8px;font-weight:700}
 .cg-label:first-child{margin-top:0}
 .cg-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
 #heroLoc:empty{display:none}
-#heroLoc{margin-top:10px;background:var(--washi);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14.5px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#heroLoc{margin-top:10px;background:var(--shu-soft);border-radius:12px;padding:11px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14.5px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18)}
 #heroLoc b{color:var(--shu);font-size:16px;letter-spacing:.5px}
 #heroLoc .hl-btn{border:1.5px solid #C9C2B2;background:transparent;color:#5C5A50;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-b)}
-#heroLoc .hl-btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+#heroLoc .hl-btn.pri{background:var(--shu);border-color:var(--shu);color:#fff}
 #heroLoc .hl-chips{font-size:12.5px;color:#8A8272}
 .searchwrap{position:relative;max-width:640px}
 #sugList{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);z-index:50;overflow:hidden;display:none;max-height:330px;overflow-y:auto}
@@ -104,9 +103,9 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 #sugList .si-add{flex-shrink:0;width:30px;height:30px;border-radius:8px;border:1.5px solid var(--shu);background:#fff;color:var(--shu);font-size:17px;font-weight:900;cursor:pointer;line-height:1}
 #sugList .si-add:hover{background:var(--shu);color:#fff}
 .citychips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;max-width:680px}
-.citychips button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#F4EFE2;border-radius:99px;padding:6px 14px;font-size:13px;font-family:var(--font-b);cursor:pointer;transition:.15s}
-.citychips button.on{background:var(--shu);border-color:var(--shu);color:#fff;font-weight:700}
-.citychips button:hover,.citychips button.on{background:var(--shu);border-color:var(--shu)}
+.citychips button{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:99px;padding:8px 15px;font-size:13.5px;cursor:pointer;transition:.15s;font-family:var(--font-b)}
+.citychips button.on{background:var(--ai)!important;border-color:var(--ai)!important;color:#fff!important;font-weight:700}
+.citychips button:hover,.citychips button.on{background:var(--ai)!important;border-color:var(--ai)!important;color:#fff!important;font-weight:700}
 
 /* ── 區塊 ── */
 main{max-width:1100px;margin:0 auto;padding:0 16px}
@@ -122,9 +121,9 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .f-label:first-child{margin-top:0}
 .f-label .jp{font-size:10px;color:#A39B87;letter-spacing:2px;font-weight:400}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chips label{border:1px solid var(--line);background:var(--washi);color:var(--ink-2);border-radius:99px;padding:8px 15px;font-size:13.5px;cursor:pointer;transition:.15s;font-family:var(--font-b)}
+.chips label{border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:99px;padding:8px 15px;font-size:13.5px;cursor:pointer;transition:.15s;font-family:var(--font-b)}
 .chips input{display:none}
-.chips label.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+.chips label.on{background:var(--ai);border-color:var(--ai);color:#fff;font-weight:700}
 .chips.shu label.on{background:var(--shu);border-color:var(--shu)}
 .rowflex{display:flex;flex-wrap:wrap;gap:18px}
 .rowflex>div{flex:1;min-width:230px}
@@ -134,7 +133,7 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .radius-row{display:flex;align-items:center;gap:10px;font-size:13px}
 .radius-row input[type=range]{flex:1;accent-color:var(--shu)}
 .fsel{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font-b);background:#FBF9F3;color:var(--ink);flex:1;min-width:0}
-.go-btn{margin-top:20px;width:100%;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:0;cursor:pointer;box-shadow:var(--shadow);border-radius:12px;box-shadow:var(--shadow);font-family:var(--font-b);letter-spacing:1px}
+.go-btn{margin-top:20px;width:100%;background:var(--shu);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:900;font-family:var(--font-b);letter-spacing:0;cursor:pointer;box-shadow:var(--shadow);border-radius:12px;box-shadow:var(--shadow);font-family:var(--font-b);letter-spacing:1px}
 .go-btn:active{transform:scale(.98)}
 .centerbar{display:flex;align-items:center;gap:12px;background:var(--shu-soft);border-radius:14px;padding:16px 18px;font-size:16px;margin-bottom:16px;border:2px solid var(--shu);box-shadow:0 3px 12px rgba(196,59,65,.14)}
 .centerbar b{font-size:19px;color:var(--shu);letter-spacing:1px}
@@ -143,8 +142,8 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 
 /* ── 卡片列表 ── */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
-.spot{background:var(--card);border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease;animation:bounceIn .35s ease both}
-.spot:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:var(--ink)}
+.spot{background:var(--card);border-radius:var(--r);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease}
+.spot:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
 .spot .band{height:6px}
 .spot .ph{height:150px;position:relative;overflow:hidden;background:linear-gradient(135deg,#E9E3D2,#DDD5C2)}
 .spot .ph img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s}
@@ -178,7 +177,7 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 
 /* ── 行程時間軸(鐵道路線圖)── */
 .day-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
-.day-hd{background:var(--ink);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.day-hd{background:var(--ai-deep);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .day-hd .dnum{background:var(--shu);border-radius:12px;padding:3px 12px;font-weight:900;font-size:14px;letter-spacing:1px}
 .day-hd .darea{font-size:13px;opacity:.85}
 .day-hd .dstat{margin-left:auto;font-size:12px;opacity:.7}
@@ -217,7 +216,7 @@ nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px
 nav.bottom button{flex:1;background:none;border:none;padding:7px 0 5px;font-size:10px;color:#8A8272;font-family:var(--font-b);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
 nav.bottom button .ic{font-size:19px}
 nav.bottom button .ic{font-size:20px;line-height:1}
-nav.bottom button.on{color:var(--ink)}
+nav.bottom button.on{color:var(--ai)}
 
 
 /* ── Toast / Loading ── */
@@ -226,7 +225,7 @@ nav.bottom button.on{color:var(--ink)}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .loading-big{text-align:center;padding:50px 0;color:#8A8272;font-size:14px;animation:floaty 2s ease-in-out infinite}
-.loading-big .spin{border-color:#D9D2BF;border-top-color:var(--ai);width:28px;height:28px;border-width:4px;display:block;margin:0 auto 14px}
+.loading-big .spin{border-color:#D9D2BF;border-top-color:var(--shu);width:28px;height:28px;border-width:4px;display:block;margin:0 auto 14px}
 
 .cardacts{display:flex;gap:6px;margin-top:10px}
 .cardacts button{flex:1;border:1.5px solid var(--line);background:#FBF9F3;border-radius:8px;padding:6px 4px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font-b);color:var(--ink);white-space:nowrap}
@@ -274,7 +273,7 @@ nav.bottom button.on{color:var(--ink)}
 .hp-row.on{border-color:var(--shu);background:var(--shu-soft)}
 .hp-row:hover{background:#F6F1E4}
 /* ── 手機精靈引導 ── */
-#wizFab{display:none;position:fixed;right:16px;bottom:80px;z-index:880;background:var(--ink);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14.5px;font-weight:700;font-family:var(--font-b);box-shadow:var(--shadow-lg);cursor:pointer}
+#wizFab{display:none;position:fixed;right:16px;bottom:80px;z-index:880;background:var(--shu);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14.5px;font-weight:700;font-family:var(--font-b);box-shadow:var(--shadow-lg);cursor:pointer}
 #wiz{position:fixed;inset:0;z-index:2200;background:var(--washi);display:none;flex-direction:column}
 #wiz.show{display:flex}
 .wz-top{padding:16px 18px 10px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
@@ -296,7 +295,7 @@ nav.bottom button.on{color:var(--ink)}
 .wz-sug .s{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;gap:10px}
 .wz-chips{display:flex;flex-wrap:wrap;gap:8px}
 .wz-chips label{border:2px solid var(--line);background:#fff;border-radius:99px;padding:9px 15px;font-size:14px;cursor:pointer;font-family:var(--font-b)}
-.wz-chips label.on{border-color:var(--shu);background:var(--shu-soft);color:var(--shu);font-weight:700}
+.wz-chips label.on{border-color:var(--ai);background:var(--ai);color:#fff;font-weight:700}
 .wz-foot{padding:14px 18px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px}
 .wz-foot button{flex:1;border-radius:12px;padding:15px;font-size:16px;font-weight:800;font-family:var(--font-b);cursor:pointer;border:none}
 .wz-back{background:#fff;border:2px solid var(--line)!important;color:#5C5A50;flex:0 0 90px}
@@ -412,7 +411,7 @@ footer b{color:#F4EFE2;font-family:var(--font-d);letter-spacing:2px}
   .hero h1{font-size:23px}
 }
 /* 回頂按鈕 + 觸控回饋 */
-#toTop{position:fixed;right:14px;bottom:84px;width:44px;height:44px;border-radius:50%;border:none;background:var(--ink);color:#fff;font-size:19px;box-shadow:var(--shadow-lg);cursor:pointer;z-index:900;opacity:0;pointer-events:none;transition:.25s;transform:translateY(8px)}
+#toTop{position:fixed;right:14px;bottom:84px;width:44px;height:44px;border-radius:50%;border:none;background:var(--ai);color:#fff;font-size:19px;box-shadow:var(--shadow-lg);cursor:pointer;z-index:900;opacity:0;pointer-events:none;transition:.25s;transform:translateY(8px)}
 #toTop.show{opacity:.92;pointer-events:auto;transform:none}
 @media(min-width:900px){#toTop{bottom:24px}}
 button:active{transform:scale(.97)}
@@ -440,14 +439,14 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r47</span>
+    <span class="build">build r48</span>
   </div>
 </header>
 
 <!-- ═══ 首頁 Hero ═══ -->
 <div class="hero" id="heroBlock">
   <div class="hero-in">
-    <div class="eyebrow">JAPAN TRIP PLANNER</div>
+    <div class="eyebrow">NIHON · JAPAN TRIP PLANNER</div>
     <h1>輸入一個地點,<br>安排一趟剛剛好的日本旅行。</h1>
     <p class="sub">輸入城市、車站、飯店地址或任何地標,選好喜好與天數,旅日和會從精選資料庫找出附近的景點、美食、購物與住宿,自動排成每日行程。</p>
     <div class="searchwrap">
@@ -629,7 +628,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r47
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r48
 </footer>
 
 <nav class="bottom">
@@ -1927,7 +1926,7 @@ async function liveInfo(zh,ja,la,lo,btn){
   if(out.classList.contains("show")){out.classList.remove("show");return}
   const key=la+","+lo;
   if(LIVEC.has(key)){out.innerHTML=LIVEC.get(key);out.classList.add("show");return}
-  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span> 即時查詢 OpenStreetMap 中…';
+  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 即時查詢 OpenStreetMap 中…';
   out.classList.add("show");
   const q=`[out:json][timeout:15];(node(around:150,${la},${lo})[name];way(around:150,${la},${lo})[name];);out tags 20;`;
   try{
@@ -1957,7 +1956,7 @@ async function dLive(zh,ja,la,lo){
   out.style.display="block";
   const key=la+","+lo;
   if(LIVEC.has(key)){out.innerHTML=LIVEC.get(key);return}
-  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span> 即時查詢 OpenStreetMap 中…';
+  out.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 即時查詢 OpenStreetMap 中…';
   // 借用 liveInfo 的查詢:建假容器執行同邏輯不划算,直接重複核心查詢
   const q=`[out:json][timeout:15];(node(around:150,${la},${lo})[name];way(around:150,${la},${lo})[name];);out tags 20;`;
   try{
@@ -2739,7 +2738,7 @@ function openDetail(name,fromPop){
       ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
       ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
       ${s.oh?(()=>{const st2=parseOH(s.oh);return `<div class="inforow"><span class="ic">🕐</span><span>${s.oh} ${st2==="open"?'<b class="opennow">● 現在營業中</b>':st2==="closed"?'<b class="closednow">● 現在休息中</b>':""}</span></div>`})():""}
-      <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
+      <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
       <div style="background:#fff;border:1.5px dashed var(--kin);border-radius:12px;padding:12px 14px;margin:12px 0">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <b style="font-size:13.5px;color:#8A6A1E">📝 我的紀錄</b>
@@ -2837,7 +2836,7 @@ syncHeaderH();window.addEventListener("resize",syncHeaderH);window.addEventListe
 /* ═══ Open-Meteo 免費即時預報 ═══ */
 async function liveWx(){
   const el=$("wxLive"); if(!el)return;
-  el.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--ai)"></span>';
+  el.innerHTML='<span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span>';
   try{
     const C=S.iti?S.iti.center:S.center;
     const u=`https://api.open-meteo.com/v1/forecast?latitude=${C.la}&longitude=${C.lo}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`;
