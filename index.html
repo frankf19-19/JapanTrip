@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r77</span>
+    <span class="build">build r78</span>
   </div>
 </header>
 
@@ -489,6 +489,14 @@ button{transition:transform .15s ease}
           <label data-v="2" onclick="setPace(this)">🍵 輕鬆(2–3點)</label>
           <label data-v="3" class="on" onclick="setPace(this)">⛩️ 標準(3–4點)</label>
           <label data-v="4" onclick="setPace(this)">🚄 緊湊(4–5點)</label>
+        </div>
+      </div>
+      <div class="f-block">
+        <div class="f-label">🧭 排程策略 <span class="jp">STRATEGY</span>(選點與路線的優先邏輯)</div>
+        <div class="chips" id="stratChips">
+          <label data-v="route" class="on" onclick="setStrat(this)">🗺️ 順路優先(少走路)</label>
+          <label data-v="balanced" onclick="setStrat(this)">⚖️ 平衡</label>
+          <label data-v="famous" onclick="setStrat(this)">⭐ 知名度優先(必去名點)</label>
         </div>
       </div>
     </div>
@@ -641,7 +649,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r77
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r78
 </footer>
 
 <nav class="bottom">
@@ -1363,6 +1371,8 @@ function setDaysCustom(inp){
   toast("📅 已設定 "+v+" 天行程");
 }
 function setPace(el){S.pace=+el.dataset.v;document.querySelectorAll("#paceChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
+S.strategy="route";
+function setStrat(el){S.strategy=el.dataset.v;document.querySelectorAll("#stratChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
 function setMonth(m,el){S.month=m;document.querySelectorAll("#monChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
 function esc(s){return s.replace(/'/g,"\\'")}
 function toggleFav(name,btn){
@@ -2439,7 +2449,12 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
   }
   if(!pool.length)return null;
   if(pool.length>600)pool=pool.sort((a,b)=>((b.rt?2:0)+(b.p||0))-((a.rt?2:0)+(a.p||0))).slice(0,600);
-  const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(s.rt?2:0)+(reshuffle?Math.random()*4:0);
+  // 策略權重:route=純順路 / balanced=中庸 / famous=名點至上
+  const STRAT=S.strategy||"route";
+  const rtW=STRAT==="famous"?12:STRAT==="balanced"?5:2;      // 評分/精選的加成
+  const distW=STRAT==="famous"?0.055:STRAT==="balanced"?0.02:0; // 排路線時「分數可抵多少距離」(度)
+  const farTol=STRAT==="famous"?2.0:STRAT==="balanced"?1.5:1.2; // 允許繞多遠
+  const score=s=>(s.t||[]).reduce((acc,t)=>acc+(S.prefs.size&&S.prefs.has(t)?10:0),0)+(s.p||3)+(s.rt?rtW+(s.rt||0):0)+(reshuffle?Math.random()*4:0);
   if(S.prefs.size)pool=pool.filter(s=>s.t.some(t=>S.prefs.has(t))).length>=nDays*2
       ? pool.filter(s=>s.t.some(t=>S.prefs.has(t))) : pool;
   pool.sort((a,b)=>score(b)-score(a));
@@ -2449,15 +2464,15 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
   let prevAnchor=S.center;
   for(let d=0;d<nDays;d++){
     if(!cands.length)break;
-    cands.sort((a,b)=>(dist(prevAnchor.la,prevAnchor.lo,a.la,a.lo)-dist(prevAnchor.la,prevAnchor.lo,b.la,b.lo)));
+    cands.sort((a,b)=>((dist(prevAnchor.la,prevAnchor.lo,a.la,a.lo)-score(a)*distW)-(dist(prevAnchor.la,prevAnchor.lo,b.la,b.lo)-score(b)*distW)));
     const dayList=[cands.shift()];
     const target=perDay+(Math.random()<.5?1:0); // 目標一次算定,不在迴圈內反覆擲骰
     const deferred=[]; // 主題樂園等大點:本日不收,移到暫存(絕不放回本輪候選,避免死迴圈)
     while(dayList.length<target&&cands.length){
       if(dayList.some(x=>x.s>=420))break;
       const last=dayList[dayList.length-1];
-      cands.sort((a,b)=>dist(last.la,last.lo,a.la,a.lo)-dist(last.la,last.lo,b.la,b.lo));
-      if(dist(last.la,last.lo,cands[0].la,cands[0].lo)>rad*1.2)break;
+      cands.sort((a,b)=>((dist(last.la,last.lo,a.la,a.lo)-score(a)*distW)-(dist(last.la,last.lo,b.la,b.lo)-score(b)*distW)));
+      if(dist(last.la,last.lo,cands[0].la,cands[0].lo)>rad*farTol)break;
       const nx=cands.shift();
       if(nx.s>=420&&dayList.length){deferred.push(nx);continue}
       dayList.push(nx);
@@ -2504,7 +2519,9 @@ function wizRender(){
     nx.textContent="下一步";nx.disabled=false;
     const opts=[["自然風景","🏞️"],["神社寺廟","⛩️"],["歷史古蹟","🏯"],["博物館藝術","🎨"],["主題樂園","🎢"],["市場老街","🏮"],["美食巡禮","🍜"],["購物","🛍️"],["溫泉","♨️"],["夜景展望","🌃"],["親子同樂","👨‍👩‍👧"],["動漫電玩","🎮"]];
     b.innerHTML=`<div class="wz-q">想玩什麼?</div><div class="wz-sub">可複選,不選也沒關係(綜合安排)</div>
-      <div class="wz-chips">${opts.map(([t,e])=>`<label class="${WZ.prefs.has(t)?"on":""}" onclick="wizTogglePref('${t}')">${e} ${t}</label>`).join("")}</div>`;
+      <div class="wz-chips">${opts.map(([t,e])=>`<label class="${WZ.prefs.has(t)?"on":""}" onclick="wizTogglePref('${t}')">${e} ${t}</label>`).join("")}</div>
+      <div style="font-size:12.5px;color:#8A8272;margin:14px 0 6px">🧭 排程策略</div>
+      <div class="wz-chips">${[["route","🗺️ 順路優先"],["balanced","⚖️ 平衡"],["famous","⭐ 知名度優先"]].map(([v,t])=>`<label class="${(S.strategy||"route")===v?"on":""}" onclick="wizSetStrat('${v}')">${t}</label>`).join("")}</div>`;
   }else if(WZ.step===3){
     nx.textContent="下一步";nx.disabled=false;
     b.innerHTML=`<div class="wz-q">怎麼移動?</div><div class="wz-sub">影響行程的交通時間估算</div>
@@ -2575,6 +2592,7 @@ function wizRmPicked(k){
 }
 function wizTogglePref(t){WZ.prefs.has(t)?WZ.prefs.delete(t):WZ.prefs.add(t);wizRender()}
 function wizToggle(setName,v){const s=S[setName];s.has(v)?s.delete(v):s.add(v);wizRender()}
+function wizSetStrat(v){S.strategy=v;document.querySelectorAll("#stratChips label").forEach(l=>l.classList.toggle("on",l.dataset.v===v));wizRender()}
 function wizPrev(){if(WZ.step>0){WZ.step--;wizRender()}}
 function wizNext(){
   if(WZ.step===0&&!S.center){toast("請先選一個地點");return}
