@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r55</span>
+    <span class="build">build r57</span>
   </div>
 </header>
 
@@ -562,6 +562,16 @@ button{transition:transform .15s ease}
   </div>
 
   <h2 class="sec">熱門精選速覽 <small>PICKS NEARBY</small></h2>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 14px">
+    <div class="chips" id="homeCatChips" style="margin:0">
+      <label class="on" data-c="all" onclick="setHomeCat(this)">全部</label>
+      <label data-c="spot" onclick="setHomeCat(this)">⛩️ 景點</label>
+      <label data-c="food" onclick="setHomeCat(this)">🍜 美食</label>
+      <label data-c="shop" onclick="setHomeCat(this)">🛍️ 購物</label>
+      <label data-c="hotel" onclick="setHomeCat(this)">🏨 住宿</label>
+    </div>
+    <a href="javascript:void(0)" onclick="goExplore(S.homeCat)" style="margin-left:auto;font-size:13px;color:var(--ai);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--ai)">更多 ›</a>
+  </div>
   <div class="grid" id="homePicks"></div>
 </section>
 
@@ -628,7 +638,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r55
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r57
 </footer>
 
 <nav class="bottom">
@@ -2010,9 +2020,28 @@ const IMGOBS=("IntersectionObserver" in window)?new IntersectionObserver(es=>{
   es.forEach(e=>{if(e.isIntersecting){IMGOBS.unobserve(e.target);loadImg(e.target)}});
 },{rootMargin:"180px"}):null;
 function watchImgs(){if(!IMGOBS)return;document.querySelectorAll(".ph[data-img]:not(.w)").forEach(p=>{p.classList.add("w");IMGOBS.observe(p)})}
+S.homeCat="all";
+function setHomeCat(el){
+  S.homeCat=el.dataset.c;
+  document.querySelectorAll("#homeCatChips label").forEach(l=>l.classList.remove("on"));
+  el.classList.add("on");
+  renderHomePicks();
+}
+function goExplore(cat){
+  if(cat&&cat!=="all"){
+    S.cat=cat;
+    document.querySelectorAll("#catTabs button").forEach(b=>b.classList.toggle("on",b.dataset.c===cat));
+    renderSubFilter();
+  }
+  showPane("explore");renderExplore();
+}
 function renderHomePicks(){
-  const list=(S.center?DB.filter(s=>dKm(s)<=+($("radius")?.value||25)):DB.filter(s=>s.rt))
-    .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||(b.p-a.p)||(dKm(a)-dKm(b))).slice(0,6);
+  let base=S.center?DB.filter(s=>dKm(s)<=+($("radius")?.value||25)):DB.filter(s=>s.rt);
+  if(S.homeCat&&S.homeCat!=="all")base=base.filter(s=>s.c===S.homeCat);
+  // 未設中心且該分類無精選(如購物/OSM住宿) → 放寬用全庫該分類
+  if(!base.length&&S.homeCat!=="all")base=DB.filter(s=>s.c===S.homeCat);
+  const list=base
+    .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||(b.p-a.p)||(dKm(a)-dKm(b))).slice(0,8);
   $("homePicks").innerHTML=list.length?list.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>此區精選較少,但沒問題!</b>直接按「生成行程」,系統會自動即時抓取當地景點排程(全日本都可以);也可以到「探索」頁按即時搜尋先逛逛。</div>`;
   watchImgs();
 }
@@ -2560,7 +2589,7 @@ async function generate(reshuffle){
     if(r){days.push(...r.days);if(wantHotel&&r.hotel)hotels.push({cn:route[i].n.split(",")[0],h:r.hotel});}
   }
   S.center=multi?{...route[0]}:origin;
-  if(!days.length){S.center=origin;renderCenter();toast("此範圍連即時資料都找不到景點,請加大半徑或換個中心點");return}
+  if(!days.length){GEN_BUDGET=0;S.center=origin;renderCenter();toast("此範圍連即時資料都找不到景點,請加大半徑或換個中心點");return}
   renderCenter();
   // 住宿分配到每一天:同城市連住同一間,換城市換飯店;最後一晚不安排(隔天離開)
   if(wantHotel){
@@ -3039,7 +3068,7 @@ function renderMap(){
 init();
 
 /* ═══ OSM 餐廳/飯店分區庫載入(data/osm/r{lat}_{lon}.json)═══ */
-const OSMCELLS=new Set(); let OSMDB_ON=null;
+const OSMCELLS=new Set(); let OSMDB_ON=null; const OSMFAIL={};
 function cellsFor(la,lo,radKm){
   const dLa=radKm/111, dLo=radKm/(111*Math.cos(la*Math.PI/180));
   const out=[];
@@ -3051,20 +3080,24 @@ function cellsFor(la,lo,radKm){
 async function loadArea(){
   if(!S.center)return;
   if(OSMDB_ON===false)return;
-  if(typeof GEN_BUDGET==="number"&&GEN_BUDGET>0&&Date.now()>GEN_BUDGET)return; // 超預算不再抓 // 確認過分區庫不存在就不再打
+  if(typeof GEN_BUDGET==="number"&&GEN_BUDGET>0&&Date.now()>GEN_BUDGET)return; // 超預算不再抓
   const rad=Math.max(+($("radius")?$("radius").value:25),25);
-  const keys=cellsFor(S.center.la,S.center.lo,rad).filter(k=>!OSMCELLS.has(k));
+  const keys=cellsFor(S.center.la,S.center.lo,rad)
+    .filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3); // 失敗過的格子最多重試 3 次
   if(!keys.length)return;
-  keys.forEach(k=>OSMCELLS.add(k));
   const names=new Set(DB.map(x=>x.n));
-  let add=0;
+  let add=0,ok=0,miss=0,fail=0;
   await Promise.all(keys.map(async k=>{
     try{
       const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),8000);
-      const r=await fetch("data/osm/"+k+".json",{signal:ctl.signal}); // 跟隨伺服器快取標頭,資料更新後最慢10分鐘就能看到新檔
+      const r=await fetch("data/osm/"+k+".json",{signal:ctl.signal});
       clearTimeout(tid);
-      if(!r.ok){if(OSMDB_ON===null&&r.status===404){/* 可能尚未建置 */}return}
-      OSMDB_ON=true;
+      if(!r.ok){
+        if(r.status===404){miss++;OSMCELLS.add(k)} // 404=該格無檔(海域),不再重試
+        else{fail++;OSMFAIL[k]=(OSMFAIL[k]||0)+1}
+        return;
+      }
+      OSMDB_ON=true;ok++;OSMCELLS.add(k); // ★ 成功才標記已載入
       const list=await r.json();
       list.forEach(e=>{
         if(!e||!e.n||names.has(e.n))return;
@@ -3077,12 +3110,18 @@ async function loadArea(){
           s:isSpot?(e.s||60):isShop?(e.s||90):(e.c==="food"?50:0),p:3});
         add++;
       });
-    }catch(err){}
+    }catch(err){fail++;OSMFAIL[k]=(OSMFAIL[k]||0)+1} // 逾時/網路錯:記失敗,下次重試
   }));
   if(add){
     if($("pane-explore").classList.contains("on"))renderExplore();
     renderHomePicks();
     toast("⛩️🍜🏨 OSM 本區庫 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
+  }else if(ok){
+    toast("✓ 本區 OSM 資料已在庫中(全庫 "+DB.length.toLocaleString()+" 筆)");
+  }else if(fail){
+    toast("⚠️ OSM 分區庫載入失敗("+fail+" 格,稍後自動重試);持續失敗請回報");
+  }else if(miss){
+    toast("ℹ️ 此區沒有 OSM 分區檔(資料庫可能尚未涵蓋)");
   }
 }
 // 定位後自動載入該區
