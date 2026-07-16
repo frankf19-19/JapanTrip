@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r71</span>
+    <span class="build">build r72</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r71
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r72
 </footer>
 
 <nav class="bottom">
@@ -3074,6 +3074,18 @@ function ensurePtCloud(){
   setTimeout(()=>{try{buildGidx()}catch(e){}},600);
   return PTC;
 }
+const MAP_OFF=new Set(); // 地圖上被隱藏的分類
+function mapToggleCat(c){
+  MAP_OFF.has(c)?MAP_OFF.delete(c):MAP_OFF.add(c);
+  renderCloudLegend();drawPtCloud();
+}
+function renderCloudLegend(){
+  const CATL=[["spot","景點","#28497C"],["food","美食","#B98A2F"],["shop","購物","#C43B41"],["hotel","住宿","#5E7B4F"]];
+  const chips=CATL.map(([c,n,col])=>`<span onclick="mapToggleCat('${c}')" style="cursor:pointer;user-select:none;${MAP_OFF.has(c)?"opacity:.35;text-decoration:line-through":""}" title="點我${MAP_OFF.has(c)?"顯示":"隱藏"}${n}"><i style="background:${col}"></i>${n}</span>`).join("");
+  $("mapLegend").innerHTML=chips
+    +`<span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆${MAP_OFF.size?"(已篩選)":"全數顯示"}</span>`
+    +`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點分類圓點可篩選・點標記看詳情</span>`;
+}
 function drawPtCloud(){
   if(!PTC||S.iti){if(PTC)PTC.getContext("2d").clearRect(0,0,PTC.width,PTC.height);return}
   const sz=MAP.getSize(),ratio=window.devicePixelRatio||1;
@@ -3087,6 +3099,7 @@ function drawPtCloud(){
   for(let i=0;i<DB.length;i++){
     const p=DB[i];
     if(!p||!Number.isFinite(p.la)||p.la<s0||p.la>n0||p.lo<w||p.lo>e)continue;
+    if(MAP_OFF.has(p.c))continue; // 分類篩選
     const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
     ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
     ctx.fillRect(pt.x-r,pt.y-r,r*2,r*2);
@@ -3116,6 +3129,7 @@ function ptCloudClick(ev){
     const arr=GIDX.get((kla+a)+"_"+(klo+o));if(!arr)continue;
     for(const i of arr){
       const p=DB[i];
+      if(MAP_OFF.has(p.c))continue;
       const d=Math.abs(p.la-ll.lat)/dLa+Math.abs(p.lo-ll.lng)/dLo;
       if(d<bd){bd=d;best=p}
     }
@@ -3169,10 +3183,10 @@ function renderMap(){
     // 無行程:全量點雲 — 資料庫裡「全部」的點一次畫出,點擊可看詳情
     ensurePtCloud();
     setTimeout(drawPtCloud,50);
-    legend=`<span><i style="background:#28497C"></i>景點</span><span><i style="background:#B98A2F"></i>美食</span><span><i style="background:#C43B41"></i>購物</span><span><i style="background:#5E7B4F"></i>住宿</span><span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆全數顯示</span>`;
+    renderCloudLegend();
   }
   if(S.iti&&PTC)drawPtCloud(); // 行程模式清空點雲
-  $("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點標記可看詳情${S.iti?"":"・生成行程後會顯示每日路線"}</span>`;
+  if(S.iti)$("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點標記可看詳情</span>`;
   if(S.iti&&pts.length){try{MAP.fitBounds(pts,{padding:[30,30],maxZoom:14})}catch(e){MAP.setView([36.2,137.8],5)}}
   else MAP.setView(S.iti?[36.2,137.8]:((pts.length>50||!S.center)?[37.0,137.5]:[S.center.la,S.center.lo]),(pts.length>50||!S.center)?5:11);
 }
