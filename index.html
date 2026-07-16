@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r60</span>
+    <span class="build">build r61</span>
   </div>
 </header>
 
@@ -638,7 +638,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r60
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r61
 </footer>
 
 <nav class="bottom">
@@ -2889,7 +2889,7 @@ function openDetail(name,fromPop){
   const gmap="https://www.google.com/maps/search/?api=1&query="+s.la+","+s.lo;
   const grev="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((s.j||s.n)+" "+(s.ad||""));
   $("dPanel").innerHTML=`
-    <div class="d-hero"><div class="fb">${FB[s.c]||"📍"}</div><img id="dImg" alt="${s.n}"><button class="d-close" onclick="closeDetail()">✕</button></div>
+    <div class="d-hero"><div class="fb">${FB[s.c]||"📍"}</div><img id="dImg" alt="${s.n}" title="點我放大" style="cursor:zoom-in" onclick="if(LB.pics.length)openLB(LB.i)"><button class="d-close" onclick="closeDetail()">✕</button></div>
     <div class="d-gal" id="dGal"></div>
     <div class="d-bd">
       <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
@@ -2976,7 +2976,7 @@ function openDetail(name,fromPop){
     const gal=$("dGal"); if(!gal)return;
     LB.pics=pics; LB.i=0;
     if(pics.length){
-      gal.innerHTML=pics.map((p,i)=>`<img src="${p.t}" loading="lazy" alt="照片${i+1}" onclick="LB.i=${i};document.getElementById('dImg').src='${p.t}';document.getElementById('dImg').classList.add('ok');document.querySelectorAll('#dGal img').forEach(x=>x.classList.remove('on'));this.classList.add('on')">`).join("")
+      gal.innerHTML=pics.map((p,i)=>`<img src="${p.t}" loading="lazy" alt="照片${i+1}" title="點我放大" onclick="document.getElementById('dImg').src='${p.t}';document.getElementById('dImg').classList.add('ok');document.querySelectorAll('#dGal img').forEach(x=>x.classList.remove('on'));this.classList.add('on');openLB(${i})">`).join("")
         +`<div style="flex-shrink:0;align-self:center;font-size:11px;color:#A39B87;padding:0 6px;white-space:nowrap">共 ${pics.length} 張<br>點大圖放大</div>`;
       const im=$("dImg");
       if(im&&!im.classList.contains("ok")){im.onload=()=>im.classList.add("ok");im.src=pics[0].t;}
