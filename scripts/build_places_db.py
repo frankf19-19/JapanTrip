@@ -28,8 +28,7 @@ NATURAL_MAP = {
     "beach":      (["自然風景", "親子同樂"], 90),
     "peak":       (["自然風景", "夜景展望"], 60),
 }
-# 每格各分類上限(依標籤豐富度排序後截取)
-CAPS = {"food": 4000, "spot": 2500, "hotel": 1200, "shop": 500}
+# v11:不設上限 — 全量收錄;仍依標籤豐富度排序(資訊完整的排前面)
 
 
 def centroid(geom):
@@ -157,8 +156,7 @@ def main():
     for key, cats in sorted(cells.items()):
         out = []
         for cat, lst in cats.items():
-            lst.sort(key=lambda x: -x["_r"])
-            lst = lst[:CAPS.get(cat, 800)]
+            lst.sort(key=lambda x: -x["_r"])  # 不截取,全量收錄
             stats[cat] += len(lst)
             out.extend(lst)
         for e in out:
