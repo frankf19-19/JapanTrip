@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r75</span>
+    <span class="build">build r76</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r75
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r76
 </footer>
 
 <nav class="bottom">
@@ -3109,8 +3109,8 @@ function mapToggleCat(c){
   renderCloudLegend();drawPtCloud();
 }
 function renderCloudLegend(){
-  const CATL=[["spot","景點","#28497C"],["food","美食","#B98A2F"],["shop","購物","#C43B41"],["hotel","住宿","#5E7B4F"]];
-  const chips=CATL.map(([c,n,col])=>`<span onclick="mapToggleCat('${c}')" style="cursor:pointer;user-select:none;${MAP_OFF.has(c)?"opacity:.35;text-decoration:line-through":""}" title="點我${MAP_OFF.has(c)?"顯示":"隱藏"}${n}"><i style="background:${col}"></i>${n}</span>`).join("");
+  const CATL=[["spot","⛩️ 景點(圓)","#28497C"],["food","🍜 美食(三角)","#B98A2F"],["shop","🛍️ 購物(方)","#C43B41"],["hotel","🏨 住宿(菱)","#5E7B4F"]];
+  const chips=CATL.map(([c,n,col])=>`<span onclick="mapToggleCat('${c}')" style="cursor:pointer;user-select:none;${MAP_OFF.has(c)?"opacity:.35;text-decoration:line-through":""}" title="點我${MAP_OFF.has(c)?"顯示":"隱藏"}"><i style="background:${col}"></i>${n}</span>`).join("");
   $("mapLegend").innerHTML=chips
     +`<span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆${MAP_OFF.size?"(已篩選)":"全數顯示"}</span>`
     +`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點分類圓點可篩選・點標記看詳情</span>`;
@@ -3133,30 +3133,51 @@ function drawPtCloud(){
     vis.push(p);
     if(vis.length>20000)break; // 保險上限
   }
+  const EMO={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
+  const shape=(p,x,y,r)=>{ // 分類形狀:景點圓/美食三角/購物方/住宿菱
+    ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
+    ctx.beginPath();
+    if(p.c==="food"){ctx.moveTo(x,y-r);ctx.lineTo(x+r,y+r);ctx.lineTo(x-r,y+r)}
+    else if(p.c==="shop"){ctx.rect(x-r,y-r,r*2,r*2)}
+    else if(p.c==="hotel"){ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y)}
+    else{ctx.arc(x,y,r,0,Math.PI*2)}
+    ctx.closePath();ctx.fill();
+  };
   if(z>=13&&vis.length<=500){
-    // ★ 近距離模式:白邊實心圓,清楚可見
-    const R=z>=16?8:z>=15?7:6;
+    // ★ 近距離模式:白底圓徽 + 分類 emoji 圖示
+    const R=z>=16?12:z>=15?11:10;
     const showLabel=z>=16&&vis.length<=140;
-    ctx.font="11px 'Noto Sans TC',sans-serif";
     for(const p of vis){
       const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
-      ctx.beginPath();
-      ctx.arc(pt.x,pt.y,R,0,Math.PI*2);
-      ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
-      ctx.fill();
-      ctx.lineWidth=2;ctx.strokeStyle="#fff";ctx.stroke();
+      ctx.beginPath();ctx.arc(pt.x,pt.y,R,0,Math.PI*2);
+      ctx.fillStyle="#fff";ctx.fill();
+      ctx.lineWidth=2.5;ctx.strokeStyle=CHEX_PT[p.c]||"#28497C";ctx.stroke();
+      ctx.font=(R*1.15)+"px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(EMO[p.c]||"📍",pt.x,pt.y+1);
       if(showLabel){
+        ctx.font="11px 'Noto Sans TC',sans-serif";ctx.textAlign="left";ctx.textBaseline="alphabetic";
         const nm=p.n.length>12?p.n.slice(0,12)+"…":p.n;
         ctx.lineWidth=3;ctx.strokeStyle="rgba(255,255,255,.9)";
-        ctx.strokeText(nm,pt.x+R+3,pt.y+4);
+        ctx.strokeText(nm,pt.x+R+4,pt.y+4);
         ctx.fillStyle="#3A3230";
-        ctx.fillText(nm,pt.x+R+3,pt.y+4);
+        ctx.fillText(nm,pt.x+R+4,pt.y+4);
       }
     }
+    ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  }else if(z>=9){
+    // 中距離:分類形狀(圓/三角/方/菱)+ 細白邊
+    const r=z>=12?5:4;
+    ctx.globalAlpha=.9;
+    for(const p of vis){
+      const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
+      shape(p,pt.x,pt.y,r);
+      if(z>=11){ctx.lineWidth=1;ctx.strokeStyle="rgba(255,255,255,.8)";ctx.stroke()}
+    }
+    ctx.globalAlpha=1;
   }else{
-    // 遠距離模式:高效點雲方塊
-    const r=z>=12?4:z>=9?3:z>=7?2:1.5;
-    ctx.globalAlpha=z>=9?.85:.6;
+    // 遠距離:高效點雲方塊
+    const r=z>=7?2:1.5;
+    ctx.globalAlpha=.6;
     for(const p of vis){
       const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
       ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
