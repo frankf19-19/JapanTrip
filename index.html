@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r72</span>
+    <span class="build">build r73</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r72
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r73
 </footer>
 
 <nav class="bottom">
@@ -3094,17 +3094,47 @@ function drawPtCloud(){
   ctx.setTransform(ratio,0,0,ratio,0,0);
   ctx.clearRect(0,0,sz.x,sz.y);
   const b=MAP.getBounds(),w=b.getWest(),e=b.getEast(),s0=b.getSouth(),n0=b.getNorth();
-  const z=MAP.getZoom(),r=z>=12?3:z>=9?2.5:z>=7?2:1.5;
-  ctx.globalAlpha=z>=9?.85:.6;
+  const z=MAP.getZoom();
+  // 第一遍:收集視窗內的點(篩選後),供選擇渲染模式
+  const vis=[];
   for(let i=0;i<DB.length;i++){
     const p=DB[i];
     if(!p||!Number.isFinite(p.la)||p.la<s0||p.la>n0||p.lo<w||p.lo>e)continue;
-    if(MAP_OFF.has(p.c))continue; // 分類篩選
-    const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
-    ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
-    ctx.fillRect(pt.x-r,pt.y-r,r*2,r*2);
+    if(MAP_OFF.has(p.c))continue;
+    vis.push(p);
+    if(vis.length>20000)break; // 保險上限
   }
-  ctx.globalAlpha=1;
+  if(z>=13&&vis.length<=500){
+    // ★ 近距離模式:白邊實心圓,清楚可見
+    const R=z>=16?8:z>=15?7:6;
+    const showLabel=z>=16&&vis.length<=140;
+    ctx.font="11px 'Noto Sans TC',sans-serif";
+    for(const p of vis){
+      const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
+      ctx.beginPath();
+      ctx.arc(pt.x,pt.y,R,0,Math.PI*2);
+      ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
+      ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle="#fff";ctx.stroke();
+      if(showLabel){
+        const nm=p.n.length>12?p.n.slice(0,12)+"…":p.n;
+        ctx.lineWidth=3;ctx.strokeStyle="rgba(255,255,255,.9)";
+        ctx.strokeText(nm,pt.x+R+3,pt.y+4);
+        ctx.fillStyle="#3A3230";
+        ctx.fillText(nm,pt.x+R+3,pt.y+4);
+      }
+    }
+  }else{
+    // 遠距離模式:高效點雲方塊
+    const r=z>=12?4:z>=9?3:z>=7?2:1.5;
+    ctx.globalAlpha=z>=9?.85:.6;
+    for(const p of vis){
+      const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
+      ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
+      ctx.fillRect(pt.x-r,pt.y-r,r*2,r*2);
+    }
+    ctx.globalAlpha=1;
+  }
 }
 function buildGidx(){
   if(GIDX&&GIDX_N===DB.length)return;
