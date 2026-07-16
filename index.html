@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r70</span>
+    <span class="build">build r71</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r70
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r71
 </footer>
 
 <nav class="bottom">
@@ -3058,6 +3058,74 @@ function copyItinerary(){
 let MAP,LAYER,CANVAS;
 const DAYCOLORS=["#C43B41","#28497C","#5E7B4F","#B98A2F","#7C4E8E","#2E8C8C","#B0553B"];
 const finite=s=>Number.isFinite(s.la)&&Number.isFinite(s.lo);
+/* ═══ 全量點雲層:自繪 Canvas,幾十萬點也流暢;點擊開詳情 ═══ */
+let PTC=null,PTC_RAF=0,GIDX=null,GIDX_N=0;
+const CHEX_PT={spot:"#28497C",food:"#B98A2F",shop:"#C43B41",hotel:"#5E7B4F"};
+function ensurePtCloud(){
+  if(PTC)return PTC;
+  const cont=MAP.getContainer();
+  PTC=document.createElement("canvas");
+  PTC.style.cssText="position:absolute;inset:0;z-index:400;pointer-events:none";
+  cont.appendChild(PTC);
+  const redraw=()=>{if(!PTC_RAF)PTC_RAF=requestAnimationFrame(()=>{PTC_RAF=0;drawPtCloud()})};
+  MAP.on("move zoom resize viewreset",redraw);
+  MAP.on("click",ptCloudClick);
+  // 背景先建好點擊索引,第一次點擊不卡頓
+  setTimeout(()=>{try{buildGidx()}catch(e){}},600);
+  return PTC;
+}
+function drawPtCloud(){
+  if(!PTC||S.iti){if(PTC)PTC.getContext("2d").clearRect(0,0,PTC.width,PTC.height);return}
+  const sz=MAP.getSize(),ratio=window.devicePixelRatio||1;
+  if(PTC.width!==sz.x*ratio||PTC.height!==sz.y*ratio){PTC.width=sz.x*ratio;PTC.height=sz.y*ratio;PTC.style.width=sz.x+"px";PTC.style.height=sz.y+"px"}
+  const ctx=PTC.getContext("2d");
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.clearRect(0,0,sz.x,sz.y);
+  const b=MAP.getBounds(),w=b.getWest(),e=b.getEast(),s0=b.getSouth(),n0=b.getNorth();
+  const z=MAP.getZoom(),r=z>=12?3:z>=9?2.5:z>=7?2:1.5;
+  ctx.globalAlpha=z>=9?.85:.6;
+  for(let i=0;i<DB.length;i++){
+    const p=DB[i];
+    if(!p||!Number.isFinite(p.la)||p.la<s0||p.la>n0||p.lo<w||p.lo>e)continue;
+    const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
+    ctx.fillStyle=CHEX_PT[p.c]||"#28497C";
+    ctx.fillRect(pt.x-r,pt.y-r,r*2,r*2);
+  }
+  ctx.globalAlpha=1;
+}
+function buildGidx(){
+  if(GIDX&&GIDX_N===DB.length)return;
+  GIDX=new Map();GIDX_N=DB.length;
+  for(let i=0;i<DB.length;i++){
+    const p=DB[i];if(!p||!Number.isFinite(p.la))continue;
+    const k=(Math.round(p.la*100))+"_"+(Math.round(p.lo*100));
+    let a=GIDX.get(k);if(!a){a=[];GIDX.set(k,a)}a.push(i);
+  }
+}
+function ptCloudClick(ev){
+  if(S.iti||!PTC)return;
+  buildGidx();
+  const ll=ev.latlng,cp=ev.containerPoint;
+  // 8px 對應的經緯度差
+  const ll2=MAP.containerPointToLatLng([cp.x+8,cp.y+8]);
+  const dLa=Math.abs(ll2.lat-ll.lat),dLo=Math.abs(ll2.lng-ll.lng);
+  let best=null,bd=1e9;
+  const kla=Math.round(ll.lat*100),klo=Math.round(ll.lng*100);
+  const span=Math.max(1,Math.ceil(dLa*100),Math.ceil(dLo*100));
+  for(let a=-span;a<=span;a++)for(let o=-span;o<=span;o++){
+    const arr=GIDX.get((kla+a)+"_"+(klo+o));if(!arr)continue;
+    for(const i of arr){
+      const p=DB[i];
+      const d=Math.abs(p.la-ll.lat)/dLa+Math.abs(p.lo-ll.lng)/dLo;
+      if(d<bd){bd=d;best=p}
+    }
+  }
+  if(best&&bd<=2){
+    L.popup().setLatLng([best.la,best.lo])
+      .setContent(`<b style="cursor:pointer" onclick="openDetail('${esc(best.n)}')">${best.n}</b><br>${CATN[best.c]||""}${best.rt?"・★"+best.rt.toFixed(1):""}<br><a href="javascript:void(0)" onclick="openDetail('${esc(best.n)}')">看詳情</a>`)
+      .openOn(MAP);
+  }
+}
 function renderMap(){
   if(!window.L){$("map").innerHTML='<div class="loading-big">地圖元件載入失敗,請檢查網路後重新整理</div>';return}
   if(!MAP){
@@ -3098,20 +3166,12 @@ function renderMap(){
     hs.forEach(ht=>mark(ht,{radius:8,color:"#5E7B4F",fillColor:"#5E7B4F",fillOpacity:.95}));
     if(hs.length)legend+=`<span><i style="background:#5E7B4F"></i>住宿</span>`;
   }else{
-    // 無行程:全日本精選(有★評分者)+ 中心周邊所有點
-    const rad=+($("radius")?$("radius").value:25);
-    const seen=new Set();
-    DB.forEach(s=>{ // 全國精選
-      if(!s.rt||seen.has(s.n))return; seen.add(s.n);
-      mark(s,{color:CHEX[s.c]||"#28497C",fillColor:CHEX[s.c]||"#28497C"});
-    });
-    let near=0;
-    for(const s of DB){ // 中心周邊(含擴充庫),上限 250 顆避免爆量
-      if(seen.has(s.n)||!finite(s))continue;
-      if(dKm(s)<=rad){seen.add(s.n);mark(s,{color:CHEX[s.c]||"#28497C",fillColor:CHEX[s.c]||"#28497C",fillOpacity:.6,radius:5});if(++near>=250)break}
-    }
-    legend=`<span><i style="background:#28497C"></i>景點</span><span><i style="background:#B98A2F"></i>美食</span><span><i style="background:#C43B41"></i>購物</span><span><i style="background:#5E7B4F"></i>住宿</span>`;
+    // 無行程:全量點雲 — 資料庫裡「全部」的點一次畫出,點擊可看詳情
+    ensurePtCloud();
+    setTimeout(drawPtCloud,50);
+    legend=`<span><i style="background:#28497C"></i>景點</span><span><i style="background:#B98A2F"></i>美食</span><span><i style="background:#C43B41"></i>購物</span><span><i style="background:#5E7B4F"></i>住宿</span><span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆全數顯示</span>`;
   }
+  if(S.iti&&PTC)drawPtCloud(); // 行程模式清空點雲
   $("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點標記可看詳情${S.iti?"":"・生成行程後會顯示每日路線"}</span>`;
   if(S.iti&&pts.length){try{MAP.fitBounds(pts,{padding:[30,30],maxZoom:14})}catch(e){MAP.setView([36.2,137.8],5)}}
   else MAP.setView(S.iti?[36.2,137.8]:((pts.length>50||!S.center)?[37.0,137.5]:[S.center.la,S.center.lo]),(pts.length>50||!S.center)?5:11);
