@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r57</span>
+    <span class="build">build r59</span>
   </div>
 </header>
 
@@ -638,7 +638,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r57
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r59
 </footer>
 
 <nav class="bottom">
@@ -1274,7 +1274,15 @@ function climate(mm,ctr){
   return {region:best[0],m,hi,lo,note:MNOTE[m-1],emoji:MEMO[m-1],wear};
 }
 const $=id=>document.getElementById(id);
-const toast=m=>{const t=$("toast");t.innerHTML=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),2600)};
+const _TQ=[];let _TON=false;
+const toast=m=>{_TQ.push(m);if(!_TON)_tNext()};
+function _tNext(){
+  if(!_TQ.length){_TON=false;return}
+  _TON=true;
+  const t=$("toast");t.innerHTML=_TQ.shift();t.classList.add("show");
+  clearTimeout(t._x);
+  t._x=setTimeout(()=>{t.classList.remove("show");setTimeout(_tNext,320)},2600);
+}
 const dist=(a,b,c,d)=>{const R=6371,p=Math.PI/180,x=(c-a)*p,y=(d-b)*p,h=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
 const dKm=s=>S.center?dist(S.center.la,S.center.lo,s.la,s.lo):Infinity;
 const fmtD=k=>k<1?Math.round(k*1000)+" m":k.toFixed(1)+" km";
@@ -2021,8 +2029,20 @@ const IMGOBS=("IntersectionObserver" in window)?new IntersectionObserver(es=>{
 },{rootMargin:"180px"}):null;
 function watchImgs(){if(!IMGOBS)return;document.querySelectorAll(".ph[data-img]:not(.w)").forEach(p=>{p.classList.add("w");IMGOBS.observe(p)})}
 S.homeCat="all";
+// 開站自檢:確認 OSM 分區庫是否可連線、有幾個分區檔
+(async()=>{
+  try{
+    const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),8000);
+    const r=await fetch("data/osm/index.json",{signal:ctl.signal});
+    clearTimeout(tid);
+    if(!r.ok){toast("⚠️ OSM 分區庫連不上(index.json "+r.status+")");OSMDB_ON=false;return}
+    const idx=await r.json();
+    window._OSMIDX=idx;
+    toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔(點選城市後載入該區)");
+  }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
+})();
 function setHomeCat(el){
-  S.homeCat=el.dataset.c;
+  S.homeCat=el.dataset.c;S.homeN=24;
   document.querySelectorAll("#homeCatChips label").forEach(l=>l.classList.remove("on"));
   el.classList.add("on");
   renderHomePicks();
@@ -2036,13 +2056,25 @@ function goExplore(cat){
   showPane("explore");renderExplore();
 }
 function renderHomePicks(){
-  let base=S.center?DB.filter(s=>dKm(s)<=+($("radius")?.value||25)):DB.filter(s=>s.rt);
-  if(S.homeCat&&S.homeCat!=="all")base=base.filter(s=>s.c===S.homeCat);
-  // 未設中心且該分類無精選(如購物/OSM住宿) → 放寬用全庫該分類
-  if(!base.length&&S.homeCat!=="all")base=DB.filter(s=>s.c===S.homeCat);
+  S.homeN=S.homeN||24;
+  const dk=s=>S.center?dKm(s):0;
+  let base,total=0,cap=8;
+  if(S.homeCat&&S.homeCat!=="all"){
+    // 分類模式:全庫該分類「全部」;有中心=近的優先,無中心=全國
+    base=DB.filter(s=>s.c===S.homeCat);
+    if(S.center){
+      const near=base.filter(s=>dKm(s)<=+($("radius")?.value||25));
+      if(near.length>=12)base=near;
+    }
+    total=base.length;cap=S.homeN;
+  }else{
+    base=S.center?DB.filter(s=>dKm(s)<=+($("radius")?.value||25)):DB.filter(s=>s.rt);
+    total=base.length;cap=8;
+  }
   const list=base
-    .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||(b.p-a.p)||(dKm(a)-dKm(b))).slice(0,8);
-  $("homePicks").innerHTML=list.length?list.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>此區精選較少,但沒問題!</b>直接按「生成行程」,系統會自動即時抓取當地景點排程(全日本都可以);也可以到「探索」頁按即時搜尋先逛逛。</div>`;
+    .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||((b.p||0)-(a.p||0))||(dk(a)-dk(b))).slice(0,cap);
+  const moreBtn=(S.homeCat!=="all"&&total>cap)?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.homeN+=24;renderHomePicks()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${Math.min(cap,total).toLocaleString()} / 共 ${total.toLocaleString()})</button></div>`:"";
+  $("homePicks").innerHTML=(list.length?list.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>此區精選較少,但沒問題!</b>直接按「生成行程」,系統會自動即時抓取當地景點排程(全日本都可以);也可以到「探索」頁按即時搜尋先逛逛。</div>`)+moreBtn;
   watchImgs();
 }
 function renderExplore(){
