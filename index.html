@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r51</span>
+    <span class="build">build r52</span>
   </div>
 </header>
 
@@ -628,7 +628,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r51
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r52
 </footer>
 
 <nav class="bottom">
@@ -1795,8 +1795,8 @@ function afterLocate(msg){
 const TIER_COLORS={"青旅民宿":"#7A8B99","平價":"#5E7B4F","中檔":"#28497C","高檔":"#8A6A1E","奢華":"#7C4E8E","溫泉旅館":"#C43B41"};
 function prMax(pr){const m=(pr||"").replace(/,/g,"").match(/\d{3,6}/g);return m?Math.max(...m.map(Number)):null}
 function hotelTier(s){
-  if(s.ht==="hostel")return "青旅民宿";
-  if(s.ht==="guest_house")return "青旅民宿";
+  if(s.ht==="hostel"||s.ht==="guest_house"||s.ht==="apartment")return "青旅民宿";
+  if(s.ht==="motel")return "平價";
   const nm=s.n+(s.j||"");
   if((s.t||[]).includes("溫泉")||/温泉|溫泉|旅館|の宿|山荘|山莊/.test(nm))return "溫泉旅館";
   if(/虹夕諾雅|星のや|リッツ|ritz|four seasons|四季|aman|アマン|halekulani|ブルガリ|bvlgari/i.test(nm))return "奢華";
@@ -2789,6 +2789,7 @@ function openDetail(name,fromPop){
         <a href="https://www.google.com/search?q=${encodeURIComponent(s.j||s.n)}&tbm=isch" target="_blank" rel="noopener">📷 更多照片</a>
         ${s.c==="food"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 食べログ")}" target="_blank" rel="noopener">🍽️ 食べログ評價</a>`:""}
         ${s.c==="hotel"?`<a href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 訂房比價</a>`:""}
+        ${s.c==="hotel"?`<a href="https://www.agoda.com/zh-tw/search?q=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
         ${s.c==="hotel"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 楽天トラベル")}" target="_blank" rel="noopener">🎌 樂天訂房</a>`:""}
       </div>
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
@@ -2991,12 +2992,12 @@ async function loadArea(){
       list.forEach(e=>{
         if(!e||!e.n||names.has(e.n))return;
         names.add(e.n);
-        const isSpot=e.c==="spot";
-        DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:isSpot?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
+        const isSpot=e.c==="spot",isShop=e.c==="shop";
+        DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:(isSpot||isShop)?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
           cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,wt:e.wt,
-          pr:isSpot?"票價請點官網或 Google 查詢":(e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網")),
+          pr:isSpot?"票價請點官網或 Google 查詢":isShop?"依店家而異":(e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網")),
           d:(e.cu?("料理:"+e.cu.replace(/;/g,"、")+"。"):"")+(e.oh?("營業:"+e.oh):"來自 OpenStreetMap 全國資料庫。"),
-          s:isSpot?(e.s||60):(e.c==="food"?50:0),p:3});
+          s:isSpot?(e.s||60):isShop?(e.s||90):(e.c==="food"?50:0),p:3});
         add++;
       });
     }catch(err){}
