@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r76</span>
+    <span class="build">build r77</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r76
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r77
 </footer>
 
 <nav class="bottom">
@@ -3267,8 +3267,14 @@ function renderMap(){
   }
   if(S.iti&&PTC)drawPtCloud(); // 行程模式清空點雲
   if(S.iti)$("mapLegend").innerHTML=legend+`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點標記可看詳情</span>`;
-  if(S.iti&&pts.length){try{MAP.fitBounds(pts,{padding:[30,30],maxZoom:14})}catch(e){MAP.setView([36.2,137.8],5)}}
-  else MAP.setView(S.iti?[36.2,137.8]:((pts.length>50||!S.center)?[37.0,137.5]:[S.center.la,S.center.lo]),(pts.length>50||!S.center)?5:11);
+  if(S.iti&&pts.length){
+    try{MAP.fitBounds(pts,{padding:[30,30],maxZoom:14})}catch(e){MAP.setView([36.2,137.8],5)}
+    MAP._cloudViewSet=false; // 離開行程模式後,點雲視角允許重設一次
+  }else if(!MAP._cloudViewSet){
+    // ★ 點雲模式視角只設定「第一次」;之後開關詳情/切分頁都保留你目前的縮放位置
+    MAP.setView((!S.center)?[37.0,137.5]:[S.center.la,S.center.lo],(!S.center)?5:11);
+    MAP._cloudViewSet=true;
+  }
 }
 
 init();
