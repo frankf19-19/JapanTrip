@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r67</span>
+    <span class="build">build r69</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r67
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r69
 </footer>
 
 <nav class="bottom">
@@ -2043,7 +2043,9 @@ S.homeCat="all";
     const idx=await r.json();
     window._OSMIDX=idx;
     toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔");
-    setTimeout(preloadMetros,800); // 背景預載大都市圈
+    const full=await idbGet("_full");
+    if(full){updateDbStat("💾 從本機還原全日本資料…");setTimeout(loadAllJapanSilent,300)}
+    else setTimeout(preloadMetros,800); // 背景預載大都市圈
   }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
 })();
 function setHomeCat(el){
@@ -2744,8 +2746,12 @@ function hotelPool(di){
   const d=S.iti.days[di],ctr=d.center||S.iti.center;
   const oc=S.center;if(ctr)S.center=ctr;
   let pool=DB.filter(s=>s.c==="hotel"&&dKm(s)<=(S.iti.rad||25)*1.5);
-  const pref=pool.filter(hotelMatch);if(pref.length)pool=pref;
-  pool.sort((a,b)=>dKm(a)-dKm(b));
+  // 偏好=排序優先(不再硬過濾):符合你設定的排最前,但所有等級都看得到
+  pool.sort((a,b)=>{
+    const ma=hotelMatch(a)?0:1,mb=hotelMatch(b)?0:1;
+    if(ma!==mb)return ma-mb;
+    return dKm(a)-dKm(b);
+  });
   S.center=oc;
   return pool;
 }
@@ -2772,7 +2778,7 @@ function renderHotelPicker(){
   }).join(""):`<div style="padding:14px;color:#8A8272;font-size:13.5px">這個等級附近沒有,換個等級看看</div>`;
   const more=total>n?`<button onclick="window._HP.n+=30;renderHotelPicker()" style="margin-top:10px;width:100%;border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${list.length.toLocaleString()} / 共 ${total.toLocaleString()} 間)</button>`:"";
   $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">選擇 DAY ${di+1} 的住宿 <span style="font-size:13px;color:#8A8272;font-weight:400">附近共 ${total.toLocaleString()} 間</span></h3>
-    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 6px">依你的住宿偏好排序(近的優先),點選即可更換</div>
+    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 6px">符合你住宿偏好的排最前(其餘依距離);用上方等級可看全部,點選即可更換</div>
     ${tierChips}
     <div class="hp-list">${rows}</div>
     ${more}
@@ -3123,11 +3129,56 @@ function cellsFor(la,lo,radKm){
       out.push("r"+a+"_"+o);
   return out;
 }
+/* ── IndexedDB 本機快取:分區檔下載一次永久保存,之後開站秒還原 ── */
+let _IDB=null;
+function idbOpen(){
+  if(_IDB)return Promise.resolve(_IDB);
+  return new Promise(res=>{
+    try{
+      const q=indexedDB.open("tabibiyori",1);
+      q.onupgradeneeded=()=>q.result.createObjectStore("cells");
+      q.onsuccess=()=>{_IDB=q.result;res(_IDB)};
+      q.onerror=()=>res(null);
+    }catch(e){res(null)}
+  });
+}
+async function idbGet(k){
+  const db=await idbOpen(); if(!db)return null;
+  return new Promise(res=>{
+    try{const q=db.transaction("cells").objectStore("cells").get(k);
+      q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);
+    }catch(e){res(null)}
+  });
+}
+async function idbSet(k,v){
+  const db=await idbOpen(); if(!db)return;
+  try{db.transaction("cells","readwrite").objectStore("cells").put(v,k)}catch(e){}
+}
+const IDB_FRESH=7*24*3600*1000; // 本機快取 7 天內視為新鮮(資料庫每週日更新)
 async function loadCellKeys(keys,quiet){
   const names=new Set(DB.map(x=>x.n));
   let add=0,ok=0,miss=0,fail=0;
+  const mergeList=list=>{let n=0;list.forEach(e=>{
+    if(!e||!e.n||names.has(e.n))return;
+    names.add(e.n);
+    const isSpot=e.c==="spot",isShop=e.c==="shop";
+    DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:(isSpot||isShop)?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
+      cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,wt:e.wt,
+      pr:isSpot?"票價請點官網或 Google 查詢":isShop?"依店家而異":(e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網")),
+      d:(e.cu?("料理:"+e.cu.replace(/;/g,"、")+"。"):"")+(e.oh?("營業:"+e.oh):"來自 OpenStreetMap 全國資料庫。"),
+      s:isSpot?(e.s||60):isShop?(e.s||90):(e.c==="food"?50:0),p:3});
+    n++;
+  });return n};
   await Promise.all(keys.map(async k=>{
     try{
+      // ① 本機快取優先(7 天內):不用網路,瞬間還原
+      const cached=await idbGet(k);
+      if(cached&&cached.ts&&Date.now()-cached.ts<IDB_FRESH&&Array.isArray(cached.list)){
+        OSMDB_ON=true;ok++;OSMCELLS.add(k);
+        add+=mergeList(cached.list);
+        return;
+      }
+      // ② 網路抓取,成功後存入本機
       const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),25000);
       const r=await fetch("data/osm/"+k+".json",{signal:ctl.signal});
       clearTimeout(tid);
@@ -3138,17 +3189,8 @@ async function loadCellKeys(keys,quiet){
       }
       OSMDB_ON=true;ok++;OSMCELLS.add(k); // ★ 成功才標記已載入
       const list=await r.json();
-      list.forEach(e=>{
-        if(!e||!e.n||names.has(e.n))return;
-        names.add(e.n);
-        const isSpot=e.c==="spot",isShop=e.c==="shop";
-        DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:(isSpot||isShop)?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
-          cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,wt:e.wt,
-          pr:isSpot?"票價請點官網或 Google 查詢":isShop?"依店家而異":(e.st?("★"+e.st+" 級飯店,價格請洽訂房網"):(e.c==="food"?"人均請洽店家":"價格請洽訂房網")),
-          d:(e.cu?("料理:"+e.cu.replace(/;/g,"、")+"。"):"")+(e.oh?("營業:"+e.oh):"來自 OpenStreetMap 全國資料庫。"),
-          s:isSpot?(e.s||60):isShop?(e.s||90):(e.c==="food"?50:0),p:3});
-        add++;
-      });
+      add+=mergeList(list);
+      idbSet(k,{ts:Date.now(),list}); // 存本機,下次開站不用網路
     }catch(err){fail++;OSMFAIL[k]=(OSMFAIL[k]||0)+1}
   }));
   return {add,ok,miss,fail};
@@ -3198,6 +3240,20 @@ function dbStatInfo(){
     <button onclick="closeDetail()" style="margin-top:10px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
   $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
 }
+async function loadAllJapanSilent(){
+  if(!window._OSMIDX)return;
+  const keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k));
+  let done=0;
+  for(let i=0;i<keys.length;i+=8){ // 本機快取快,批次 8 格
+    const batch=keys.slice(i,i+8);
+    await loadCellKeys(batch);
+    done+=batch.length;
+    updateDbStat("💾 還原中 "+Math.min(done,keys.length)+"/"+keys.length+" ・"+wan(DB.length)+" 筆");
+  }
+  updateDbStat();renderHomePicks();
+  if($("pane-explore").classList.contains("on"))renderExplore();
+  toast("💾 全日本資料已就緒("+wan(DB.length)+" 筆)");
+}
 async function loadAllJapan(){
   closeDetail();
   if(!window._OSMIDX){toast("index.json 尚未載入,稍後再試");return}
@@ -3212,7 +3268,8 @@ async function loadAllJapan(){
   updateDbStat();
   renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
-  toast("🗾 全日本載入完成 +"+addSum.toLocaleString()+" 筆(全庫 "+wan(DB.length)+" 筆)");
+  idbSet("_full",{ts:Date.now()}); // 記住:使用者要全日本 → 之後每次開站自動還原
+  toast("🗾 全日本載入完成 +"+addSum.toLocaleString()+" 筆(全庫 "+wan(DB.length)+" 筆;已存到本機,之後開站自動還原)");
 }
 // 大都市圈背景預載:逐格載入,左下角即時顯示進度
 const METRO_CELLS=["r35_139","r34_135","r35_136","r43_141","r33_130","r34_132","r38_140","r26_127","r36_136","r34_133","r31_130","r35_138"];
