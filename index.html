@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r59</span>
+    <span class="build">build r60</span>
   </div>
 </header>
 
@@ -638,7 +638,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r59
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r60
 </footer>
 
 <nav class="bottom">
@@ -2038,7 +2038,8 @@ S.homeCat="all";
     if(!r.ok){toast("⚠️ OSM 分區庫連不上(index.json "+r.status+")");OSMDB_ON=false;return}
     const idx=await r.json();
     window._OSMIDX=idx;
-    toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔(點選城市後載入該區)");
+    toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔");
+    setTimeout(preloadMetros,800); // 背景預載大都市圈
   }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
 })();
 function setHomeCat(el){
@@ -3109,23 +3110,16 @@ function cellsFor(la,lo,radKm){
       out.push("r"+a+"_"+o);
   return out;
 }
-async function loadArea(){
-  if(!S.center)return;
-  if(OSMDB_ON===false)return;
-  if(typeof GEN_BUDGET==="number"&&GEN_BUDGET>0&&Date.now()>GEN_BUDGET)return; // 超預算不再抓
-  const rad=Math.max(+($("radius")?$("radius").value:25),25);
-  const keys=cellsFor(S.center.la,S.center.lo,rad)
-    .filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3); // 失敗過的格子最多重試 3 次
-  if(!keys.length)return;
+async function loadCellKeys(keys,quiet){
   const names=new Set(DB.map(x=>x.n));
   let add=0,ok=0,miss=0,fail=0;
   await Promise.all(keys.map(async k=>{
     try{
-      const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),8000);
+      const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),9000);
       const r=await fetch("data/osm/"+k+".json",{signal:ctl.signal});
       clearTimeout(tid);
       if(!r.ok){
-        if(r.status===404){miss++;OSMCELLS.add(k)} // 404=該格無檔(海域),不再重試
+        if(r.status===404){miss++;OSMCELLS.add(k)}
         else{fail++;OSMFAIL[k]=(OSMFAIL[k]||0)+1}
         return;
       }
@@ -3142,8 +3136,19 @@ async function loadArea(){
           s:isSpot?(e.s||60):isShop?(e.s||90):(e.c==="food"?50:0),p:3});
         add++;
       });
-    }catch(err){fail++;OSMFAIL[k]=(OSMFAIL[k]||0)+1} // 逾時/網路錯:記失敗,下次重試
+    }catch(err){fail++;OSMFAIL[k]=(OSMFAIL[k]||0)+1}
   }));
+  return {add,ok,miss,fail};
+}
+async function loadArea(){
+  if(!S.center)return;
+  if(OSMDB_ON===false)return;
+  if(typeof GEN_BUDGET==="number"&&GEN_BUDGET>0&&Date.now()>GEN_BUDGET)return;
+  const rad=Math.max(+($("radius")?$("radius").value:25),25);
+  const keys=cellsFor(S.center.la,S.center.lo,rad)
+    .filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3);
+  if(!keys.length)return;
+  const {add,ok,miss,fail}=await loadCellKeys(keys);
   if(add){
     if($("pane-explore").classList.contains("on"))renderExplore();
     renderHomePicks();
@@ -3154,6 +3159,18 @@ async function loadArea(){
     toast("⚠️ OSM 分區庫載入失敗("+fail+" 格,稍後自動重試);持續失敗請回報");
   }else if(miss){
     toast("ℹ️ 此區沒有 OSM 分區檔(資料庫可能尚未涵蓋)");
+  }
+}
+// 大都市圈背景預載:開站自動把主要城市的分區檔載入,首頁分類立即滿血
+const METRO_CELLS=["r35_139","r34_135","r35_136","r43_141","r33_130","r34_132","r38_140","r26_127","r36_136","r34_133","r31_130","r35_138"];
+async function preloadMetros(){
+  const keys=METRO_CELLS.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3&&(!window._OSMIDX||window._OSMIDX.includes(k)));
+  if(!keys.length)return;
+  const {add}=await loadCellKeys(keys);
+  if(add){
+    renderHomePicks();
+    if($("pane-explore").classList.contains("on"))renderExplore();
+    toast("🌆 已背景載入主要都市圈 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
   }
 }
 // 定位後自動載入該區
