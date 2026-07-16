@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r53</span>
+    <span class="build">build r55</span>
   </div>
 </header>
 
@@ -628,7 +628,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r53
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r55
 </footer>
 
 <nav class="bottom">
@@ -1381,7 +1381,7 @@ function saveIti(){
   const dft=S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊";
   const name=prompt("為這份行程取個名字:",dft); if(name===null)return;
   const itis=store.get("wayu_itis")||[];
-  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null,ht:d.hotel?d.hotel.n:null,ln:!!d.lastNight}))});
+  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null,ht:d.hotel?d.hotel.n:null,ln:!!d.lastNight,pf:d.pins||null,sk:d.skipMeal||null}))});
   store.set("wayu_itis",itis.slice(0,20));
   toast("♥ 行程已儲存到「最愛」");
 }
@@ -1391,7 +1391,7 @@ function loadIti(i){
   S.center={n:it.center,la:it.centerLa,lo:it.centerLo}; S.month=it.month||S.month;
   S.iti={days:it.days.map(dd=>{
       const ns=Array.isArray(dd)?dd:dd.ns, c=Array.isArray(dd)?null:dd.c;
-      return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined,hotel:(dd.ht?findByName(dd.ht):null),lastNight:!!dd.ln};
+      return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined,hotel:(dd.ht?findByName(dd.ht):null),lastNight:!!dd.ln,pins:dd.pf||undefined,skipMeal:dd.sk||undefined};
     }),hotel:null,hotels:null,multi:!!it.multi,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[])};
   S.iti.days=S.iti.days.filter(d=>d.list.length);
   S.iti.days.forEach((d,di)=>rebuildDay(di));
@@ -2108,7 +2108,7 @@ async function overpassSearch(){
 function foodsPool(rad){return DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad)}
 const isNight=s=>(s.t||[]).includes("夜景展望")&&!(s.t||[]).includes("市場老街");
 const isDayOnly=s=>(s.t||[]).some(t=>["神社寺廟","歷史古蹟","博物館藝術"].includes(t))&&!isNight(s);
-function makeStops(dayList,usedF,wantMeal,rad,startMin){
+function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
   const foods=foodsPool(rad);
   const M=TMODES[S.iti&&S.iti.tmode||S.tmode]||TMODES.transit;
   // 時段感知排序:日間限定(寺社/博物館)→ 一般 → 夜景(各組內維持就近順序)
@@ -2117,7 +2117,14 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin){
   dayList=[...early,...mid,...night];
   let t=startMin||9*60; const stops=[];
   dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)});
-  const nearestFood=pt=>{
+  const nearestFood=(pt,slot)=>{
+    // 這餐被使用者設為「不安排」
+    if(dayRef&&dayRef.skipMeal&&dayRef.skipMeal[slot])return null;
+    // 使用者指定的店(換餐廳面板選的)優先
+    if(dayRef&&dayRef.pins&&dayRef.pins[slot]){
+      const pf=findByName(dayRef.pins[slot]);
+      if(pf&&!usedF.has(pf.n)){usedF.add(pf.n);return pf}
+    }
     let cand=foods.filter(x=>!usedF.has(x.n)&&foodMatch(x));
     if(!cand.length)cand=foods.filter(x=>!usedF.has(x.n)); // 偏好內找不到 → 放寬
     const f=cand.sort((a,b)=>dist(pt.la,pt.lo,a.la,a.lo)-dist(pt.la,pt.lo,b.la,b.lo))[0];
@@ -2132,12 +2139,12 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin){
       stops.push({type:"travel",min:mv,km,f:[pv.la,pv.lo],g:[s.la,s.lo]}); t+=mv;
     }
     if(wantMeal&&!lunch&&t>=11*60+30&&s.s<420){
-      const f=nearestFood(s);
+      const f=nearestFood(s,"lunch");
       if(f){stops.push({type:"stop",s:f,t,meal:1});t+=f.s||45;lunch=true;
         stops.push({type:"travel",min:10,km:dist(f.la,f.lo,s.la,s.lo)});t+=10;}
     }
     if(wantMeal&&lunch&&!snack&&t>=14*60+30&&s.s<420){
-      const f=nearestFood(s);
+      const f=nearestFood(s,"snack");
       if(f){stops.push({type:"stop",s:f,t,meal:1,snack:1});t+=Math.min(f.s||40,40);snack=true;}
     }
     // 夜景點:等到入夜時段(17:30 後),空檔標示自由時間
@@ -2155,7 +2162,7 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin){
   if(wantMeal&&dayList.length){
     const last=dayList[dayList.length-1];
     if(t<19*60)t=Math.max(t+20,18*60);
-    const f=nearestFood(last);
+    const f=nearestFood(last,"dinner");
     if(f)stops.push({type:"stop",s:f,t,meal:1,dinner:1});
   }
   return stops;
@@ -2188,7 +2195,7 @@ function rebuildDay(di){
   const oc=S.center; if(d.center)S.center=d.center;
   const usedF=new Set(it.exclF||[]);
   it.days.forEach((o,i)=>{if(i!==di)o.stops.forEach(x=>{if(x.type==="stop"&&(x.meal||x.s.c==="food"))usedF.add(x.s.n)})});
-  const build=()=>makeStops(d.list,new Set(usedF),it.wantMeal,it.rad||25,d.startMin);
+  const build=()=>makeStops(d.list,new Set(usedF),it.wantMeal,it.rad||25,d.startMin,d);
   d.stops=build();
   // 末日機場倒推:超過離場時限就自動移除最後景點重排
   if(d.airportOut&&d.list.length){
@@ -2210,6 +2217,76 @@ function rebuildDay(di){
   }
   d.areas=[...new Set(d.list.map(x=>x.a))].join("・");
   S.center=oc;
+}
+/* ═══ 換餐廳面板 ═══ */
+const SLOT_NAME={lunch:"午餐",snack:"午後小吃",dinner:"晚餐"};
+function openFoodPicker(di,slot,cur){
+  window._FP={di,slot,cur,cui:"全部",price:"全部"};
+  renderFoodPicker();
+  $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
+}
+function fpSet(k,v){window._FP[k]=v;renderFoodPicker()}
+function renderFoodPicker(){
+  const {di,slot,cur,cui,price}=window._FP;
+  const it=S.iti,d=it.days[di];
+  const oc=S.center; if(d.center)S.center=d.center;
+  // 已用店家(全行程)不重複
+  const used=new Set(it.exclF||[]);
+  it.days.forEach(o=>o.stops.forEach(x=>{if(x.type==="stop"&&(x.meal||x.s.c==="food")&&x.s.n!==cur)used.add(x.s.n)}));
+  const anchor=d.list[0]||d.center||it.center;
+  let pool=DB.concat(S.osm||[]).filter(x=>x.c==="food"&&!used.has(x.n)&&x.n!==cur&&dKm(x)<=(it.rad||25)*1.3);
+  if(cui!=="全部")pool=pool.filter(x=>foodCui(x)===cui);
+  if(price!=="全部")pool=pool.filter(x=>foodPrice(x)===price);
+  pool.sort((a,b)=>dist(anchor.la,anchor.lo,a.la,a.lo)-dist(anchor.la,anchor.lo,b.la,b.lo));
+  S.center=oc;
+  const list=pool.slice(0,15);
+  window._FPLIST=list;
+  const cuiChips=`<div class="chips" style="margin:6px 0 4px"><label class="${cui==="全部"?"on":""}" onclick="fpSet('cui','全部')">全部料理</label>`+CUI_LIST.map(v=>`<label class="${cui===v?"on":""}" onclick="fpSet('cui','${v}')">${v}</label>`).join("")+`</div>`;
+  const prChips=`<div class="chips" style="margin:0 0 10px"><label class="${price==="全部"?"on":""}" onclick="fpSet('price','全部')">價位不限</label>`+["平價","中檔","高級"].map(v=>`<label class="${price===v?"on":""}" onclick="fpSet('price','${v}')">${v}</label>`).join("")+`</div>`;
+  const rows=list.length?list.map((f,k)=>{
+    const c2=foodCui(f),p2=foodPrice(f),dk=dist(anchor.la,anchor.lo,f.la,f.lo);
+    return `<div class="hp-row" onclick="fpPick(${k})">
+      <div style="flex:1"><b>${f.n}</b>
+        <span class="tag" style="background:#EFE4D2;color:#6E5A2E;font-size:10px">${c2}</span>
+        ${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff;font-size:10px">${p2}</span>`:""}
+        ${f.rt?`<span style="color:var(--kin);font-size:11px">★${f.rt.toFixed(1)}</span>`:""}
+        <div style="font-size:11.5px;color:#8A8272">${fmtD(dk)}${f.pr?" ・"+f.pr:""}</div></div></div>`;
+  }).join(""):`<div style="padding:14px;color:#8A8272;font-size:13.5px">這個條件附近找不到,換個料理或價位試試</div>`;
+  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">${cur?"換掉「"+cur+"」":""} — DAY ${di+1} ${SLOT_NAME[slot]}</h3>
+    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 6px">選料理與價位,從附近推薦挑一家;或用下方快速選項</div>
+    ${cuiChips}${prChips}
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button style="flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:10px;font-weight:700;font-family:var(--font-b);cursor:pointer" onclick="fpAuto()">🎲 自動換最近一家</button>
+      <button style="flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:10px;font-weight:700;font-family:var(--font-b);cursor:pointer" onclick="fpSkip()">🚫 這餐不安排</button>
+    </div>
+    <div class="hp-list">${rows}</div>
+    <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+}
+function fpFinish(msg){
+  const {di}=window._FP;
+  closeDetail();rebuildDay(di);renderIti();toast(msg);
+}
+function fpPick(k){
+  const {di,slot,cur}=window._FP,f=window._FPLIST[k];
+  const d=S.iti.days[di];
+  d.pins=d.pins||{};d.pins[slot]=f.n;
+  if(d.skipMeal)delete d.skipMeal[slot];
+  if(cur)S.iti.exclF.add(cur);
+  fpFinish("✅ "+SLOT_NAME[slot]+"已換成:"+f.n);
+}
+function fpAuto(){
+  const {di,slot,cur}=window._FP,d=S.iti.days[di];
+  if(d.pins)delete d.pins[slot];
+  if(d.skipMeal)delete d.skipMeal[slot];
+  if(cur)S.iti.exclF.add(cur);
+  fpFinish("🎲 已自動換一家最近的");
+}
+function fpSkip(){
+  const {di,slot,cur}=window._FP,d=S.iti.days[di];
+  d.skipMeal=d.skipMeal||{};d.skipMeal[slot]=true;
+  if(d.pins)delete d.pins[slot];
+  if(cur)S.iti.exclF.add(cur);
+  fpFinish("🚫 DAY "+(di+1)+" "+SLOT_NAME[slot]+"已設為不安排");
 }
 function removeStop(di,name,isMeal){
   const it=S.iti,d=it.days[di];
@@ -2542,7 +2619,7 @@ function renderIti(){
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
-        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',${st.meal?1:0})">✕ 移除</button></h4><div class="ja">${s.j||""}</div>
+        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${s.j||""}</div>
         <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
         ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${s.la},${s.lo}" target="_blank" rel="noopener">${s.ad}</a></div>`:""}
@@ -3005,7 +3082,7 @@ async function loadArea(){
   if(add){
     if($("pane-explore").classList.contains("on"))renderExplore();
     renderHomePicks();
-    toast("⛩️🍜🏨 已載入本區景點餐廳住宿 +"+add.toLocaleString()+" 筆");
+    toast("⛩️🍜🏨 OSM 本區庫 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
   }
 }
 // 定位後自動載入該區
@@ -3035,7 +3112,7 @@ loadArea();
     if(add){
       renderHomePicks();
       if($("pane-explore").classList.contains("on"))renderExplore();
-      toast("📚 全國擴充資料庫已載入 +"+add.toLocaleString()+" 筆");
+      toast("📚 Wikidata 擴充庫 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
     }
   }catch(e){/* 離線或未部署擴充庫時靜默略過 */}
 })();
