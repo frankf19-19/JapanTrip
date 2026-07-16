@@ -12,6 +12,8 @@ import json, os, sys, time
 FOOD_AMENITY = {"restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream"}
 HOTEL_TOURISM = {"hotel", "hostel", "guest_house", "apartment", "motel"}
 SHOP_KEEP = {"mall", "department_store", "supermarket"}
+# v12:旅遊相關購物(麵包甜點/和菓子/伴手禮/茶/酒/動漫玩具)
+SHOP_TRAVEL = {"bakery", "confectionery", "sweets", "gift", "souvenir", "tea", "sake", "anime", "toys"}
 SPOT_MAP = {
     "attraction":  ([],                       60),
     "viewpoint":   (["自然風景", "夜景展望"], 40),
@@ -63,6 +65,18 @@ def classify(t):
         return "hotel", [], 0
     if t.get("shop") in SHOP_KEEP or am == "marketplace":
         return "shop", (["市場老街"] if am == "marketplace" else []), 90
+    if t.get("shop") in SHOP_TRAVEL:
+        tag = "美食巡禮" if t["shop"] in ("bakery", "confectionery", "sweets", "tea") else               "美酒微醺" if t["shop"] == "sake" else               "動漫電玩" if t["shop"] in ("anime", "toys") else "市場老街"
+        return "shop", [tag], 40
+    # v12:錢湯/溫泉設施、SPA
+    if am == "public_bath" or t.get("leisure") == "spa":
+        return "spot", ["溫泉"], 90
+    # v12:酒藏/酒莊/啤酒廠
+    if t.get("craft") in ("sake_brewery", "brewery", "winery", "distillery"):
+        return "spot", ["美酒微醺"], 60
+    # v12:展望塔等地標
+    if t.get("man_made") == "tower" and t.get("tower:type") in ("observation", "communication", None) and t.get("tourism"):
+        return "spot", ["夜景展望"], 45
     if am == "place_of_worship":
         return "spot", ["神社寺廟"], 30
     if t.get("historic"):
