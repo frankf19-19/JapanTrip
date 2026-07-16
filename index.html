@@ -439,7 +439,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r61</span>
+    <span class="build">build r62</span>
   </div>
 </header>
 
@@ -638,7 +638,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r61
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r62
 </footer>
 
 <nav class="bottom">
@@ -1415,7 +1415,7 @@ function loadIti(i){
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
-function setCat(el){S.cat=el.dataset.c;
+function setCat(el){S.cat=el.dataset.c;S.expN=60;
   document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");
   renderSubFilter();renderExplore()}
 function renderSubFilter(){
@@ -2090,7 +2090,10 @@ function renderExplore(){
   if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
   const m=$("sortSel").value;
   list.sort((a,b)=>m==="pop"?(((b.rt?1:0)-(a.rt?1:0))||(b.p||0)-(a.p||0)||((b.rt||0)-(a.rt||0))):m==="stay"?(a.s||0)-(b.s||0):dKm(a)-dKm(b));
-  $("exploreGrid").innerHTML=list.length?list.slice(0,60).map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>沒有符合的結果</b>換個類別或關鍵字,或按「即時搜尋更多」抓取 OpenStreetMap 資料。</div>`;
+  S.expN=S.expN||60;
+  const shown=list.slice(0,S.expN);
+  const expMore=list.length>S.expN?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.expN+=60;renderExplore()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${shown.length.toLocaleString()} / 共 ${list.length.toLocaleString()})</button></div>`:"";
+  $("exploreGrid").innerHTML=(shown.length?shown.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>沒有符合的結果</b>換個類別或關鍵字,或按「即時搜尋更多」抓取 OpenStreetMap 資料。</div>`)+expMore;
   watchImgs();
 }
 
@@ -3115,7 +3118,7 @@ async function loadCellKeys(keys,quiet){
   let add=0,ok=0,miss=0,fail=0;
   await Promise.all(keys.map(async k=>{
     try{
-      const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),9000);
+      const ctl=new AbortController();const tid=setTimeout(()=>ctl.abort(),25000);
       const r=await fetch("data/osm/"+k+".json",{signal:ctl.signal});
       clearTimeout(tid);
       if(!r.ok){
@@ -3164,6 +3167,9 @@ async function loadArea(){
 // 大都市圈背景預載:開站自動把主要城市的分區檔載入,首頁分類立即滿血
 const METRO_CELLS=["r35_139","r34_135","r35_136","r43_141","r33_130","r34_132","r38_140","r26_127","r36_136","r34_133","r31_130","r35_138"];
 async function preloadMetros(){
+  // 省流量:使用者開啟省流或連線很慢時不背景預載(點城市仍會載該區)
+  const con=navigator.connection||{};
+  if(con.saveData||/^(slow-2g|2g)$/.test(con.effectiveType||""))return;
   const keys=METRO_CELLS.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3&&(!window._OSMIDX||window._OSMIDX.includes(k)));
   if(!keys.length)return;
   const {add}=await loadCellKeys(keys);
