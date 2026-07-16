@@ -50,8 +50,8 @@ header{background:var(--ai-deep);color:#F4EFE2;position:sticky;top:0;z-index:100
 .logo{display:flex;align-items:center;gap:10px;cursor:pointer}
 .logo:hover .mon{transform:scale(1.05)}
 .mon{width:44px;height:44px;border-radius:16px;background:#fff;color:var(--ai);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;font-family:var(--font-d);box-shadow:0 4px 12px rgba(0,0,0,.15);transition:.3s}
-.logo b{font-family:var(--font-d);font-size:19px;letter-spacing:2px;color:var(--ink)}
-.logo small{display:block;font-size:10px;letter-spacing:3px;opacity:.7;font-weight:400;color:var(--ink-2)}
+.logo b{font-family:var(--font-d);font-size:19px;letter-spacing:2px;color:#F4EFE2}
+.logo small{display:block;font-size:10px;letter-spacing:3px;font-weight:400;color:rgba(244,239,226,.72)}
 nav.top{margin-left:auto;display:none;gap:4px}
 @media(min-width:900px){nav.top{display:flex}}
 nav.top button{background:none;border:none;color:#D8D2C2;font-family:var(--font-b);font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;cursor:pointer}
@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r74</span>
+    <span class="build">build r75</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r74
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r75
 </footer>
 
 <nav class="bottom">
@@ -1455,7 +1455,11 @@ function renderCenter(){
     $("centerInfo").innerHTML=`<div class="centerbar" style="border-color:#D9D2BF;background:#F3EFE3;box-shadow:none">📍 <span style="color:#8A8272;font-size:15px">尚未選擇地點 — 請在上方搜尋或快選城市</span></div>`;
     return;
   }
-  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:2px solid var(--shu);color:var(--shu);border-radius:99px;padding:6px 14px;font-size:14px;font-weight:700">${i+1}. ${c.n.split(",")[0]} <b style="cursor:pointer;font-size:15px" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
+  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:2px solid var(--shu);color:var(--shu);border-radius:99px;padding:5px 8px 5px 14px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px">${i+1}. ${c.n.split(",")[0]}
+    <select onchange="setCenterDays(${i},this.value)" style="border:1px solid var(--line);border-radius:8px;padding:3px 4px;font-size:12.5px;color:var(--ink);font-family:var(--font-b);cursor:pointer" title="這個地點打算待幾天">
+      ${["auto","1","2","3","4","5","6","7"].map(v=>`<option value="${v}" ${(c.dd||"auto")==v?"selected":""}>${v==="auto"?"自動":v+" 天"}</option>`).join("")}
+    </select>
+    <b style="cursor:pointer;font-size:15px" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
   $("centerInfo").innerHTML=`<div class="centerbar" style="flex-wrap:wrap">📍 目前中心點:<b>${S.center.n}</b>
     <button style="border:2px solid var(--shu);background:#fff;color:var(--shu);border-radius:10px;padding:9px 16px;font-size:14.5px;font-weight:900;cursor:pointer;min-height:40px" onclick="addCenter()">＋把「${S.center.n.split(",")[0]}」加入行程地點</button>
     <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
@@ -1469,6 +1473,11 @@ function addCenter(){
   if(S.centers.length>=8){toast("最多 8 個地點");return}
   S.centers.push({...S.center}); renderCenter();
   toast("✅ 已加入第 "+S.centers.length+" 個地點:"+S.center.n.split(",")[0]+"。繼續搜尋或快選下一個地點!");
+}
+function setCenterDays(i,v){
+  if(S.centers[i])S.centers[i].dd=v;
+  const set=S.centers.filter(c=>c.dd&&c.dd!=="auto").reduce((a,c)=>a+ +c.dd,0);
+  if(set>S.days)toast("⚠️ 指定天數合計 "+set+" 天已超過總天數 "+S.days+" 天,生成時會依序截斷");
 }
 function rmCenter(i){S.centers.splice(i,1);renderCenter()}
 function clearCenter(){
@@ -2616,8 +2625,28 @@ async function generate(reshuffle){
     route=ordered;
     if(S.days<route.length){route=route.slice(0,S.days);toast("天數少於地點數,先排前 "+route.length+" 個地點");}
   }
-  const per=Math.floor(S.days/route.length),rem=S.days%route.length;
-  const alloc=route.map((c,i)=>Math.max(1,per+(i<rem?1:0)));
+  // 天數分配:尊重各點指定天數;「自動」的點均分剩餘(至少 1 天)
+  let alloc;
+  {
+    const fixed=route.map(c=>(c.dd&&c.dd!=="auto")?Math.min(+c.dd,S.days):null);
+    const fixedSum=fixed.reduce((a,v)=>a+(v||0),0);
+    const autoIdx=fixed.map((v,i)=>v==null?i:-1).filter(i=>i>=0);
+    let remain=S.days-fixedSum;
+    alloc=fixed.slice();
+    if(autoIdx.length){
+      const per=Math.max(1,Math.floor(Math.max(remain,autoIdx.length)/autoIdx.length));
+      let rem=Math.max(remain,autoIdx.length)-per*autoIdx.length;
+      autoIdx.forEach(i=>{alloc[i]=per+(rem-->0?1:0)});
+    }
+    // 合計超過總天數 → 由後往前截:超出的地點被移除
+    let sum=alloc.reduce((a,v)=>a+v,0);
+    while(sum>S.days&&route.length>1){
+      sum-=alloc.pop();route.pop();
+    }
+    if(sum>S.days){alloc[0]=S.days;sum=S.days} // 只剩一點仍超過→壓到總天數
+    if(route.length<((S.iti&&0)||0)) {}
+  }
+  if(route.length<alloc.length)alloc=alloc.slice(0,route.length);
   try{await loadArea()}catch(e){}
   if(multi)toast('<span class="spin"></span> 多地點行程生成中('+route.map(c=>c.n.split(",")[0]).join("→")+')…');
   else toast('<span class="spin"></span> 行程生成中…');
