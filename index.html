@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r69</span>
+    <span class="build">build r70</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r69
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r70
 </footer>
 
 <nav class="bottom">
@@ -2948,7 +2948,7 @@ function openDetail(name,fromPop){
         <a href="https://www.google.com/search?q=${encodeURIComponent(s.j||s.n)}&tbm=isch" target="_blank" rel="noopener">📷 更多照片</a>
         ${s.c==="food"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 食べログ")}" target="_blank" rel="noopener">🍽️ 食べログ評價</a>`:""}
         ${s.c==="hotel"?`<a href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 訂房比價</a>`:""}
-        ${s.c==="hotel"?`<a href="https://www.agoda.com/zh-tw/search?q=${encodeURIComponent(s.j||s.n)}&searchText=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
+        ${s.c==="hotel"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:agoda.com "+(s.j||s.n))}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
       </div>
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
