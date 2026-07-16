@@ -29,7 +29,7 @@ NATURAL_MAP = {
     "peak":       (["自然風景", "夜景展望"], 60),
 }
 # 每格各分類上限(依標籤豐富度排序後截取)
-CAPS = {"food": 1300, "spot": 1000, "hotel": 400, "shop": 160}
+CAPS = {"food": 4000, "spot": 2500, "hotel": 1200, "shop": 500}
 
 
 def centroid(geom):
