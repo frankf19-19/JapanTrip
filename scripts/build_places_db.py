@@ -78,7 +78,7 @@ def fetch(q, retries=3):
         ep = EPS[_ep_i % len(EPS)]
         try:
             req = urllib.request.Request(ep, data=data, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=45) as r:
                 return json.load(r).get("elements", [])
         except urllib.error.HTTPError as ex:
             wait = 15
@@ -126,13 +126,32 @@ def main():
     failed = []
     skipped = 0
     RESUME = os.environ.get("WAYU_RESUME", "1") != "0"  # 預設開啟斷點續傳
+    FRESH_H = int(os.environ.get("WAYU_FRESH_HOURS", "48"))  # 全量模式:N 小時內抓過的視為新鮮跳過(可續跑)
+    META_PATH = "data/osm/meta.json"
+    try:
+        META = json.load(open(META_PATH, encoding="utf-8"))
+    except Exception:
+        META = {}
     for idx, (la, lo) in enumerate(cells):
-        path = f"data/osm/r{la}_{lo}.json"
-        # 斷點續傳:已存在且有內容的分區檔直接跳過(只補沒抓到的)
-        if RESUME and os.path.exists(path) and os.path.getsize(path) > 2:
+        key = f"r{la}_{lo}"
+        path = f"data/osm/{key}.json"
+        exists = os.path.exists(path)
+        size = os.path.getsize(path) if exists else -1
+        # ① 空海格標記([] 檔):永久跳過,不再浪費時間重查外海
+        if exists and size <= 2 and os.environ.get("WAYU_REFETCH_EMPTY") != "1":
+            skipped += 1
+            continue
+        # ② 續傳模式:已有內容就跳過
+        if RESUME and exists and size > 2:
             skipped += 1
             if skipped % 20 == 0:
-                print(f"[{idx+1}/{len(cells)}] 已跳過 {skipped} 個既有分區檔…", flush=True)
+                print(f"[{idx+1}/{len(cells)}] 已跳過 {skipped} 格…", flush=True)
+            continue
+        # ③ 全量模式:48 小時內剛抓過的跳過 → 被 timeout 中斷後重跑會自動接續
+        if not RESUME and META.get(key, 0) > time.time() - FRESH_H * 3600:
+            skipped += 1
+            if skipped % 20 == 0:
+                print(f"[{idx+1}/{len(cells)}] 已跳過 {skipped} 格(近期已更新)…", flush=True)
             continue
         q = Q.format(s=la, w=lo, n=la + 1, e=lo + 1, cap=CAP)
         els = fetch(q)
@@ -214,19 +233,23 @@ def main():
             if is_hotel and t.get("tourism") in ("hostel", "guest_house", "apartment", "motel"):
                 e["ht"] = t["tourism"]
             out.append(e)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, separators=(",", ":"))  # 空格寫 [] 標記,之後永久跳過
+        META[key] = int(time.time())
         if out:
-            path = f"data/osm/r{la}_{lo}.json"
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
             total += len(out)
-            print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: {len(out)} 筆(累計 {total:,})", flush=True)
+            print(f"[{idx+1}/{len(cells)}] {key}: {len(out)} 筆(累計 {total:,})", flush=True)
         else:
-            print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: 0", flush=True)
+            print(f"[{idx+1}/{len(cells)}] {key}: 0(已標記為空格)", flush=True)
         if (idx+1) % 15 == 0:
+            json.dump(META, open(META_PATH, "w", encoding="utf-8"))
             checkpoint(f"chore: 餐飲住宿景點資料庫進度 {idx+1}/{len(cells)}(累計 {total:,} 筆)")
         time.sleep(SLEEP)
     # 索引檔
-    files = sorted(f[:-5] for f in os.listdir("data/osm") if f.endswith(".json") and f != "index.json")
+    json.dump(META, open(META_PATH, "w", encoding="utf-8"))
+    files = sorted(f[:-5] for f in os.listdir("data/osm")
+                   if f.endswith(".json") and f not in ("index.json", "meta.json")
+                   and os.path.getsize(os.path.join("data/osm", f)) > 2)
     with open("data/osm/index.json", "w", encoding="utf-8") as f:
         json.dump(files, f)
     print(f"✅ 完成:{len(files)} 個分區檔(本次跳過 {skipped} 個既有、新抓 {total:,} 筆)")
