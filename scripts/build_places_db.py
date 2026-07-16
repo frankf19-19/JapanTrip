@@ -1,260 +1,180 @@
 # -*- coding: utf-8 -*-
 """
-和遊誌 WAYU TRIP - 全日本餐廳/飯店資料庫建置腳本
-以 1° 地理網格掃描全日本,從 OpenStreetMap(Overpass)抓取
-餐廳/咖啡/飯店/旅館/民宿,輸出 data/osm/r{lat}_{lon}.json 分區檔。
-品質過濾:餐廳需具備 料理類型/營業時間/官網 至少其一(排除低品質標記)。
-預估總量 30,000–60,000 筆。GitHub Actions 執行,免金鑰。
+旅日和 TABIBIYORI - 全日本 POI 資料庫建置腳本 v10
+架構轉換:不再使用 Overpass API(限流嚴重),改為解析 Geofabrik
+全日本 OSM 擷取檔(workflow 先以 osmium 篩選並轉出 geojsonl)。
+用法: python build_places_db.py pois.geojsonl
+輸出: data/osm/r{lat}_{lon}.json 分區檔 + index.json
+零網路請求、零限流,全量處理約數分鐘。
 """
-import json, time, os, sys, urllib.request, urllib.parse
+import json, os, sys, time
 
-# 多鏡像輪替:被限流(429)或逾時(504)自動換下一台
-EPS = [
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
-]
-UA = "WAYU-TRIP-PlacesDB/3.0 (GitHub Actions; static travel planner; contact via repo)"
-CAP = 1800  # 每格上限(四分類共用)
-SLEEP = 2   # 禮貌間隔(秒)
-_ep_i = 0   # 目前鏡像索引
-
-# 日本大致陸地網格(緯度, 經度)— 跳過純海域省時間
-def japan_cells():
-    cells = []
-    for la in range(24, 46):
-        for lo in range(123, 146):
-            # 粗略陸地判斷:排除明顯外海格
-            if la <= 26 and not (123 <= lo <= 129):   # 沖繩諸島
-                continue
-            if 27 <= la <= 29 and not (128 <= lo <= 131):  # 奄美一帶
-                continue
-            if 30 <= la <= 33 and not (129 <= lo <= 135):  # 九州
-                continue
-            if 33 <= la <= 35 and not (129 <= lo <= 141):  # 中四國近畿
-                continue
-            if 35 <= la <= 38 and not (132 <= lo <= 141):  # 中部關東
-                continue
-            if 38 <= la <= 41 and not (139 <= lo <= 142):  # 東北
-                continue
-            if 41 <= la <= 45 and not (139 <= lo <= 146):  # 北海道
-                continue
-            cells.append((la, lo))
-    return cells
-
-Q = """[out:json][timeout:120];
-(
-  node[amenity~"^(restaurant|cafe|fast_food|bar|pub|food_court|ice_cream)$"][name]({s},{w},{n},{e});
-  way[amenity~"^(restaurant|cafe|fast_food|bar|pub)$"][name]({s},{w},{n},{e});
-  node[tourism~"^(hotel|hostel|guest_house|apartment|motel)$"][name]({s},{w},{n},{e});
-  way[tourism~"^(hotel|hostel|guest_house|apartment|motel)$"][name]({s},{w},{n},{e});
-  node[shop~"^(mall|department_store|supermarket)$"][name]({s},{w},{n},{e});
-  way[shop~"^(mall|department_store)$"][name]({s},{w},{n},{e});
-  node[amenity=marketplace][name]({s},{w},{n},{e});
-  node[tourism~"^(attraction|viewpoint|museum|gallery|theme_park|zoo|aquarium)$"][name]({s},{w},{n},{e});
-  way[tourism~"^(attraction|viewpoint|museum|gallery|theme_park|zoo|aquarium)$"][name]({s},{w},{n},{e});
-  node[historic][name]({s},{w},{n},{e});
-  way[historic][name]({s},{w},{n},{e});
-  node[amenity=place_of_worship][name]({s},{w},{n},{e});
-  way[amenity=place_of_worship][name]({s},{w},{n},{e});
-  way[leisure=park][name]({s},{w},{n},{e});
-);out center tags {cap};"""
-
-# 景點子類 →(標籤, 建議停留分)
+FOOD_AMENITY = {"restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream"}
+HOTEL_TOURISM = {"hotel", "hostel", "guest_house", "apartment", "motel"}
+SHOP_KEEP = {"mall", "department_store", "supermarket"}
 SPOT_MAP = {
     "attraction":  ([],                       60),
     "viewpoint":   (["自然風景", "夜景展望"], 40),
     "museum":      (["博物館藝術"],           90),
     "gallery":     (["博物館藝術"],           60),
+    "artwork":     (["博物館藝術"],           30),
     "theme_park":  (["主題樂園", "親子同樂"], 300),
     "zoo":         (["親子同樂"],            150),
     "aquarium":    (["親子同樂"],            120),
 }
+NATURAL_MAP = {
+    "hot_spring": (["溫泉"], 90),
+    "waterfall":  (["自然風景"], 40),
+    "beach":      (["自然風景", "親子同樂"], 90),
+    "peak":       (["自然風景", "夜景展望"], 60),
+}
+# 每格各分類上限(依標籤豐富度排序後截取)
+CAPS = {"food": 1300, "spot": 1000, "hotel": 400, "shop": 160}
 
-def fetch(q, retries=3):
-    global _ep_i
-    data = urllib.parse.urlencode({"data": q}).encode()
-    for i in range(retries):
-        ep = EPS[_ep_i % len(EPS)]
-        try:
-            req = urllib.request.Request(ep, data=data, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=45) as r:
-                return json.load(r).get("elements", [])
-        except urllib.error.HTTPError as ex:
-            wait = 15
-            if ex.code == 429:  # 限流:遵守 Retry-After 並換鏡像
-                try:
-                    wait = min(int(ex.headers.get("Retry-After", "20")), 45)
-                except Exception:
-                    wait = 20
-                _ep_i += 1
-                print(f"    429 限流 → 換鏡像 {EPS[_ep_i % len(EPS)].split('/')[2]},等 {wait}s", file=sys.stderr)
-            elif ex.code in (504, 502, 503):
-                _ep_i += 1
-                wait = 4
-                print(f"    {ex.code} → 換鏡像重試", file=sys.stderr)
-            else:
-                print(f"    HTTP {ex.code}", file=sys.stderr)
-            time.sleep(wait)
-        except Exception as ex:
-            _ep_i += 1
-            print(f"    重試 {i+1}: {ex}", file=sys.stderr)
-            time.sleep(4)
-    return None  # 全部失敗:回 None 以保留上一次的分區檔
+
+def centroid(geom):
+    t = geom.get("type")
+    c = geom.get("coordinates")
+    try:
+        if t == "Point":
+            return c[1], c[0]
+        if t == "LineString":
+            m = c[len(c) // 2]
+            return m[1], m[0]
+        if t == "Polygon":
+            ring = c[0]
+            return (sum(p[1] for p in ring) / len(ring),
+                    sum(p[0] for p in ring) / len(ring))
+        if t == "MultiPolygon":
+            ring = c[0][0]
+            return (sum(p[1] for p in ring) / len(ring),
+                    sum(p[0] for p in ring) / len(ring))
+    except Exception:
+        pass
+    return None, None
+
+
+def classify(t):
+    """回傳 (cat, tags, stay) 或 None"""
+    am = t.get("amenity", "")
+    tm = t.get("tourism", "")
+    if am in FOOD_AMENITY:
+        return "food", [], 50
+    if tm in HOTEL_TOURISM:
+        return "hotel", [], 0
+    if t.get("shop") in SHOP_KEEP or am == "marketplace":
+        return "shop", (["市場老街"] if am == "marketplace" else []), 90
+    if am == "place_of_worship":
+        return "spot", ["神社寺廟"], 30
+    if t.get("historic"):
+        return "spot", ["歷史古蹟"], 45
+    if t.get("leisure") in ("park", "garden"):
+        return "spot", ["自然風景"], 45
+    if t.get("natural") in NATURAL_MAP:
+        tags, stay = NATURAL_MAP[t["natural"]]
+        return "spot", tags, stay
+    if tm in SPOT_MAP:
+        tags, stay = SPOT_MAP[tm]
+        return "spot", tags, stay
+    return None
+
+
+def richness(t):
+    """標籤豐富度:截取上限時優先保留資訊多的"""
+    score = 0
+    for k in ("cuisine", "opening_hours", "website", "wikipedia", "stars",
+              "name:zh", "name:en", "addr:city", "contact:website"):
+        if t.get(k):
+            score += 1
+    return score
+
 
 def main():
-    import subprocess
-    subprocess.run(["git","config","user.name","wayu-bot"],check=False)
-    subprocess.run(["git","config","user.email","actions@users.noreply.github.com"],check=False)
-    os.makedirs("data/osm", exist_ok=True)
-    cells = japan_cells()
-    total = 0
-    print(f"掃描 {len(cells)} 個網格…", flush=True)
-    import subprocess
-    def checkpoint(msg):
-        try:
-            files=sorted(f[:-5] for f in os.listdir("data/osm") if f.endswith(".json") and f!="index.json")
-            json.dump(files, open("data/osm/index.json","w"))
-            subprocess.run(["git","add","data/osm"],check=False)
-            r=subprocess.run(["git","diff","--cached","--quiet"])
-            if r.returncode!=0:
-                subprocess.run(["git","commit","-m",msg],check=False)
-                subprocess.run(["git","push"],check=False)
-                print(f"  💾 已提交:{msg}", flush=True)
-        except Exception as ex:
-            print(f"  提交失敗(不影響續跑):{ex}", file=sys.stderr)
-    failed = []
-    skipped = 0
-    RESUME = os.environ.get("WAYU_RESUME", "1") != "0"  # 預設開啟斷點續傳
-    FRESH_H = int(os.environ.get("WAYU_FRESH_HOURS", "48"))  # 全量模式:N 小時內抓過的視為新鮮跳過(可續跑)
-    META_PATH = "data/osm/meta.json"
-    try:
-        META = json.load(open(META_PATH, encoding="utf-8"))
-    except Exception:
-        META = {}
-    for idx, (la, lo) in enumerate(cells):
-        key = f"r{la}_{lo}"
-        path = f"data/osm/{key}.json"
-        exists = os.path.exists(path)
-        size = os.path.getsize(path) if exists else -1
-        # ① 空海格標記([] 檔):永久跳過,不再浪費時間重查外海
-        if exists and size <= 2 and os.environ.get("WAYU_REFETCH_EMPTY") != "1":
-            skipped += 1
-            continue
-        # ② 續傳模式:已有內容就跳過
-        if RESUME and exists and size > 2:
-            skipped += 1
-            if skipped % 20 == 0:
-                print(f"[{idx+1}/{len(cells)}] 已跳過 {skipped} 格…", flush=True)
-            continue
-        # ③ 全量模式:48 小時內剛抓過的跳過 → 被 timeout 中斷後重跑會自動接續
-        if not RESUME and META.get(key, 0) > time.time() - FRESH_H * 3600:
-            skipped += 1
-            if skipped % 20 == 0:
-                print(f"[{idx+1}/{len(cells)}] 已跳過 {skipped} 格(近期已更新)…", flush=True)
-            continue
-        q = Q.format(s=la, w=lo, n=la + 1, e=lo + 1, cap=CAP)
-        els = fetch(q)
-        if els is None:
-            # 整格查詢一直逾時 → 多半是超高密度格(東京/大阪),切成四個 0.5° 子格分批抓
-            print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: 整格逾時 → 切四子格分批抓…", flush=True)
-            els = []
-            sub_fail = 0
-            for sla, slo in [(la, lo), (la, lo + 0.5), (la + 0.5, lo), (la + 0.5, lo + 0.5)]:
-                sq = Q.format(s=sla, w=slo, n=sla + 0.5, e=slo + 0.5, cap=900)
-                sub = fetch(sq)
-                if sub is None:
-                    sub_fail += 1
-                    print(f"    子格 {sla},{slo}: 失敗", flush=True)
-                else:
-                    els.extend(sub)
-                    print(f"    子格 {sla},{slo}: {len(sub)} 元素", flush=True)
-                time.sleep(SLEEP)
-            if sub_fail == 4:  # 四個子格全掛才算徹底失敗
-                failed.append(f"r{la}_{lo}")
-                print(f"[{idx+1}/{len(cells)}] r{la}_{lo}: ⚠️ 失敗(保留舊檔,下週重試)", flush=True)
-                time.sleep(SLEEP)
+    src = sys.argv[1] if len(sys.argv) > 1 else "pois.geojsonl"
+    cells = {}   # key -> {cat: [entries]}
+    seen = {}    # key -> set(names)
+    n_read = n_kept = 0
+    with open(src, encoding="utf-8") as f:
+        for line in f:
+            line = line.lstrip("\x1e").strip()
+            if not line:
                 continue
-        out, seen = [], set()
-        for el in els:
-            t = el.get("tags", {})
+            n_read += 1
+            try:
+                feat = json.loads(line)
+            except Exception:
+                continue
+            t = feat.get("properties") or {}
             name = t.get("name:zh") or t.get("name:zh-Hant") or t.get("name")
-            if not name or len(name) > 40 or name in seen:
+            if not name or len(name) > 40:
                 continue
-            lat = el.get("lat") or (el.get("center") or {}).get("lat")
-            lon = el.get("lon") or (el.get("center") or {}).get("lon")
-            if lat is None:
+            cls = classify(t)
+            if not cls:
                 continue
-            is_food = t.get("amenity") in ("restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream")
-            is_hotel = t.get("tourism") in ("hotel", "hostel", "guest_house", "apartment", "motel")
-            is_shop = bool(t.get("shop")) or t.get("amenity") == "marketplace"
-            seen.add(name)
-            if is_food:
-                cat = "food"; tags = []; stay = 50
-            elif is_hotel:
-                cat = "hotel"; tags = []; stay = 0
-            elif is_shop:
-                cat = "shop"
-                tags = ["市場老街"] if t.get("amenity") == "marketplace" else []
-                stay = 90
-            else:  # 景點
-                cat = "spot"
-                if t.get("amenity") == "place_of_worship":
-                    tags, stay = ["神社寺廟"], 30
-                elif t.get("historic"):
-                    tags, stay = ["歷史古蹟"], 45
-                elif t.get("leisure") == "park":
-                    tags, stay = ["自然風景"], 45
-                else:
-                    tags, stay = SPOT_MAP.get(t.get("tourism"), ([], 60))
-            e = {"n": name, "la": round(lat, 5), "lo": round(lon, 5), "c": cat}
-            if cat == "spot":
+            la, lo = centroid(feat.get("geometry") or {})
+            if la is None or not (24 <= la <= 46 and 122 <= lo <= 146):
+                continue
+            cat, tags, stay = cls
+            key = f"r{int(la)}_{int(lo)}"
+            cs = seen.setdefault(key, set())
+            if name in cs:
+                continue
+            cs.add(name)
+            e = {"n": name, "la": round(la, 5), "lo": round(lo, 5), "c": cat,
+                 "_r": richness(t)}
+            ja = t.get("name:ja") or (t.get("name") if t.get("name") != name else "")
+            if ja and ja != name:
+                e["j"] = ja[:60]
+            if cat == "spot" or cat == "shop":
                 if tags:
                     e["t"] = tags
                 e["s"] = stay
+            if cat == "spot":
                 wp = t.get("wikipedia", "")
                 if wp.startswith("ja:"):
-                    e["wt"] = wp[3:][:80]  # 維基條目名 → 前端介紹/相簿
-            ja = t.get("name:ja") or (t.get("name") if t.get("name") != name else "")
-            if ja and ja != name:
-                e["j"] = ja
+                    e["wt"] = wp[3:][:80]
             adr = "".join(filter(None, [t.get("addr:province"), t.get("addr:city"),
                    t.get("addr:suburb") or t.get("addr:quarter"), t.get("addr:neighbourhood")]))
             if adr:
-                e["ad"] = adr
+                e["ad"] = adr[:60]
             if t.get("cuisine"):
                 e["cu"] = t["cuisine"][:60]
             if t.get("opening_hours"):
                 e["oh"] = t["opening_hours"][:120]
-            if t.get("website") or t.get("contact:website"):
-                e["w"] = (t.get("website") or t.get("contact:website"))[:200]
+            w = t.get("website") or t.get("contact:website")
+            if w:
+                e["w"] = w[:200]
             if t.get("stars"):
-                e["st"] = t["stars"][:4]
-            if is_hotel and t.get("tourism") in ("hostel", "guest_house", "apartment", "motel"):
+                e["st"] = str(t["stars"])[:4]
+            if cat == "hotel" and t.get("tourism") in ("hostel", "guest_house", "apartment", "motel"):
                 e["ht"] = t["tourism"]
-            out.append(e)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, separators=(",", ":"))  # 空格寫 [] 標記,之後永久跳過
-        META[key] = int(time.time())
-        if out:
-            total += len(out)
-            print(f"[{idx+1}/{len(cells)}] {key}: {len(out)} 筆(累計 {total:,})", flush=True)
-        else:
-            print(f"[{idx+1}/{len(cells)}] {key}: 0(已標記為空格)", flush=True)
-        if (idx+1) % 15 == 0:
-            json.dump(META, open(META_PATH, "w", encoding="utf-8"))
-            checkpoint(f"chore: 餐飲住宿景點資料庫進度 {idx+1}/{len(cells)}(累計 {total:,} 筆)")
-        time.sleep(SLEEP)
-    # 索引檔
-    json.dump(META, open(META_PATH, "w", encoding="utf-8"))
+            cells.setdefault(key, {}).setdefault(cat, []).append(e)
+            n_kept += 1
+
+    os.makedirs("data/osm", exist_ok=True)
+    total = 0
+    stats = {"food": 0, "spot": 0, "hotel": 0, "shop": 0}
+    for key, cats in sorted(cells.items()):
+        out = []
+        for cat, lst in cats.items():
+            lst.sort(key=lambda x: -x["_r"])
+            lst = lst[:CAPS.get(cat, 800)]
+            stats[cat] += len(lst)
+            out.extend(lst)
+        for e in out:
+            e.pop("_r", None)
+        with open(f"data/osm/{key}.json", "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+        total += len(out)
+        print(f"{key}: {len(out):,} 筆", flush=True)
     files = sorted(f[:-5] for f in os.listdir("data/osm")
                    if f.endswith(".json") and f not in ("index.json", "meta.json")
                    and os.path.getsize(os.path.join("data/osm", f)) > 2)
-    with open("data/osm/index.json", "w", encoding="utf-8") as f:
-        json.dump(files, f)
-    print(f"✅ 完成:{len(files)} 個分區檔(本次跳過 {skipped} 個既有、新抓 {total:,} 筆)")
-    if failed:
-        print(f"⚠️ {len(failed)} 格本次失敗(沿用舊檔):{', '.join(failed[:20])}{'…' if len(failed)>20 else ''}")
+    json.dump(files, open("data/osm/index.json", "w"))
+    json.dump({"built": int(time.time())}, open("data/osm/meta.json", "w"))
+    print(f"✅ 完成:讀入 {n_read:,} → 收錄 {total:,} 筆|{len(files)} 個分區檔")
+    print(f"   景點 {stats['spot']:,}|美食 {stats['food']:,}|住宿 {stats['hotel']:,}|購物 {stats['shop']:,}")
+
 
 if __name__ == "__main__":
     main()
