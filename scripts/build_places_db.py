@@ -15,7 +15,7 @@ EPS = [
     "https://overpass.private.coffee/api/interpreter",
 ]
 UA = "WAYU-TRIP-PlacesDB/3.0 (GitHub Actions; static travel planner; contact via repo)"
-CAP = 1200  # 每格上限(三分類共用)
+CAP = 1800  # 每格上限(四分類共用)
 SLEEP = 2   # 禮貌間隔(秒)
 _ep_i = 0   # 目前鏡像索引
 
@@ -44,10 +44,13 @@ def japan_cells():
 
 Q = """[out:json][timeout:120];
 (
-  node[amenity~"^(restaurant|cafe)$"][name]({s},{w},{n},{e});
-  way[amenity~"^(restaurant|cafe)$"][name]({s},{w},{n},{e});
-  node[tourism~"^(hotel|hostel|guest_house)$"][name]({s},{w},{n},{e});
-  way[tourism~"^(hotel|hostel|guest_house)$"][name]({s},{w},{n},{e});
+  node[amenity~"^(restaurant|cafe|fast_food|bar|pub|food_court|ice_cream)$"][name]({s},{w},{n},{e});
+  way[amenity~"^(restaurant|cafe|fast_food|bar|pub)$"][name]({s},{w},{n},{e});
+  node[tourism~"^(hotel|hostel|guest_house|apartment|motel)$"][name]({s},{w},{n},{e});
+  way[tourism~"^(hotel|hostel|guest_house|apartment|motel)$"][name]({s},{w},{n},{e});
+  node[shop~"^(mall|department_store|supermarket)$"][name]({s},{w},{n},{e});
+  way[shop~"^(mall|department_store)$"][name]({s},{w},{n},{e});
+  node[amenity=marketplace][name]({s},{w},{n},{e});
   node[tourism~"^(attraction|viewpoint|museum|gallery|theme_park|zoo|aquarium)$"][name]({s},{w},{n},{e});
   way[tourism~"^(attraction|viewpoint|museum|gallery|theme_park|zoo|aquarium)$"][name]({s},{w},{n},{e});
   node[historic][name]({s},{w},{n},{e});
@@ -139,7 +142,7 @@ def main():
             els = []
             sub_fail = 0
             for sla, slo in [(la, lo), (la, lo + 0.5), (la + 0.5, lo), (la + 0.5, lo + 0.5)]:
-                sq = Q.format(s=sla, w=slo, n=sla + 0.5, e=slo + 0.5, cap=600)
+                sq = Q.format(s=sla, w=slo, n=sla + 0.5, e=slo + 0.5, cap=900)
                 sub = fetch(sq)
                 if sub is None:
                     sub_fail += 1
@@ -163,16 +166,18 @@ def main():
             lon = el.get("lon") or (el.get("center") or {}).get("lon")
             if lat is None:
                 continue
-            is_food = t.get("amenity") in ("restaurant", "cafe")
-            is_hotel = t.get("tourism") in ("hotel", "hostel", "guest_house")
-            # 品質過濾:餐廳需有 料理/時間/官網 其一
-            if is_food and not (t.get("cuisine") or t.get("opening_hours") or t.get("website")):
-                continue
+            is_food = t.get("amenity") in ("restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream")
+            is_hotel = t.get("tourism") in ("hotel", "hostel", "guest_house", "apartment", "motel")
+            is_shop = bool(t.get("shop")) or t.get("amenity") == "marketplace"
             seen.add(name)
             if is_food:
                 cat = "food"; tags = []; stay = 50
             elif is_hotel:
                 cat = "hotel"; tags = []; stay = 0
+            elif is_shop:
+                cat = "shop"
+                tags = ["市場老街"] if t.get("amenity") == "marketplace" else []
+                stay = 90
             else:  # 景點
                 cat = "spot"
                 if t.get("amenity") == "place_of_worship":
@@ -206,7 +211,7 @@ def main():
                 e["w"] = (t.get("website") or t.get("contact:website"))[:200]
             if t.get("stars"):
                 e["st"] = t["stars"][:4]
-            if not is_food and t.get("tourism") in ("hostel", "guest_house"):
+            if is_hotel and t.get("tourism") in ("hostel", "guest_house", "apartment", "motel"):
                 e["ht"] = t["tourism"]
             out.append(e)
         if out:
