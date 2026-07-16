@@ -19,7 +19,22 @@ jobs:
       - name: 安裝 osmium-tool
         run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
       - name: 下載全日本 OSM 資料(Geofabrik,約2.3GB)
-        run: curl -sSL --retry 3 -o japan.osm.pbf https://download.geofabrik.de/asia/japan-latest.osm.pbf
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "下載嘗試 $i…"
+            curl -sSL --fail --retry 3 --retry-all-errors -C - \
+              -o japan.osm.pbf \
+              https://download.geofabrik.de/asia/japan-latest.osm.pbf && break
+            echo "失敗,20 秒後重試"; sleep 20
+          done
+          ls -lh japan.osm.pbf
+          # 大小驗證:必須 > 1.5GB,否則多半是錯誤頁而非 PBF
+          SIZE=$(stat -c%s japan.osm.pbf)
+          if [ "$SIZE" -lt 1500000000 ]; then
+            echo "::error::下載檔僅 $SIZE bytes,不是完整 PBF(可能是伺服器錯誤頁)"; exit 1
+          fi
+      - name: 驗證 PBF 完整性
+        run: osmium fileinfo japan.osm.pbf | head -20
       - name: 篩選 POI(本地處理,零限流)
         run: |
           osmium tags-filter japan.osm.pbf \
