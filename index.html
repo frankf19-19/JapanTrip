@@ -306,6 +306,9 @@ nav.bottom button.on{color:var(--ai)}
 #lbOverlay{position:fixed;inset:0;background:rgba(10,15,25,.93);z-index:2500;display:none;align-items:center;justify-content:center}
 #lbOverlay.show{display:flex}
 #lbImg{max-width:94vw;max-height:86vh;object-fit:contain;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+#dbStat{position:fixed;left:12px;bottom:76px;z-index:890;background:var(--ai-deep);color:#F4EFE2;font-size:12px;font-weight:700;padding:7px 13px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;display:none;font-family:var(--font-b)}
+#dbStat.show{display:block}
+@media(min-width:701px){#dbStat{bottom:16px}}
 .lb-x{position:absolute;top:14px;right:16px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:19px;cursor:pointer;z-index:2}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:76px;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:34px;cursor:pointer;border-radius:12px;z-index:2}
 .lb-nav:hover{background:rgba(255,255,255,.25)}
@@ -439,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r63</span>
+    <span class="build">build r64</span>
   </div>
 </header>
 
@@ -638,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r63
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r64
 </footer>
 
 <nav class="bottom">
@@ -662,6 +665,7 @@ button{transition:transform .15s ease}
   </div>
 </div>
 <button id="toTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到頂端">↑</button>
+<div id="dbStat" onclick="dbStatInfo()" title="點我看分類統計"></div>
 <div id="lbOverlay" onclick="if(event.target===this)closeLB()">
   <button class="lb-x" onclick="closeLB()">✕</button>
   <button class="lb-nav lb-prev" onclick="event.stopPropagation();openLB(LB.i-1)">‹</button>
@@ -3163,6 +3167,7 @@ async function loadArea(){
     if($("pane-explore").classList.contains("on"))renderExplore();
     renderHomePicks();
     toast("⛩️🍜🏨 OSM 本區庫 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
+    updateDbStat();
   }else if(ok){
     toast("✓ 本區 OSM 資料已在庫中(全庫 "+DB.length.toLocaleString()+" 筆)");
   }else if(fail){
@@ -3171,19 +3176,36 @@ async function loadArea(){
     toast("ℹ️ 此區沒有 OSM 分區檔(資料庫可能尚未涵蓋)");
   }
 }
-// 大都市圈背景預載:開站自動把主要城市的分區檔載入,首頁分類立即滿血
+// 常駐統計膠囊
+function updateDbStat(txt){
+  const el=$("dbStat");if(!el)return;
+  el.textContent=txt||("📊 全庫 "+DB.length.toLocaleString()+" 筆");
+  el.classList.add("show");
+}
+function dbStatInfo(){
+  const c={spot:0,food:0,hotel:0,shop:0};
+  DB.forEach(s=>{if(c[s.c]!=null)c[s.c]++});
+  toast("📊 全庫 "+DB.length.toLocaleString()+" 筆|⛩️景點 "+c.spot.toLocaleString()+"|🍜美食 "+c.food.toLocaleString()+"|🏨住宿 "+c.hotel.toLocaleString()+"|🛍️購物 "+c.shop.toLocaleString());
+}
+// 大都市圈背景預載:逐格載入,左下角即時顯示進度
 const METRO_CELLS=["r35_139","r34_135","r35_136","r43_141","r33_130","r34_132","r38_140","r26_127","r36_136","r34_133","r31_130","r35_138"];
 async function preloadMetros(){
-  // 省流量:使用者開啟省流或連線很慢時不背景預載(點城市仍會載該區)
   const con=navigator.connection||{};
-  if(con.saveData||/^(slow-2g|2g)$/.test(con.effectiveType||""))return;
+  if(con.saveData||/^(slow-2g|2g)$/.test(con.effectiveType||"")){updateDbStat();return}
   const keys=METRO_CELLS.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3&&(!window._OSMIDX||window._OSMIDX.includes(k)));
-  if(!keys.length)return;
-  const {add}=await loadCellKeys(keys);
-  if(add){
+  if(!keys.length){updateDbStat();return}
+  let done=0,addSum=0;
+  for(const k of keys){
+    updateDbStat("🌆 都市圈載入中 "+(done+1)+"/"+keys.length+" ・全庫 "+DB.length.toLocaleString()+" 筆");
+    const {add}=await loadCellKeys([k]);
+    addSum+=add;done++;
+    updateDbStat("🌆 都市圈載入中 "+done+"/"+keys.length+" ・全庫 "+DB.length.toLocaleString()+" 筆");
+  }
+  updateDbStat();
+  if(addSum){
     renderHomePicks();
     if($("pane-explore").classList.contains("on"))renderExplore();
-    toast("🌆 已背景載入主要都市圈 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
+    toast("🌆 都市圈載入完成 +"+addSum.toLocaleString()+" 筆(全庫 "+DB.length.toLocaleString()+" 筆,點左下角看分類統計)");
   }
 }
 // 定位後自動載入該區
@@ -3214,6 +3236,7 @@ loadArea();
       renderHomePicks();
       if($("pane-explore").classList.contains("on"))renderExplore();
       toast("📚 Wikidata 擴充庫 +"+add.toLocaleString()+" 筆(全庫累計 "+DB.length.toLocaleString()+" 筆)");
+      updateDbStat();
     }
   }catch(e){/* 離線或未部署擴充庫時靜默略過 */}
 })();
