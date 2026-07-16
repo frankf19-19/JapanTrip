@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r64</span>
+    <span class="build">build r67</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r64
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r67
 </footer>
 
 <nav class="bottom">
@@ -2942,8 +2942,7 @@ function openDetail(name,fromPop){
         <a href="https://www.google.com/search?q=${encodeURIComponent(s.j||s.n)}&tbm=isch" target="_blank" rel="noopener">📷 更多照片</a>
         ${s.c==="food"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 食べログ")}" target="_blank" rel="noopener">🍽️ 食べログ評價</a>`:""}
         ${s.c==="hotel"?`<a href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 訂房比價</a>`:""}
-        ${s.c==="hotel"?`<a href="https://www.agoda.com/zh-tw/search?q=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
-        ${s.c==="hotel"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 楽天トラベル")}" target="_blank" rel="noopener">🎌 樂天訂房</a>`:""}
+        ${s.c==="hotel"?`<a href="https://www.agoda.com/zh-tw/search?q=${encodeURIComponent(s.j||s.n)}&searchText=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
       </div>
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
@@ -3177,15 +3176,43 @@ async function loadArea(){
   }
 }
 // 常駐統計膠囊
+function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
 function updateDbStat(txt){
   const el=$("dbStat");if(!el)return;
-  el.textContent=txt||("📊 全庫 "+DB.length.toLocaleString()+" 筆");
+  el.textContent=txt||("📊 全庫 "+wan(DB.length)+" 筆");
   el.classList.add("show");
 }
 function dbStatInfo(){
   const c={spot:0,food:0,hotel:0,shop:0};
   DB.forEach(s=>{if(c[s.c]!=null)c[s.c]++});
-  toast("📊 全庫 "+DB.length.toLocaleString()+" 筆|⛩️景點 "+c.spot.toLocaleString()+"|🍜美食 "+c.food.toLocaleString()+"|🏨住宿 "+c.hotel.toLocaleString()+"|🛍️購物 "+c.shop.toLocaleString());
+  const total=window._OSMIDX?window._OSMIDX.length:0;
+  const loaded=OSMCELLS.size;
+  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">📊 資料庫統計</h3>
+    <div style="margin:12px 0;font-size:15px;line-height:2.1">
+      全庫已載入:<b style="font-size:22px;color:var(--shu)">${wan(DB.length)}</b> 筆(${DB.length.toLocaleString()})<br>
+      ⛩️ 景點 <b>${wan(c.spot)}</b>|🍜 美食 <b>${wan(c.food)}</b><br>
+      🏨 住宿 <b>${wan(c.hotel)}</b>|🛍️ 購物 <b>${wan(c.shop)}</b><br>
+      <span style="font-size:12.5px;color:#8A8272">分區檔:已載入 ${loaded} / 全日本 ${total} 格。點選城市會自動載入該區;或一鍵全載:</span>
+    </div>
+    <button onclick="loadAllJapan()" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:14px;font-size:15.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">🗾 載入全日本資料庫(約 40MB,建議 Wi-Fi)</button>
+    <button onclick="closeDetail()" style="margin-top:10px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
+}
+async function loadAllJapan(){
+  closeDetail();
+  if(!window._OSMIDX){toast("index.json 尚未載入,稍後再試");return}
+  const keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k));
+  if(!keys.length){toast("✅ 全日本 "+window._OSMIDX.length+" 格已全部在庫("+wan(DB.length)+" 筆)");return}
+  let done=0,addSum=0;
+  for(const k of keys){
+    updateDbStat("🗾 全日本載入中 "+(done+1)+"/"+keys.length+" ・"+wan(DB.length)+" 筆");
+    const {add}=await loadCellKeys([k]);
+    addSum+=add;done++;
+  }
+  updateDbStat();
+  renderHomePicks();
+  if($("pane-explore").classList.contains("on"))renderExplore();
+  toast("🗾 全日本載入完成 +"+addSum.toLocaleString()+" 筆(全庫 "+wan(DB.length)+" 筆)");
 }
 // 大都市圈背景預載:逐格載入,左下角即時顯示進度
 const METRO_CELLS=["r35_139","r34_135","r35_136","r43_141","r33_130","r34_132","r38_140","r26_127","r36_136","r34_133","r31_130","r35_138"];
