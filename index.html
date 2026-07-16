@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r73</span>
+    <span class="build">build r74</span>
   </div>
 </header>
 
@@ -641,7 +641,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r73
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r74
 </footer>
 
 <nav class="bottom">
@@ -3149,8 +3149,8 @@ function ptCloudClick(ev){
   if(S.iti||!PTC)return;
   buildGidx();
   const ll=ev.latlng,cp=ev.containerPoint;
-  // 8px 對應的經緯度差
-  const ll2=MAP.containerPointToLatLng([cp.x+8,cp.y+8]);
+  const TOL=16; // 像素命中半徑
+  const ll2=MAP.containerPointToLatLng([cp.x+TOL,cp.y+TOL]);
   const dLa=Math.abs(ll2.lat-ll.lat),dLo=Math.abs(ll2.lng-ll.lng);
   let best=null,bd=1e9;
   const kla=Math.round(ll.lat*100),klo=Math.round(ll.lng*100);
@@ -3160,14 +3160,14 @@ function ptCloudClick(ev){
     for(const i of arr){
       const p=DB[i];
       if(MAP_OFF.has(p.c))continue;
-      const d=Math.abs(p.la-ll.lat)/dLa+Math.abs(p.lo-ll.lng)/dLo;
+      // 精準像素距離
+      const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
+      const dx=pt.x-cp.x,dy=pt.y-cp.y,d=dx*dx+dy*dy;
       if(d<bd){bd=d;best=p}
     }
   }
-  if(best&&bd<=2){
-    L.popup().setLatLng([best.la,best.lo])
-      .setContent(`<b style="cursor:pointer" onclick="openDetail('${esc(best.n)}')">${best.n}</b><br>${CATN[best.c]||""}${best.rt?"・★"+best.rt.toFixed(1):""}<br><a href="javascript:void(0)" onclick="openDetail('${esc(best.n)}')">看詳情</a>`)
-      .openOn(MAP);
+  if(best&&bd<=TOL*TOL){
+    openDetail(best.n); // ★ 點圓點直接開完整詳情面板(照片/介紹/連結)
   }
 }
 function renderMap(){
