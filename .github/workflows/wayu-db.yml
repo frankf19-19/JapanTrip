@@ -1,6 +1,12 @@
 name: 建置和遊誌擴充景點資料庫
 on:
   workflow_dispatch:        # 可手動觸發(Actions 頁按 Run workflow)
+    inputs:
+      mode:
+        description: "resume=只補缺格(快) / full=全量重抓(規則變更後用)"
+        default: "resume"
+        type: choice
+        options: [resume, full]
   schedule:
     - cron: "0 18 * * 0"    # 每週日 18:00 UTC(台灣週一凌晨2點)自動更新
 permissions:
@@ -19,7 +25,7 @@ jobs:
       - name: 從 OSM 抓取全日本餐廳/飯店(分區檔)
         env:
           # 排程(每週日)=全量重抓更新資料;手動 Run=續傳只補缺格
-          WAYU_RESUME: ${{ github.event_name == 'schedule' && '0' || '1' }}
+          WAYU_RESUME: ${{ (github.event_name == 'schedule' || github.event.inputs.mode == 'full') && '0' || '1' }}
         run: python scripts/build_places_db.py
       - name: 最終提交(景點庫與收尾)
         if: always()
