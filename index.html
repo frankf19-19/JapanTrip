@@ -301,7 +301,7 @@ nav.bottom button.on{color:var(--ai)}
 .wz-back{background:#fff;border:2px solid var(--line)!important;color:#5C5A50;flex:0 0 90px}
 .wz-next{background:var(--shu);color:#fff}
 .wz-next:disabled{opacity:.4}
-@media(max-width:700px){#wizFab{display:block}}
+#wizFab{display:block} /* 電腦與手機都顯示快速規劃 */
 /* ── 照片燈箱 ── */
 #lbOverlay{position:fixed;inset:0;background:rgba(10,15,25,.93);z-index:2500;display:none;align-items:center;justify-content:center}
 #lbOverlay.show{display:flex}
@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r78</span>
+    <span class="build">build r79</span>
   </div>
 </header>
 
@@ -649,7 +649,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r78
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r79
 </footer>
 
 <nav class="bottom">
@@ -2509,12 +2509,21 @@ function wizRender(){
       <div class="wz-chips">${CITIES.map((c,i)=>`<label class="${S.centers.some(x=>x.n===c.n)||(S.center&&S.center.n===c.n)?"on":""}" onclick="wizAddCity(${i})">${c.n}</label>`).join("")}</div>
       ${picked.length?`<div style="margin-top:16px;padding:12px 14px;background:var(--shu-soft);border-radius:12px">
         <div style="font-size:12px;color:#8A8272;margin-bottom:8px">已加入 ${picked.length} 個地點${picked.length>1?"(依順路自動排序)":""}</div>
-        <div class="wz-chips">${picked.map((n,k)=>`<label class="on" style="cursor:default">${k+1}. ${n} <b style="cursor:pointer;margin-left:2px" onclick="wizRmPicked(${k})">✕</b></label>`).join("")}</div>
+        <div class="wz-chips">${picked.map((n,k)=>`<label class="on" style="cursor:default;display:inline-flex;align-items:center;gap:5px">${k+1}. ${n}
+          ${S.centers.length>1?`<select onchange="setCenterDays(${k},this.value);" onclick="event.stopPropagation()" style="border:none;border-radius:6px;padding:2px 3px;font-size:11.5px;color:var(--ink);font-family:var(--font-b)">${["auto","1","2","3","4","5","6","7"].map(v=>`<option value="${v}" ${((S.centers[k]||{}).dd||"auto")==v?"selected":""}>${v==="auto"?"自動":v+"天"}</option>`).join("")}</select>`:""}
+          <b style="cursor:pointer;margin-left:2px" onclick="wizRmPicked(${k})">✕</b></label>`).join("")}</div>
       </div>`:""}`;
   }else if(WZ.step===1){
     nx.textContent="下一步";nx.disabled=false;
-    b.innerHTML=`<div class="wz-q">玩幾天?</div><div class="wz-sub">之後仍可在行程裡增減</div>
-      <div class="wz-grid">${[1,2,3,4,5,6,7,8,10,14].map(d=>`<button class="wz-opt ${WZ.days===d?"on":""}" onclick="WZ.days=${d};wizRender()">${d} 天</button>`).join("")}</div>`;
+    const curRad=+($("radius")?$("radius").value:25);
+    b.innerHTML=`<div class="wz-q">玩幾天?怎麼個玩法?</div><div class="wz-sub">之後仍可在行程裡增減</div>
+      <div class="wz-grid">${[1,2,3,4,5,6,7,8,10,14].map(d=>`<button class="wz-opt ${WZ.days===d?"on":""}" onclick="WZ.days=${d};wizRender()">${d} 天</button>`).join("")}</div>
+      <div style="font-size:12.5px;color:#8A8272;margin:14px 0 6px">🚶 每日節奏</div>
+      <div class="wz-chips">${[[2,"🍵 輕鬆(2–3點)"],[3,"⛩️ 標準(3–4點)"],[4,"🚄 緊湊(4–5點)"]].map(([v,t])=>`<label class="${S.pace===v?"on":""}" onclick="S.pace=${v};document.querySelectorAll('#paceChips label').forEach(l=>l.classList.toggle('on',+l.dataset.v===${v}));wizRender()">${t}</label>`).join("")}</div>
+      <div style="font-size:12.5px;color:#8A8272;margin:14px 0 6px">📏 搜尋範圍:<b id="wzRadV">${curRad}</b> km</div>
+      <input type="range" min="5" max="80" step="5" value="${curRad}" style="width:100%" oninput="$('wzRadV').textContent=this.value" onchange="$('radius').value=this.value;$('radV')&&($('radV').textContent=this.value)">
+      <div style="font-size:12.5px;color:#8A8272;margin:14px 0 6px">🗓️ 出發月份(附氣候穿著建議)</div>
+      <div class="wz-chips">${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${S.month===m?"on":""}" onclick="S.month=${m};document.querySelectorAll('#monChips label').forEach((l,i)=>l.classList.toggle('on',i+1===${m}));wizRender()">${m}月</label>`).join("")}</div>`;
   }else if(WZ.step===2){
     nx.textContent="下一步";nx.disabled=false;
     const opts=[["自然風景","🏞️"],["神社寺廟","⛩️"],["歷史古蹟","🏯"],["博物館藝術","🎨"],["主題樂園","🎢"],["市場老街","🏮"],["美食巡禮","🍜"],["購物","🛍️"],["溫泉","♨️"],["夜景展望","🌃"],["親子同樂","👨‍👩‍👧"],["動漫電玩","🎮"]];
@@ -2554,6 +2563,8 @@ function wizRender(){
         <div class="wz-opt" style="cursor:default"><span class="em">📅</span><div>天數<small>${WZ.days} 天</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">🎯</span><div>玩法<small>${pf.length?pf.join("、"):"綜合安排"}</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">${S.tmode==="transit"?"🚃":S.tmode==="drive"?"🚗":"🚐"}</span><div>交通<small>${S.tmode==="transit"?"大眾運輸":S.tmode==="drive"?"租車自駕":"包車"}</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">🚶</span><div>節奏/範圍<small>${S.pace===2?"輕鬆":S.pace===4?"緊湊":"標準"}・${$("radius")?$("radius").value:25}km・${S.month}月出發</small></div></div>
+        <div class="wz-opt" style="cursor:default"><span class="em">🧭</span><div>策略<small>${S.strategy==="famous"?"知名度優先":S.strategy==="balanced"?"平衡":"順路優先"}</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">🍜</span><div>吃<small>${(fp.concat(fc).join("、"))||"不限"}</small></div></div>
         <div class="wz-opt" style="cursor:default"><span class="em">🏨</span><div>住<small>${ht.join("、")||"不限"}</small></div></div>
       </div>`;
