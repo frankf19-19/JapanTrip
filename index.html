@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r79</span>
+    <span class="build">build r80</span>
   </div>
 </header>
 
@@ -649,7 +649,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r79
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r80
 </footer>
 
 <nav class="bottom">
@@ -2518,6 +2518,11 @@ function wizRender(){
     const curRad=+($("radius")?$("radius").value:25);
     b.innerHTML=`<div class="wz-q">玩幾天?怎麼個玩法?</div><div class="wz-sub">之後仍可在行程裡增減</div>
       <div class="wz-grid">${[1,2,3,4,5,6,7,8,10,14].map(d=>`<button class="wz-opt ${WZ.days===d?"on":""}" onclick="WZ.days=${d};wizRender()">${d} 天</button>`).join("")}</div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;${[1,2,3,4,5,6,7,8,10,14].includes(WZ.days)?"":"background:var(--shu-soft);border-radius:12px;padding:8px 12px"}">
+        <span style="font-size:13.5px;color:#8A8272">✏️ 或自訂:</span>
+        <input type="number" min="1" max="30" value="${WZ.days}" style="width:90px;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;font-size:15px;font-family:var(--font-b);text-align:center" onkeydown="if(event.key==='Enter'){wizSetDays(this.value);this.blur()}" onchange="wizSetDays(this.value)">
+        <span style="font-size:13.5px;color:#8A8272">天(最多 30 天)</span>
+      </div>
       <div style="font-size:12.5px;color:#8A8272;margin:14px 0 6px">🚶 每日節奏</div>
       <div class="wz-chips">${[[2,"🍵 輕鬆(2–3點)"],[3,"⛩️ 標準(3–4點)"],[4,"🚄 緊湊(4–5點)"]].map(([v,t])=>`<label class="${S.pace===v?"on":""}" onclick="S.pace=${v};document.querySelectorAll('#paceChips label').forEach(l=>l.classList.toggle('on',+l.dataset.v===${v}));wizRender()">${t}</label>`).join("")}</div>
       <div style="font-size:12.5px;color:#8A8272;margin:14px 0 6px">📏 搜尋範圍:<b id="wzRadV">${curRad}</b> km</div>
@@ -2603,6 +2608,7 @@ function wizRmPicked(k){
 }
 function wizTogglePref(t){WZ.prefs.has(t)?WZ.prefs.delete(t):WZ.prefs.add(t);wizRender()}
 function wizToggle(setName,v){const s=S[setName];s.has(v)?s.delete(v):s.add(v);wizRender()}
+function wizSetDays(v){WZ.days=Math.min(30,Math.max(1,parseInt(v)||3));wizRender()}
 function wizSetStrat(v){S.strategy=v;document.querySelectorAll("#stratChips label").forEach(l=>l.classList.toggle("on",l.dataset.v===v));wizRender()}
 function wizPrev(){if(WZ.step>0){WZ.step--;wizRender()}}
 function wizNext(){
