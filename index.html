@@ -442,7 +442,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r80</span>
+    <span class="build">build r83</span>
   </div>
 </header>
 
@@ -649,7 +649,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r80
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r83
 </footer>
 
 <nav class="bottom">
@@ -1333,27 +1333,23 @@ function init(){
 }
 function renderCityChips(){
   const box=$("cityChips"); if(!box)return;
-  const picked=new Set(S.centers.map(c=>c.n).concat(S.center?[S.center.n]:[]));
+  const cnt={};
+  (S.centers.length?S.centers:(S.center?[S.center]:[])).forEach(c=>{cnt[c.n]=(cnt[c.n]||0)+1});
   box.innerHTML=CITY_GROUPS.map(g=>{
     const items=CITIES.map((c,i)=>[c,i]).filter(([c])=>c.g===g);
     return `<div class="cg-label">${g}</div><div class="cg-row">`+
-      items.map(([c,i])=>`<button class="${picked.has(c.n)?"on":""}" onclick="quickAddCity(${i})">${picked.has(c.n)?"✓ ":""}${c.n}</button>`).join("")+`</div>`;
+      items.map(([c,i])=>`<button class="${cnt[c.n]?"on":""}" onclick="quickAddCity(${i})" title="${cnt[c.n]?"再點=再訪一次;移除請用下方清單的✕":"點擊加入"}">${cnt[c.n]?(cnt[c.n]>1?"✓×"+cnt[c.n]+" ":"✓ "):""}${c.n}</button>`).join("")+`</div>`;
   }).join("");
 }
 function quickAddCity(i){
   const c=CITIES[i];
   const pt={n:c.n,la:c.la,lo:c.lo};
-  if(S.center&&S.center.n===pt.n||S.centers.some(x=>x.n===pt.n)){
-    // 已選 → 再按一次取消
-    if(S.centers.length){S.centers=S.centers.filter(x=>x.n!==pt.n);if(S.centers.length===1){S.center={...S.centers[0]};S.centers=[]}else if(!S.centers.length)S.center=null;else S.center={...S.centers[0]}}
-    else S.center=null;
-    renderCenter();renderCityChips();renderHomePicks();toast("已移除:"+pt.n);return;
-  }
+  const already=(S.center&&S.center.n===pt.n)||S.centers.some(x=>x.n===pt.n);
   if(!S.center){S.center={...pt}}
   else{if(!S.centers.length)S.centers.push({...S.center});if(S.centers.length>=8){toast("最多 8 個地點");return}S.centers.push({...pt})}
   if(S.centers.length===1)S.centers=[];
   renderCenter();renderCityChips();loadArea();renderHomePicks();
-  toast((S.centers.length>1?"✅ 已加入行程地點:":"✅ 已設定:")+pt.n);
+  toast(already?"🔁 再訪一次:"+pt.n+"(移除請按清單裡的 ✕)":(S.centers.length>1?"✅ 已加入行程地點:":"✅ 已設定:")+pt.n);
 }
 function pickCity(i,btn){
   S.center={...CITIES[i]};
@@ -1474,7 +1470,7 @@ function renderCenter(){
     <button style="border:2px solid var(--shu);background:#fff;color:var(--shu);border-radius:10px;padding:9px 16px;font-size:14.5px;font-weight:900;cursor:pointer;min-height:40px" onclick="addCenter()">＋把「${S.center.n.split(",")[0]}」加入行程地點</button>
     <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
     <span style="margin-left:auto;font-size:13.5px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
-    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(生成時會照順路重排並分配天數)</span></div>`:""}
+    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序)</span></div>`:""}
   </div>`;
 }
 function addCenter(){
@@ -1791,7 +1787,9 @@ async function doGeocode(){
   }
   // ② 比對資料庫名稱(異體字通吃:打「涉谷」也能中「澀谷/渋谷」)
   if(q.length>=2){
-    const hit=DB.find(s=>zin(s.n).includes(qn)||(s.j&&zin(s.j).includes(qn)));
+    if(!NIDX||NIDX_N!==DB.length)buildNIdx();
+    const _h=NIDX.find(it=>it.la!=null&&it.k.includes(qn));
+    const hit=_h?(findByName(_h.label)||{n:_h.label,la:_h.la,lo:_h.lo}):null;
     if(hit){S.center={n:hit.n,la:hit.la,lo:hit.lo}; afterLocate("📍 已定位:"+hit.n); return;}
     // 英文/羅馬拼音/假名別名
     for(const [als,target] of XALIAS){
@@ -2051,6 +2049,10 @@ const IMGOBS=("IntersectionObserver" in window)?new IntersectionObserver(es=>{
   es.forEach(e=>{if(e.isIntersecting){IMGOBS.unobserve(e.target);loadImg(e.target)}});
 },{rootMargin:"180px"}):null;
 function watchImgs(){if(!IMGOBS)return;document.querySelectorAll(".ph[data-img]:not(.w)").forEach(p=>{p.classList.add("w");IMGOBS.observe(p)})}
+// 還原使用者自訂旅館(輸入過的下次直接可用)
+try{JSON.parse(localStorage.getItem("wayu_custom")||"[]").forEach(o=>{
+  if(o&&o.n&&!findByName(o.n))DB.push({n:o.n,j:"",la:o.la,lo:o.lo,c:"hotel",a:"自訂",ad:o.ad||"",pr:"自訂旅館(自行輸入)",custom:1,s:0,p:3,t:[]});
+})}catch(e){}
 S.homeCat="all";
 // 開站自檢:確認 OSM 分區庫是否可連線、有幾個分區檔
 (async()=>{
@@ -2352,6 +2354,43 @@ function renderFoodPicker(){
     <div class="hp-list">${rows}</div>
     <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
 }
+/* ═══ 自訂旅館:輸入名稱 → 站內+Nominatim 定位 → 套用並存本機 ═══ */
+async function chSearch(){
+  const q=($("chQ")?$("chQ").value:"").trim();
+  const box=$("chRes"); if(!q||!box)return;
+  box.innerHTML='<div style="font-size:12.5px;color:#8A8272;padding:4px"><span class="spin"></span> 搜尋定位中…</div>';
+  const qn=zin(q);
+  const local=DB.filter(s=>s.c==="hotel"&&(zin(s.n).includes(qn)||(s.j&&zin(s.j).includes(qn)))).slice(0,4)
+    .map(s=>({n:s.n,la:s.la,lo:s.lo,ad:s.ad||"",src:"站內"}));
+  let nomi=[];
+  try{
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(q));
+    nomi=(await r.json()).map(x=>({n:(x.display_name||"").split(",")[0]||q,la:+x.lat,lo:+x.lon,ad:(x.display_name||"").split(",").slice(1,4).join(""),src:"地圖"}));
+  }catch(e){}
+  const seen=new Set(),out=[];
+  local.concat(nomi).forEach(o=>{if(!seen.has(o.n)){seen.add(o.n);out.push(o)}});
+  window._CHRES=out;
+  box.innerHTML=out.length?out.map((o,k)=>`<div class="hp-row" onclick="chPick(${k})" style="background:#fff">
+    <div style="flex:1"><b>${o.n}</b> <span class="tag" style="background:${o.src==="站內"?"#28497C":"#5E7B4F"};color:#fff;font-size:10px">${o.src}</span>
+    <div style="font-size:11px;color:#8A8272">${o.ad}</div></div></div>`).join("")
+    :'<div style="font-size:12.5px;color:#8A8272;padding:4px">找不到,試試完整旅館名或加上城市名(例:「東橫INN 大阪」)</div>';
+}
+function chPick(k){
+  const o=window._CHRES[k]; if(!o)return;
+  const {di}=window._HP;
+  let ht=findByName(o.n);
+  if(!ht){
+    ht={n:o.n,j:"",la:o.la,lo:o.lo,c:"hotel",a:"自訂",ad:o.ad||"",pr:"自訂旅館(自行輸入)",custom:1,s:0,p:3,t:[]};
+    DB.push(ht);
+    try{ // 存本機:下次開站自動還原,行程存讀也找得到
+      const arr=JSON.parse(localStorage.getItem("wayu_custom")||"[]");
+      if(!arr.some(x=>x.n===ht.n)){arr.push({n:ht.n,la:ht.la,lo:ht.lo,ad:ht.ad});localStorage.setItem("wayu_custom",JSON.stringify(arr))}
+    }catch(e){}
+  }
+  window._HPOOL=[ht];
+  pickHotel(di,0); // 走既有邏輯(連住晚數/重繪都處理)
+  toast("🏨 已套用你的旅館:"+ht.n+"(行程車程已重算)");
+}
 function fpFinish(msg){
   const {di}=window._FP;
   closeDetail();rebuildDay(di);renderIti();toast(msg);
@@ -2506,9 +2545,9 @@ function wizRender(){
       <input class="wz-search" id="wzQ" placeholder="搜尋並點下方結果加入…例:京都、shibuya" oninput="wizSug()">
       <div class="wz-sug" id="wzSug"></div>
       <div style="font-size:12px;color:#8A8272;margin:14px 0 8px">熱門城市(點擊加入)</div>
-      <div class="wz-chips">${CITIES.map((c,i)=>`<label class="${S.centers.some(x=>x.n===c.n)||(S.center&&S.center.n===c.n)?"on":""}" onclick="wizAddCity(${i})">${c.n}</label>`).join("")}</div>
+      <div class="wz-chips">${(()=>{const cnt={};(S.centers.length?S.centers:(S.center?[S.center]:[])).forEach(c=>{cnt[c.n]=(cnt[c.n]||0)+1});return CITIES.map((c,i)=>`<label class="${cnt[c.n]?"on":""}" onclick="wizAddCity(${i})">${cnt[c.n]>1?"✓×"+cnt[c.n]+" ":cnt[c.n]?"✓ ":""}${c.n}</label>`).join("")})()}</div>
       ${picked.length?`<div style="margin-top:16px;padding:12px 14px;background:var(--shu-soft);border-radius:12px">
-        <div style="font-size:12px;color:#8A8272;margin-bottom:8px">已加入 ${picked.length} 個地點${picked.length>1?"(依順路自動排序)":""}</div>
+        <div style="font-size:12px;color:#8A8272;margin-bottom:8px">已加入 ${picked.length} 個地點${picked.length>1?"(有重複城市時依你的順序)":""}</div>
         <div class="wz-chips">${picked.map((n,k)=>`<label class="on" style="cursor:default;display:inline-flex;align-items:center;gap:5px">${k+1}. ${n}
           ${S.centers.length>1?`<select onchange="setCenterDays(${k},this.value);" onclick="event.stopPropagation()" style="border:none;border-radius:6px;padding:2px 3px;font-size:11.5px;color:var(--ink);font-family:var(--font-b)">${["auto","1","2","3","4","5","6","7"].map(v=>`<option value="${v}" ${((S.centers[k]||{}).dd||"auto")==v?"selected":""}>${v==="auto"?"自動":v+"天"}</option>`).join("")}</select>`:""}
           <b style="cursor:pointer;margin-left:2px" onclick="wizRmPicked(${k})">✕</b></label>`).join("")}</div>
@@ -2575,17 +2614,26 @@ function wizRender(){
       </div>`;
   }
 }
-function wizSug(){
-  const q=$("wzQ").value.trim();const box=$("wzSug");
+let _WZT=0;
+function wizSug(){clearTimeout(_WZT);_WZT=setTimeout(wizSugRun,150)} // 防抖:停止輸入 150ms 才搜
+function wizSugRun(){
+  const el=$("wzQ");if(!el)return;
+  const q=el.value.trim();const box=$("wzSug");
   if(q.length<1){box.innerHTML="";return}
   if(!NIDX||NIDX_N!==DB.length)buildNIdx();
-  const qn=zin(q),out=[];
-  for(const it of NIDX){if(it.la==null)continue;if(zin(it.label).startsWith(qn)||zin(it.label).includes(qn)){out.push(it);if(out.length>=6)break}}
+  const qn=zin(q); // 只轉換「查詢字」一次;每筆用建索引時預存的 it.k
+  const pre=[],inc=[];
+  for(const it of NIDX){
+    if(it.la==null)continue;
+    if(it.k.startsWith(qn)){pre.push(it);if(pre.length>=6)break}
+    else if(inc.length<6&&it.k.includes(qn))inc.push(it);
+  }
+  const out=pre.concat(inc).slice(0,6);
   box.innerHTML=out.map((it,i)=>`<div class="s" onclick="wizPickSug(${i})"><span>${it.ic}</span><b>${it.label.split(",")[0]}</b> <small style="color:#A39B87">${it.sub}</small></div>`).join("");
   window._WZSUG=out;
 }
 function wizAddPoint(pt){
-  if(S.centers.some(c=>Math.abs(c.la-pt.la)<0.01&&Math.abs(c.lo-pt.lo)<0.01)){toast("已加入這個地點");return}
+  // 允許重複加入(例:行程尾聲再回東京)
   if(!S.center){S.center={...pt}} // 第一個兼中心
   else if(!S.centers.length){S.centers.push({...S.center})} // 從單點轉多點,先把原中心放進清單
   if(S.centers.length>=8){toast("最多 8 個地點");return}
@@ -2651,13 +2699,19 @@ async function generate(reshuffle){
   const wantHotel=document.querySelector('#extraChips label[data-k=hotel]').classList.contains("on");
   const multi=S.centers.length>=2;
   let route=multi?[...S.centers]:[{...S.center}];
-  if(multi){ // 依地理順路重排(從第一個地點出發,貪婪最近鄰)
-    const ordered=[route.shift()];
-    while(route.length){
-      route.sort((a,b)=>dist(ordered[ordered.length-1].la,ordered[ordered.length-1].lo,a.la,a.lo)-dist(ordered[ordered.length-1].la,ordered[ordered.length-1].lo,b.la,b.lo));
-      ordered.push(route.shift());
+  if(multi){
+    const hasDup=new Set(route.map(c=>c.n)).size!==route.length;
+    if(hasDup){
+      // 有重複城市(如最後回東京):尊重你加入的順序,不做順路重排
+      toast("🔁 偵測到重複城市,依你排定的順序生成");
+    }else{ // 依地理順路重排(從第一個地點出發,貪婪最近鄰)
+      const ordered=[route.shift()];
+      while(route.length){
+        route.sort((a,b)=>dist(ordered[ordered.length-1].la,ordered[ordered.length-1].lo,a.la,a.lo)-dist(ordered[ordered.length-1].la,ordered[ordered.length-1].lo,b.la,b.lo));
+        ordered.push(route.shift());
+      }
+      route=ordered;
     }
-    route=ordered;
     if(S.days<route.length){route=route.slice(0,S.days);toast("天數少於地點數,先排前 "+route.length+" 個地點");}
   }
   // 天數分配:尊重各點指定天數;「自動」的點均分剩餘(至少 1 天)
@@ -2796,6 +2850,9 @@ function renderHotelBlock(d,i){
         <span class="tag" style="background:${TIER_COLORS[tier]};color:#fff;font-weight:700;font-size:10.5px">${tier}</span>
         ${nightTag}</h4>
       <div class="ja">${ht.j||""}</div>
+      ${(()=>{const ls=(d.stops||[]).filter(x=>x.type==="stop").slice(-1)[0];if(!ls)return "";
+        const km=dist(ls.s.la,ls.s.lo,ht.la,ht.lo),mn=travelMin(km),M=TMODES[(S.iti&&S.iti.tmode)||"transit"];
+        return `<div class="inforow"><span class="ic">${M.ic}</span><span>從「${ls.s.n}」${M.n}約 ${mn} 分(${fmtD(km)})</span>　<a href="https://www.google.com/maps/dir/?api=1&origin=${ls.s.la},${ls.s.lo}&destination=${ht.la},${ht.lo}&travelmode=${M.gm}" target="_blank" rel="noopener">🧭 導航</a></div>`})()}
       ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
       ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}
       <div class="hs-acts">
@@ -2842,7 +2899,16 @@ function renderHotelPicker(){
   }).join(""):`<div style="padding:14px;color:#8A8272;font-size:13.5px">這個等級附近沒有,換個等級看看</div>`;
   const more=total>n?`<button onclick="window._HP.n+=30;renderHotelPicker()" style="margin-top:10px;width:100%;border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${list.length.toLocaleString()} / 共 ${total.toLocaleString()} 間)</button>`:"";
   $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">選擇 DAY ${di+1} 的住宿 <span style="font-size:13px;color:#8A8272;font-weight:400">附近共 ${total.toLocaleString()} 間</span></h3>
-    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 6px">符合你住宿偏好的排最前(其餘依距離);用上方等級可看全部,點選即可更換</div>
+    <div style="background:var(--shu-soft);border:1.5px solid var(--shu);border-radius:12px;padding:10px 12px;margin:10px 0">
+      <div style="font-size:13px;font-weight:700;color:var(--shu);margin-bottom:6px">🔍 已經訂好旅館?直接輸入名稱定位</div>
+      <div style="display:flex;gap:6px">
+        <input id="chQ" placeholder="例:三井ガーデンホテル京都駅前 / APA新宿" style="flex:1;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--font-b)" onkeydown="if(event.key==='Enter')chSearch()">
+        <button onclick="chSearch()" style="border:none;background:var(--shu);color:#fff;border-radius:10px;padding:10px 16px;font-weight:700;font-family:var(--font-b);cursor:pointer">搜尋</button>
+      </div>
+      <div id="chRes" style="margin-top:6px"></div>
+      <div style="font-size:11px;color:#8A8272;margin-top:4px">選定後行程會用你的旅館重算每天車程</div>
+    </div>
+    <div style="font-size:12.5px;color:#8A8272;margin:4px 0 6px">或從推薦挑選:符合你住宿偏好的排最前;用等級可看全部</div>
     ${tierChips}
     <div class="hp-list">${rows}</div>
     ${more}
