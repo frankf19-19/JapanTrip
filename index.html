@@ -82,13 +82,19 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .hero-deco span:nth-child(5){top:8%;right:34%;animation-delay:2.4s;font-size:22px}
 .hero-deco span:nth-child(6){top:48%;right:3%;animation-delay:3s}
 @media(max-width:700px){.hero-deco span{font-size:24px!important;opacity:.35}}
-#miniMapWrap{display:none;margin-top:14px;max-width:560px}
-#miniMap{height:280px;border-radius:14px;border:1.5px solid var(--line);box-shadow:var(--shadow);z-index:1}
+#miniMapWrap{display:none;margin-top:14px;max-width:560px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 12px 10px;box-shadow:var(--shadow)}
+.mm-hd{display:flex;align-items:center;justify-content:space-between;margin:0 2px 9px}
+.mm-hd span{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--ink);letter-spacing:1px}
+.mm-hd b{font-size:12px;color:var(--shu);font-weight:700}
+.mm-ft{font-size:11px;color:#A39B87;margin-top:7px;text-align:center;letter-spacing:.5px}
+#miniMap{height:280px;border-radius:12px;border:1px solid var(--line);z-index:1}
 @media(min-width:1100px){
-  #miniMapWrap{position:fixed;right:20px;top:110px;width:400px;max-width:none;margin-top:0;z-index:600;background:var(--washi);padding:8px;border-radius:16px;box-shadow:0 8px 28px rgba(32,48,63,.18)}
+  #miniMapWrap{position:fixed;right:20px;top:108px;width:400px;max-width:none;margin-top:0;z-index:600;box-shadow:0 10px 32px rgba(32,48,63,.16)}
   #miniMap{height:330px}
 }
-.mm-num{background:var(--shu);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.mm-num{background:var(--shu);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.mm-tip{background:#fff !important;color:var(--ink) !important;border:1px solid var(--line) !important;border-radius:8px !important;box-shadow:0 2px 8px rgba(32,48,63,.15) !important;font-family:var(--font-b);font-size:11.5px;font-weight:700;padding:3px 9px !important}
+.mm-tip::before{display:none !important}
 .cg-label{font-size:11px;color:var(--ink-2);letter-spacing:1px;margin:14px 0 8px;font-weight:700}
 .cg-label:first-child{margin-top:0}
 .cg-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
@@ -449,7 +455,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r85</span>
+    <span class="build">build r86</span>
   </div>
 </header>
 
@@ -470,8 +476,9 @@ button{transition:transform .15s ease}
       <div id="heroLoc"></div>
       <div id="sugList"></div>
       <div id="miniMapWrap">
+        <div class="mm-hd"><span>🗾 行程動線預覽</span><b id="mmInfo"></b></div>
         <div id="miniMap"></div>
-        <div style="font-size:11.5px;color:#8A8272;margin-top:5px">📍 已選地點即時預覽・多點會依編號標示</div>
+        <div class="mm-ft">紅線為地點間動線示意・生成後行程頁有完整每日路線</div>
       </div>
     </div>
     <div class="geo-hint" style="margin-top:14px;opacity:.55;font-size:11.5px;letter-spacing:1px">快選城市</div>
@@ -660,7 +667,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r85
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r86
 </footer>
 
 <nav class="bottom">
@@ -1479,15 +1486,27 @@ function renderMiniMap(){
   }
   if(MMLYR)MMLYR.remove();
   MMLYR=L.layerGroup().addTo(MMAP);
+  // 動線虛線(朱紅)串起各點
+  if(pts.length>1){
+    L.polyline(pts.map(c=>[c.la,c.lo]),{color:"#C43B41",weight:2.5,dashArray:"7 7",opacity:.8}).addTo(MMLYR);
+  }
   pts.forEach((c,i)=>{
-    L.marker([c.la,c.lo],{icon:L.divIcon({className:"",html:`<div class="mm-num">${pts.length>1?i+1:"📍"}</div>`,iconSize:[24,24],iconAnchor:[12,12]})})
-      .bindTooltip(c.n.split(",")[0]+(c.dd&&c.dd!=="auto"?"("+c.dd+"天)":""),{permanent:pts.length<=5,direction:"top",offset:[0,-10]})
+    L.marker([c.la,c.lo],{icon:L.divIcon({className:"",html:`<div class="mm-num">${pts.length>1?i+1:"📍"}</div>`,iconSize:[26,26],iconAnchor:[13,13]})})
+      .bindTooltip(c.n.split(",")[0]+(c.dd&&c.dd!=="auto"?" ・"+c.dd+"天":""),{permanent:pts.length<=4,direction:"top",offset:[0,-14],className:"mm-tip",opacity:1})
       .addTo(MMLYR);
   });
+  // 摘要:站數+總動線里程
+  const info=$("mmInfo");
+  if(info){
+    if(pts.length>1){
+      let km=0;for(let i=1;i<pts.length;i++)km+=dist(pts[i-1].la,pts[i-1].lo,pts[i].la,pts[i].lo);
+      info.textContent=pts.length+" 站・動線約 "+Math.round(km)+" km";
+    }else info.textContent=pts[0].n.split(",")[0];
+  }
   setTimeout(()=>{ // display 剛切換需重算尺寸
     MMAP.invalidateSize();
     if(pts.length===1)MMAP.setView([pts[0].la,pts[0].lo],10);
-    else{try{MMAP.fitBounds(pts.map(c=>[c.la,c.lo]),{padding:[36,36],maxZoom:11})}catch(e){}}
+    else{try{MMAP.fitBounds(pts.map(c=>[c.la,c.lo]),{padding:[52,52],maxZoom:11})}catch(e){}}
   },60);
 }
 function renderCenter(){
