@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r104</span>
+    <span class="build">build r105</span>
   </div>
 </header>
 
@@ -553,21 +553,23 @@ button{transition:transform .15s ease}
     <div class="f-label">✈️ 航班設定(選填,自動調整首日開始・末日收尾時間)<span class="jp">FLIGHT</span></div>
     <div class="rowflex" style="gap:12px">
       <div style="min-width:250px">
-        <div style="font-size:12px;color:#8A8272;margin-bottom:4px">去程:抵達機場・落地時間</div>
-        <div style="display:flex;gap:6px">
+        <div style="font-size:12px;color:#8A8272;margin-bottom:4px">去程:抵達日期・機場・落地時間</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input type="date" id="fInD" class="fsel" style="max-width:160px" onchange="flightDates()">
           <select id="fInAp" class="fsel"><option value="">(不設定)</option></select>
           <select id="fInT" class="fsel" style="max-width:120px"></select>
         </div>
       </div>
       <div style="min-width:250px">
-        <div style="font-size:12px;color:#8A8272;margin-bottom:4px">回程:出發機場・起飛時間</div>
-        <div style="display:flex;gap:6px">
+        <div style="font-size:12px;color:#8A8272;margin-bottom:4px">回程:出發日期・機場・起飛時間</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input type="date" id="fOutD" class="fsel" style="max-width:160px" onchange="flightDates()">
           <select id="fOutAp" class="fsel"><option value="">(不設定)</option></select>
           <select id="fOutT" class="fsel" style="max-width:120px"></select>
         </div>
       </div>
     </div>
-    <div style="font-size:11px;color:#A39B87;margin-top:6px">＊入境+提領行李預估 90 分;回程以「起飛前 2.5 小時抵達機場」倒推(國際線標準)。航班號查詢請以航空公司 App 為準,這裡填時間即可。</div>
+    <div style="font-size:11px;color:#A39B87;margin-top:6px">＊選了日期:總天數自動計算、行程逐日標日期,並依 OSM 營業時間「避開當天公休的店」。入境+提領行李預估 90 分;回程以「起飛前 2.5 小時抵達機場」倒推。</div>
 
     <div class="f-label">🍜 餐廳偏好(價位・料理,影響行程中的午晚餐挑選)</div>
     <div style="font-size:12px;color:#8A8272;margin-bottom:4px">價位(可複選,不選=不限):</div>
@@ -683,7 +685,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r104
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r105
 </footer>
 
 <nav class="bottom">
@@ -1474,7 +1476,7 @@ function saveIti(){
   const dft=S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊";
   const name=prompt("為這份行程取個名字:",dft); if(name===null)return;
   const itis=store.get("wayu_itis")||[];
-  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null,ht:d.hotel?d.hotel.n:null,ln:!!d.lastNight,pf:d.pins||null,sk:d.skipMeal||null}))});
+  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,di:S.iti.dateIn||null,dout:S.iti.dateOut||null,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null,ht:d.hotel?d.hotel.n:null,ln:!!d.lastNight,pf:d.pins||null,sk:d.skipMeal||null}))});
   store.set("wayu_itis",itis.slice(0,20));
   toast("♥ 行程已儲存到「最愛」");
 }
@@ -1485,8 +1487,9 @@ function loadIti(i){
   S.iti={days:it.days.map(dd=>{
       const ns=Array.isArray(dd)?dd:dd.ns, c=Array.isArray(dd)?null:dd.c;
       return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined,hotel:(dd.ht?findByName(dd.ht):null),lastNight:!!dd.ln,pins:dd.pf||undefined,skipMeal:dd.sk||undefined};
-    }),hotel:null,hotels:null,multi:!!it.multi,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[])};
+    }),hotel:null,hotels:null,multi:!!it.multi,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[]),dateIn:it.di||null,dateOut:it.dout||null};
   S.iti.days=S.iti.days.filter(d=>d.list.length);
+  if(S.iti.dateIn)S.iti.days.forEach((d,i)=>{d.date=addD(S.iti.dateIn,i)});
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
@@ -1592,6 +1595,57 @@ function addCenter(){
   if(S.centers.length>=8){toast("最多 8 個地點");return}
   S.centers.push({...S.center}); renderCenter();
   toast("✅ 已加入第 "+S.centers.length+" 個地點:"+S.center.n.split(",")[0]+"。繼續搜尋或快選下一個地點!");
+}
+const WD_ZH=["日","一","二","三","四","五","六"];
+const addD=(iso,n)=>{const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const fmtMD=iso=>{const d=new Date(iso+"T00:00:00");return (d.getMonth()+1)+"/"+d.getDate()+"(週"+WD_ZH[d.getDay()]+")"};
+function flightDates(){
+  const a=$("fInD")?$("fInD").value:"",b=$("fOutD")?$("fOutD").value:"";
+  S.dateIn=a||null;S.dateOut=b||null;
+  if(a){ // 月份自動同步(氣候建議)
+    const m=new Date(a+"T00:00:00").getMonth()+1;
+    if(m!==S.month){S.month=m;document.querySelectorAll("#monChips label").forEach((l,i)=>l.classList.toggle("on",i+1===m))}
+  }
+  if(a&&b){
+    const days=Math.round((new Date(b)-new Date(a))/86400000)+1;
+    if(days<1){toast("⚠️ 回程日期早於去程,請確認");return}
+    if(days>30){toast("⚠️ "+days+" 天超過 30 天上限,天數請手動設定");return}
+    S.days=days;syncDaysUI();renderHeroLoc();
+    toast("📅 "+fmtMD(a)+" 抵達 → "+fmtMD(b)+" 回國:共 "+days+" 天 "+(days-1)+" 夜已自動設定");
+  }
+}
+/* OSM opening_hours 週間解析(常見語法):回傳長度7陣列(0=週日) open/off;無法判讀=null */
+const OHDAYS={Su:0,Mo:1,Tu:2,We:3,Th:4,Fr:5,Sa:6};
+const _OHC=new Map();
+function ohWeek(oh){
+  if(!oh)return null;
+  if(_OHC.has(oh))return _OHC.get(oh);
+  let out=null;
+  try{
+    if(/24\s*\/\s*7/.test(oh))out=Array(7).fill("open");
+    else{
+      const wk=Array(7).fill(null);let any=false;
+      oh.split(";").forEach(seg=>{
+        seg=seg.trim();if(!seg)return;
+        const m=seg.match(/^((?:(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:-(?:Mo|Tu|We|Th|Fr|Sa|Su))?)(?:\s*,\s*(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:-(?:Mo|Tu|We|Th|Fr|Sa|Su))?)*)\s*(.*)$/);
+        if(!m)return; // 無日別前綴(純時間/PH等)不記
+        any=true;
+        const off=/^(off|closed)\b/i.test((m[2]||"").trim());
+        m[1].split(",").forEach(tok=>{
+          tok=tok.trim();const r=tok.split("-");
+          if(r.length===2&&OHDAYS[r[0]]!=null&&OHDAYS[r[1]]!=null){
+            for(let d=OHDAYS[r[0]];;d=(d+1)%7){wk[d]=off?"off":"open";if(d===OHDAYS[r[1]])break}
+          }else if(OHDAYS[tok]!=null)wk[tok?OHDAYS[tok]:0]=off?"off":"open";
+        });
+      });
+      if(any&&wk.some(v=>v==="open")){ // OSM 慣例:有列日別營業規則時,未列出的日=公休
+        for(let d=0;d<7;d++)if(wk[d]==null)wk[d]="off";
+        out=wk;
+      }else if(any)out=wk;
+    }
+  }catch(e){out=null}
+  _OHC.set(oh,out);
+  return out;
 }
 function syncDaysUI(){
   let hit=false;
@@ -2351,22 +2405,31 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
   dayList=[...early,...mid,...night];
   let t=startMin||9*60; const stops=[],dropped=[];
   dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)});
+  // 當日星期(有選日期才有):依 OSM 營業時間避開公休店家/景點
+  const _wd=(dayRef&&dayRef.date)?new Date(dayRef.date+"T00:00:00").getDay():null;
+  const isClosedToday=x=>{
+    if(_wd==null||!x||!x.oh)return false;
+    const w=ohWeek(x.oh);return !!(w&&w[_wd]==="off");
+  };
   const nearestFood=(pt,slot)=>{
     // 這餐被使用者設為「不安排」
     if(dayRef&&dayRef.skipMeal&&dayRef.skipMeal[slot])return null;
-    // 使用者指定的店(換餐廳面板選的)優先
+    // 使用者指定的店(換餐廳面板選的)優先;但當天公休就不硬用
     if(dayRef&&dayRef.pins&&dayRef.pins[slot]){
       const pf=findByName(dayRef.pins[slot]);
-      if(pf&&!usedF.has(pf.n)){usedF.add(pf.n);return pf}
+      if(pf&&!usedF.has(pf.n)&&!isClosedToday(pf)){usedF.add(pf.n);return pf}
     }
-    let cand=foods.filter(x=>!usedF.has(x.n)&&foodMatch(x));
-    if(!cand.length)cand=foods.filter(x=>!usedF.has(x.n)); // 偏好內找不到 → 放寬
+    let cand=foods.filter(x=>!usedF.has(x.n)&&!isClosedToday(x)&&foodMatch(x));
+    if(!cand.length)cand=foods.filter(x=>!usedF.has(x.n)&&!isClosedToday(x)); // 偏好內找不到 → 放寬
     const f=cand.sort((a,b)=>dist(pt.la,pt.lo,a.la,a.lo)-dist(pt.la,pt.lo,b.la,b.lo))[0];
     if(f)usedF.add(f.n); return f;
   };
   let lunch=false,snack=!S.prefs.has("美食巡禮");
   let prev=null; // 上一個「實際排入」的地點(交通段以此為起點)
+  const droppedClosed=[];
   dayList.forEach(s=>{
+    // ⓪ 當天公休(依 OSM 營業時間+所選日期)→ 直接避開
+    if(isClosedToday(s)){droppedClosed.push(s);return}
     // ① 先試算:從上一個實際排入點出發的交通時間
     const km=prev?dist(prev.la,prev.lo,s.la,s.lo):0;
     const mv=prev?Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5):0;
@@ -2399,7 +2462,10 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
     prev=s;
   });
   if(dropped.length){
-    stops.push({type:"note",txt:"⏰ 因營業/閉門時間排不進今天:"+dropped.map(x=>x.n).join("、")+" — 建議放到隔天上午,或點「＋加入」手動安排"});
+    stops.push({type:"note",txt:"⏰ 因閉門時間排不進今天:"+dropped.map(x=>x.n).join("、")+" — 建議放到隔天上午,或點「＋加入」手動安排"});
+  }
+  if(droppedClosed.length){
+    stops.push({type:"note",txt:"🚫 "+(dayRef&&dayRef.date?fmtMD(dayRef.date):"當天")+"公休(依 OSM 營業時間):"+droppedClosed.map(x=>x.n).join("、")+" — 已自動避開,可換到別天"});
   }
   if(wantMeal&&dayList.length){
     const last=prev||dayList[dayList.length-1];
@@ -2927,8 +2993,10 @@ async function generate(reshuffle){
   }
   S.iti={days,hotel:(!multi&&wantHotel&&hotels[0])?hotels[0].h:null,hotels:multi?hotels:null,
     center:{...S.center},made:new Date(),rad,wantMeal,exclF:new Set(),month:S.month,multi,tmode:S.tmode,
+    dateIn:S.dateIn||null,dateOut:S.dateOut||null,
     flight:{inAp:$("fInAp").value!==""?AIRPORTS[+$("fInAp").value]:null,inT:hm2min($("fInT").value),
             outAp:$("fOutAp").value!==""?AIRPORTS[+$("fOutAp").value]:null,outT:hm2min($("fOutT").value)}};
+  if(S.iti.dateIn)S.iti.days.forEach((d,i)=>{d.date=addD(S.iti.dateIn,i)});
   setupFlights();
   GEN_BUDGET=0;
   S.sug=null;
@@ -2952,15 +3020,15 @@ function renderIti(){
   let fRow="";
   if(F&&(F.inAp||F.outAp)){
     fRow=`<div class="wxcard" style="background:linear-gradient(135deg,#F5F0E4,#EDE7F2)"><div class="wxtop"><span class="wxemoji">✈️</span><div>`;
-    if(F.inAp&&F.inT!=null)fRow+=`<div style="font-size:14px;font-weight:700">去程:${hhmm(F.inT)} 降落 ${F.inAp[0]} ${F.inAp[1]} → 約 ${hhmm((S.iti.days[0]&&S.iti.days[0].startMin)||9*60)} 開始行程</div>`;
-    if(F.outAp&&F.outT!=null)fRow+=`<div style="font-size:14px;font-weight:700;margin-top:2px">回程:${hhmm(F.outT)} 起飛 ${F.outAp[0]} ${F.outAp[1]} → 建議 ${hhmm(F.outT-150)} 前抵達機場</div>`;
+    if(F.inAp&&F.inT!=null)fRow+=`<div style="font-size:14px;font-weight:700">去程:${S.iti.dateIn?fmtMD(S.iti.dateIn)+" ":""}${hhmm(F.inT)} 降落 ${F.inAp[0]} ${F.inAp[1]} → 約 ${hhmm((S.iti.days[0]&&S.iti.days[0].startMin)||9*60)} 開始行程</div>`;
+    if(F.outAp&&F.outT!=null)fRow+=`<div style="font-size:14px;font-weight:700;margin-top:2px">回程:${S.iti.dateOut?fmtMD(S.iti.dateOut)+" ":""}${hhmm(F.outT)} 起飛 ${F.outAp[0]} ${F.outAp[1]} → 建議 ${hhmm(F.outT-150)} 前抵達機場</div>`;
     const tBtns=[["transit","🚃 電車/巴士"],["drive","🚗 開車"],["charter","🚐 包車"]].map(([m,t])=>`<button onclick="setItiTmode('${m}')" style="border:1.5px solid ${(S.iti.tmode||"transit")===m?"var(--ai)":"var(--line)"};background:${(S.iti.tmode||"transit")===m?"var(--ai)":"#fff"};color:${(S.iti.tmode||"transit")===m?"#fff":"var(--ink)"};border-radius:99px;padding:5px 13px;font-size:12.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">${t}</button>`).join(" ");
     fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">移動時間以此估算:${tBtns}<span style="color:#A39B87">(點擊切換,全行程即時重算)</span></div></div></div></div>`;
   }
   $("wxBox").innerHTML+=fRow;
   let h="";
   S.iti.days.forEach((d,i)=>{
-    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span><span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
+    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span>${d.date?`<span style="background:rgba(255,255,255,.16);color:#F4EFE2;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:700">📅 ${fmtMD(d.date)}</span>`:""}<span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
     const M=TMODES[S.iti.tmode||"transit"];
     (d.pre||[]).concat(d.stops).forEach(st=>{
       if(st.type==="note"){h+=`<div class="stop" style="padding-bottom:10px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:${st.warn?"#B4622A":"var(--ai-deep)"};font-weight:700;background:${st.warn?"#FBF0E2":"#EDF2F9"};border-radius:8px;padding:7px 10px">${st.txt}${st.warn?"<br><span style='font-weight:400'>⚠️ 行程稍趕,建議手動再移除一站</span>":""}</div></div>`;return}
