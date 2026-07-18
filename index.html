@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r103</span>
+    <span class="build">build r104</span>
   </div>
 </header>
 
@@ -556,14 +556,14 @@ button{transition:transform .15s ease}
         <div style="font-size:12px;color:#8A8272;margin-bottom:4px">去程:抵達機場・落地時間</div>
         <div style="display:flex;gap:6px">
           <select id="fInAp" class="fsel"><option value="">(不設定)</option></select>
-          <input id="fInT" type="time" class="fsel" style="max-width:110px">
+          <select id="fInT" class="fsel" style="max-width:120px"></select>
         </div>
       </div>
       <div style="min-width:250px">
         <div style="font-size:12px;color:#8A8272;margin-bottom:4px">回程:出發機場・起飛時間</div>
         <div style="display:flex;gap:6px">
           <select id="fOutAp" class="fsel"><option value="">(不設定)</option></select>
-          <input id="fOutT" type="time" class="fsel" style="max-width:110px">
+          <select id="fOutT" class="fsel" style="max-width:120px"></select>
         </div>
       </div>
     </div>
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r103
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r104
 </footer>
 
 <nav class="bottom">
@@ -1361,6 +1361,16 @@ function init(){
   $("fInAp").innerHTML+=apOpts; $("fOutAp").innerHTML+=apOpts;
   $("monChips").innerHTML=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${m===S.month?'on':''}" onclick="setMonth(${m},this)">${m}月</label>`).join("");
   $("prefChips").innerHTML=PREFS.map(p=>`<label onclick="togglePref(this,'${p}')">${p}</label>`).join("");
+  // 航班時間下拉:05:00–23:30 每 30 分一格,點選即完成(不用打字)
+  ["fInT","fOutT"].forEach(id=>{
+    const el=$(id); if(!el)return;
+    let opts='<option value="">時間</option>';
+    for(let m=5*60;m<=23*60+30;m+=30){
+      const v=String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+      opts+=`<option value="${v}">${v}</option>`;
+    }
+    el.innerHTML=opts;
+  });
   $("daySel").innerHTML=[1,2,3,4,5,6,7,8,9,10].map(d=>`<button class="${d===3?'on':''}" onclick="setDays(${d},this)">${d}</button>`).join("")
     +`<input type="number" id="dayCustom" min="1" max="30" placeholder="自訂" onchange="setDaysCustom(this)" style="width:64px;height:42px;border:1.5px solid var(--line);border-radius:10px;background:#FBF9F3;font-size:14px;font-weight:700;font-family:var(--font-b);text-align:center;color:var(--ink)">`
     +`<span style="font-size:11px;color:#8A8272;align-self:center">最多30天</span>`;
