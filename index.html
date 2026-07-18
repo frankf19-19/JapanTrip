@@ -82,6 +82,13 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .hero-deco span:nth-child(5){top:8%;right:34%;animation-delay:2.4s;font-size:22px}
 .hero-deco span:nth-child(6){top:48%;right:3%;animation-delay:3s}
 @media(max-width:700px){.hero-deco span{font-size:24px!important;opacity:.35}}
+#miniMapWrap{display:none;margin-top:14px;max-width:560px}
+#miniMap{height:280px;border-radius:14px;border:1.5px solid var(--line);box-shadow:var(--shadow);z-index:1}
+@media(min-width:1100px){
+  #miniMapWrap{position:absolute;right:28px;top:96px;width:420px;max-width:none;margin-top:0}
+  #miniMap{height:340px}
+}
+.mm-num{background:var(--shu);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .cg-label{font-size:11px;color:var(--ink-2);letter-spacing:1px;margin:14px 0 8px;font-weight:700}
 .cg-label:first-child{margin-top:0}
 .cg-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
@@ -442,7 +449,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r83</span>
+    <span class="build">build r84</span>
   </div>
 </header>
 
@@ -462,6 +469,10 @@ button{transition:transform .15s ease}
       </div>
       <div id="heroLoc"></div>
       <div id="sugList"></div>
+      <div id="miniMapWrap">
+        <div id="miniMap"></div>
+        <div style="font-size:11.5px;color:#8A8272;margin-top:5px">📍 已選地點即時預覽・多點會依編號標示</div>
+      </div>
     </div>
     <div class="geo-hint" style="margin-top:14px;opacity:.55;font-size:11.5px;letter-spacing:1px">快選城市</div>
     <div class="citychips" id="cityChips"></div>
@@ -649,7 +660,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r83
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r84
 </footer>
 
 <nav class="bottom">
@@ -1454,8 +1465,32 @@ function renderHeroLoc(){
     <button class="hl-btn" onclick="addCenter()">＋加入多地點</button>
     <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>`;
 }
+let MMAP=null,MMLYR=null;
+function renderMiniMap(){
+  const wrap=$("miniMapWrap");if(!wrap||!window.L)return;
+  const pts=S.centers.length?S.centers:(S.center?[S.center]:[]);
+  if(!pts.length){wrap.style.display="none";return}
+  wrap.style.display="block";
+  if(!MMAP){
+    MMAP=L.map("miniMap",{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(MMAP);
+  }
+  if(MMLYR)MMLYR.remove();
+  MMLYR=L.layerGroup().addTo(MMAP);
+  pts.forEach((c,i)=>{
+    L.marker([c.la,c.lo],{icon:L.divIcon({className:"",html:`<div class="mm-num">${pts.length>1?i+1:"📍"}</div>`,iconSize:[24,24],iconAnchor:[12,12]})})
+      .bindTooltip(c.n.split(",")[0]+(c.dd&&c.dd!=="auto"?"("+c.dd+"天)":""),{permanent:pts.length<=5,direction:"top",offset:[0,-10]})
+      .addTo(MMLYR);
+  });
+  setTimeout(()=>{ // display 剛切換需重算尺寸
+    MMAP.invalidateSize();
+    if(pts.length===1)MMAP.setView([pts[0].la,pts[0].lo],10);
+    else{try{MMAP.fitBounds(pts.map(c=>[c.la,c.lo]),{padding:[36,36],maxZoom:11})}catch(e){}}
+  },60);
+}
 function renderCenter(){
   renderHeroLoc();
+  renderMiniMap();
   if($("cityChips"))renderCityChips();
   if(!S.center){
     $("centerInfo").innerHTML=`<div class="centerbar" style="border-color:#D9D2BF;background:#F3EFE3;box-shadow:none">📍 <span style="color:#8A8272;font-size:15px">尚未選擇地點 — 請在上方搜尋或快選城市</span></div>`;
