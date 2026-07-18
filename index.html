@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r101</span>
+    <span class="build">build r102</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r101
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r102
 </footer>
 
 <nav class="bottom">
@@ -3278,8 +3278,7 @@ function openDetail(name,fromPop){
       pics=await wikiGallery(tt,ll);
       if(pics.length)break;
     }
-    // ★ 後援:僅限「景點」— 座標即主體(瀑布/神社本身);
-    //   旅館/餐廳/商店絕不用附近風景充數(會張冠李戴)
+    // ★ 後援A:僅限「景點」— 座標即主體(瀑布/神社本身)
     if(!pics.length&&s.c==="spot"&&Number.isFinite(s.la)){
       try{
         const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${s.la}|${s.lo}&ggsradius=180&ggslimit=8&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=440`;
@@ -3289,11 +3288,38 @@ function openDetail(name,fromPop){
         near=pics.length>0;
       }catch(e){}
     }
+    // ★ 後援B:商家「名稱比對」— 標題必須含店名關鍵字才採用(可證實是本店)
+    let named=false;
+    if(!pics.length&&(s.c==="hotel"||s.c==="food"||s.c==="shop")){
+      // 取具辨識度的關鍵字:日文名+顯示名斷詞,棄過短/通用詞
+      const GENERIC=new Set(["食堂","餐廳","飯店","酒店","旅館","ホテル","カフェ","cafe","hotel","the","and"]);
+      const toks=[...new Set(((s.j||"")+" "+s.n).split(/[\s,、・()\-]+/)
+        .map(x=>x.trim()).filter(x=>x&&!GENERIC.has(x.toLowerCase())&&(/[a-z]/i.test(x)?x.length>=4:x.length>=2)))].slice(0,4);
+      const hasTok=title=>{const tl=(title||"").toLowerCase();return toks.some(k=>tl.includes(k.toLowerCase()))};
+      if(toks.length){
+        try{ // ① Commons 名稱搜尋
+          const q=encodeURIComponent(toks.slice(0,2).join(" "));
+          const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${q}&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=440`;
+          const r=await fetch(u);const dd=await r.json();
+          pics=Object.values((dd.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]&&hasTok(p.title))
+            .map(p=>({t:p.imageinfo[0].thumburl||p.imageinfo[0].url,f:p.imageinfo[0].url}));
+        }catch(e){}
+        if(!pics.length){
+          try{ // ② Openverse(Flickr 等 CC 圖庫聚合,免金鑰)
+            const r=await fetch(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(toks.join(" "))}&page_size=8`);
+            const dd=await r.json();
+            pics=(dd.results||[]).filter(x=>hasTok(x.title))
+              .map(x=>({t:x.thumbnail||x.url,f:x.url}));
+          }catch(e){}
+        }
+        named=pics.length>0;
+      }
+    }
     const gal=$("dGal"); if(!gal)return;
     LB.pics=pics; LB.i=0;
     if(pics.length){
       gal.innerHTML=pics.map((p,i)=>`<img src="${p.t}" loading="lazy" alt="照片${i+1}" title="點我放大" onclick="document.getElementById('dImg').src='${p.t}';document.getElementById('dImg').classList.add('ok');document.querySelectorAll('#dGal img').forEach(x=>x.classList.remove('on'));this.classList.add('on');openLB(${i})">`).join("")
-        +`<div style="flex-shrink:0;align-self:center;font-size:11px;color:#A39B87;padding:0 6px;white-space:nowrap">${near?"附近實地照片<br>(Wikimedia)・":""}共 ${pics.length} 張<br>點大圖放大</div>`;
+        +`<div style="flex-shrink:0;align-self:center;font-size:11px;color:#A39B87;padding:0 6px;white-space:nowrap">${near?"附近實地照片<br>(Wikimedia)・":named?"名稱比對・CC 授權<br>":""}共 ${pics.length} 張<br>點大圖放大</div>`;
       const im=$("dImg");
       if(im&&!im.classList.contains("ok")){im.onload=()=>im.classList.add("ok");im.src=pics[0].t;}
       if(im)im.onclick=()=>openLB(LB.i);
