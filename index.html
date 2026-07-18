@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r92</span>
+    <span class="build">build r93</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r92
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r93
 </footer>
 
 <nav class="bottom">
@@ -1393,11 +1393,25 @@ function pickCity(i,btn){
   renderCenter(); renderHomePicks(); toast("📍 已設定中心:"+S.center.n);
 }
 function togglePref(el,p){el.classList.toggle("on");el.classList.contains("on")?S.prefs.add(p):S.prefs.delete(p)}
-function setDays(d,el){S.days=d;document.querySelectorAll("#daySel button").forEach(b=>b.classList.remove("on"));el.classList.add("on");const c=$("dayCustom");if(c)c.value=""}
+function allocPreview(pts,total){
+  const fixed=pts.map(c=>(c.dd&&c.dd!=="auto")?Math.min(+c.dd,total):null);
+  const fixedSum=fixed.reduce((a,v)=>a+(v||0),0);
+  const autoIdx=fixed.map((v,i)=>v==null?i:-1).filter(i=>i>=0);
+  let alloc=fixed.slice();
+  if(autoIdx.length){
+    const remain=Math.max(total-fixedSum,autoIdx.length);
+    const per=Math.max(1,Math.floor(remain/autoIdx.length));
+    let rem=remain-per*autoIdx.length;
+    autoIdx.forEach(i=>{alloc[i]=per+(rem-->0?1:0)});
+  }
+  const sum=alloc.reduce((a,v)=>a+v,0);
+  return {alloc,fixedSum,autoCnt:autoIdx.length,sum,over:sum>total};
+}
+function setDays(d,el){S.days=d;document.querySelectorAll("#daySel button").forEach(b=>b.classList.remove("on"));el.classList.add("on");const c=$("dayCustom");if(c)c.value="";renderHeroLoc()}
 function setDaysCustom(inp){
   let v=Math.round(+inp.value||0);
   if(!v){return}
-  v=Math.min(30,Math.max(1,v)); inp.value=v; S.days=v;
+  v=Math.min(30,Math.max(1,v)); inp.value=v; S.days=v; renderHeroLoc();
   document.querySelectorAll("#daySel button").forEach(b=>b.classList.toggle("on",+b.textContent===v));
   toast("📅 已設定 "+v+" 天行程");
 }
@@ -1491,7 +1505,13 @@ function renderHeroLoc(){
     <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
     <span style="margin-left:auto;font-size:13px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
     <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>
-    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序)</span></div>`:""}
+    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序)</span></div>${(()=>{
+      const pv=allocPreview(S.centers,S.days);
+      if(pv.over)return `<div style="width:100%;margin-top:7px;font-size:13px;font-weight:700;color:var(--shu)">⚠️ 分配合計 ${pv.sum} 天,超過總天數 ${S.days} 天 — 請調低某些地點或把總天數改為 ${pv.sum} 天(生成時會截掉後面的地點)</div>`;
+      const parts=S.centers.map((c,i)=>`${c.n.split(",")[0]} <b>${pv.alloc[i]}</b>天${(c.dd&&c.dd!=="auto")?"":"<span style=\'color:#A39B87\'>(自動)</span>"}`).join("・");
+      const left=S.days-pv.sum;
+      return `<div style="width:100%;margin-top:7px;font-size:13px;color:#5A5346">🧮 天數分配預覽:${parts} = <b style="color:var(--ai)">${pv.sum}</b> / 總 <b>${S.days}</b> 天${left>0?`<span style="color:var(--shu);font-weight:700">(還剩 ${left} 天未分配,自動點會多分)</span>`:""}</div>`;
+    })()}`:""}
   </div>`;
 }
 let MMAP=null,MMLYR=null;
@@ -1559,8 +1579,7 @@ function addCenter(){
 }
 function setCenterDays(i,v){
   if(S.centers[i])S.centers[i].dd=v;
-  const set=S.centers.filter(c=>c.dd&&c.dd!=="auto").reduce((a,c)=>a+ +c.dd,0);
-  if(set>S.days)toast("⚠️ 指定天數合計 "+set+" 天已超過總天數 "+S.days+" 天,生成時會依序截斷");
+  renderHeroLoc();
 }
 function rmCenter(i){S.centers.splice(i,1);renderCenter()}
 function clearCenter(){
