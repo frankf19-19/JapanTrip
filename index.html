@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r100</span>
+    <span class="build">build r101</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r100
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r101
 </footer>
 
 <nav class="bottom">
@@ -3278,8 +3278,9 @@ function openDetail(name,fromPop){
       pics=await wikiGallery(tt,ll);
       if(pics.length)break;
     }
-    // ★ 後援:沒有維基相簿(一般旅館/餐廳)→ 抓該座標 180m 內的 Commons 實地照片
-    if(!pics.length&&Number.isFinite(s.la)){
+    // ★ 後援:僅限「景點」— 座標即主體(瀑布/神社本身);
+    //   旅館/餐廳/商店絕不用附近風景充數(會張冠李戴)
+    if(!pics.length&&s.c==="spot"&&Number.isFinite(s.la)){
       try{
         const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${s.la}|${s.lo}&ggsradius=180&ggslimit=8&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=440`;
         const r=await fetch(u);const dd=await r.json();
@@ -3296,6 +3297,15 @@ function openDetail(name,fromPop){
       const im=$("dImg");
       if(im&&!im.classList.contains("ok")){im.onload=()=>im.classList.add("ok");im.src=pics[0].t;}
       if(im)im.onclick=()=>openLB(LB.i);
+    }else if(s.c==="food"||s.c==="hotel"||s.c==="shop"){
+      // 商家類拿不到「可證實為本店」的照片 → 提供直達按鈕,不放附近風景誤導
+      const bst="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:7px 14px;font-size:12.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)";
+      gal.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 2px;width:100%">
+        <span style="font-size:12px;color:#8A8272">為避免張冠李戴,不顯示未經確認的照片。看本店完整照片:</span>
+        <a style="${bst}" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.j||s.n)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 相片</a>
+        ${s.c==="food"?`<a style="${bst}" href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+(s.j||s.n))}" target="_blank" rel="noopener">🍽️ Tabelog</a>`:""}
+        ${s.c==="hotel"?`<a style="${bst}" href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 房照</a>`:""}
+      </div>`;
     }
   })();
 }
