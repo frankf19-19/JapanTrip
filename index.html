@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r99</span>
+    <span class="build">build r100</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r99
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r100
 </footer>
 
 <nav class="bottom">
@@ -2355,45 +2355,49 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
     if(f)usedF.add(f.n); return f;
   };
   let lunch=false,snack=!S.prefs.has("美食巡禮");
-  dayList.forEach((s,i)=>{
-    if(i>0){
-      const pv=dayList[i-1];
-      const km=dist(pv.la,pv.lo,s.la,s.lo);
-      const mv=Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5);
-      stops.push({type:"travel",min:mv,km,f:[pv.la,pv.lo],g:[s.la,s.lo]}); t+=mv;
-    }
-    if(wantMeal&&!lunch&&t>=11*60+30&&s.s<420){
+  let prev=null; // 上一個「實際排入」的地點(交通段以此為起點)
+  dayList.forEach(s=>{
+    // ① 先試算:從上一個實際排入點出發的交通時間
+    const km=prev?dist(prev.la,prev.lo,s.la,s.lo):0;
+    const mv=prev?Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5):0;
+    const W=spotWindow(s);
+    const arrive=Math.max(t+mv,W.open);
+    // ② 排不進(距閉門<40分)→ 整個略過:不推交通、不動時間 → 不再有孤兒交通段
+    if(arrive>W.close-40){dropped.push(s);return}
+    // ③ 確定可排 → 提交交通段
+    if(prev){stops.push({type:"travel",min:mv,km,f:[prev.la,prev.lo],g:[s.la,s.lo]});t+=mv}
+    // ④ 用餐(加時段區間,不會再出現 19:15 的「午餐」)
+    if(wantMeal&&!lunch&&t>=11*60+30&&t<=14*60+30&&s.s<420){
       const f=nearestFood(s,"lunch");
       if(f){stops.push({type:"stop",s:f,t,meal:1});t+=f.s||45;lunch=true;
         stops.push({type:"travel",min:10,km:dist(f.la,f.lo,s.la,s.lo)});t+=10;}
     }
-    if(wantMeal&&lunch&&!snack&&t>=14*60+30&&s.s<420){
+    if(wantMeal&&lunch&&!snack&&t>=14*60+30&&t<=17*60&&s.s<420){
       const f=nearestFood(s,"snack");
       if(f){stops.push({type:"stop",s:f,t,meal:1,snack:1});t+=Math.min(f.s||40,40);snack=true;}
     }
-    // ★ 通用營業時間窗:太早到=等開門(標自由時間);來不及=不硬塞,略過並告知
-    const W=spotWindow(s);
+    // ⑤ 太早到 → 等開門(自由時間)
     if(t<W.open){
       const gap=W.open-t;
       if(gap>=25)stops.push({type:"gap",min:gap,night:isNight(s)});
       t=W.open;
     }
-    if(t>W.close-40){ // 到達時距閉門不足 40 分 → 排不進
-      dropped.push(s);return;
-    }
     const st={type:"stop",s,t};
     const stay=s.s||60;
     if(t+stay>W.close)st.warn="⏰ 接近閉門時間("+fmtHM(W.close)+"),停留可能要縮短,建議確認營業時間";
     stops.push(st); t+=stay;
+    prev=s;
   });
   if(dropped.length){
     stops.push({type:"note",txt:"⏰ 因營業/閉門時間排不進今天:"+dropped.map(x=>x.n).join("、")+" — 建議放到隔天上午,或點「＋加入」手動安排"});
   }
   if(wantMeal&&dayList.length){
-    const last=dayList[dayList.length-1];
+    const last=prev||dayList[dayList.length-1];
     if(t<19*60)t=Math.max(t+20,18*60);
-    const f=nearestFood(last,"dinner");
-    if(f)stops.push({type:"stop",s:f,t,meal:1,dinner:1});
+    if(t<=21*60+30){ // 太晚(21:30 後)就不硬排晚餐
+      const f=nearestFood(last,"dinner");
+      if(f)stops.push({type:"stop",s:f,t,meal:1,dinner:1});
+    }
   }
   return stops;
 }
