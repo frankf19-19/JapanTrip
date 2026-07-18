@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r95</span>
+    <span class="build">build r96</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r95
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r96
 </footer>
 
 <nav class="bottom">
@@ -3210,6 +3210,8 @@ function openDetail(name,fromPop){
       <div class="d-acts" style="margin-top:8px">
         <a href="https://www.google.com/search?q=${encodeURIComponent(s.j||s.n)}&tbm=isch" target="_blank" rel="noopener">📷 更多照片</a>
         ${s.c==="food"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 食べログ")}" target="_blank" rel="noopener">🍽️ 食べログ評價</a>`:""}
+        ${s.c==="food"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+(s.j||s.n))}" target="_blank" rel="noopener">🍽️ Tabelog 食記照片</a>`:""}
+        ${(s.c==="food"||s.c==="hotel")?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.j||s.n)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 地圖相片</a>`:""}
         ${s.c==="hotel"?`<a href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 訂房比價</a>`:""}
         ${s.c==="hotel"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:agoda.com "+(s.j||s.n))}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
       </div>
@@ -3250,16 +3252,26 @@ function openDetail(name,fromPop){
       if(s.j)tries.push([s.j.split(" ")[0],"ja"]);
       tries.push([s.n.split("・")[0].split("(")[0],"zh"]);
     }
-    let pics=[];
+    let pics=[],near=false;
     for(const [tt,ll] of tries){
       pics=await wikiGallery(tt,ll);
       if(pics.length)break;
+    }
+    // ★ 後援:沒有維基相簿(一般旅館/餐廳)→ 抓該座標 180m 內的 Commons 實地照片
+    if(!pics.length&&Number.isFinite(s.la)){
+      try{
+        const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${s.la}|${s.lo}&ggsradius=180&ggslimit=8&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=440`;
+        const r=await fetch(u);const dd=await r.json();
+        pics=Object.values((dd.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0])
+          .map(p=>({t:p.imageinfo[0].thumburl||p.imageinfo[0].url,f:p.imageinfo[0].url}));
+        near=pics.length>0;
+      }catch(e){}
     }
     const gal=$("dGal"); if(!gal)return;
     LB.pics=pics; LB.i=0;
     if(pics.length){
       gal.innerHTML=pics.map((p,i)=>`<img src="${p.t}" loading="lazy" alt="照片${i+1}" title="點我放大" onclick="document.getElementById('dImg').src='${p.t}';document.getElementById('dImg').classList.add('ok');document.querySelectorAll('#dGal img').forEach(x=>x.classList.remove('on'));this.classList.add('on');openLB(${i})">`).join("")
-        +`<div style="flex-shrink:0;align-self:center;font-size:11px;color:#A39B87;padding:0 6px;white-space:nowrap">共 ${pics.length} 張<br>點大圖放大</div>`;
+        +`<div style="flex-shrink:0;align-self:center;font-size:11px;color:#A39B87;padding:0 6px;white-space:nowrap">${near?"附近實地照片<br>(Wikimedia)・":""}共 ${pics.length} 張<br>點大圖放大</div>`;
       const im=$("dImg");
       if(im&&!im.classList.contains("ok")){im.onload=()=>im.classList.add("ok");im.src=pics[0].t;}
       if(im)im.onclick=()=>openLB(LB.i);
