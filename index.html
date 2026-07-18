@@ -245,7 +245,7 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .maplegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 
 /* ── 底部導覽(手機)── */
-nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:1000;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -1px 0 var(--line)}
+nav.bottom{padding-bottom:env(safe-area-inset-bottom);position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:1000;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -1px 0 var(--line)}
 @media(min-width:900px){nav.bottom{display:none}}
 nav.bottom button{flex:1;background:none;border:none;padding:7px 0 5px;font-size:10px;color:#8A8272;font-family:var(--font-b);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
 nav.bottom button .ic{font-size:19px}
@@ -254,7 +254,7 @@ nav.bottom button.on{color:var(--ai)}
 
 
 /* ── Toast / Loading ── */
-#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:16px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:2000;max-width:88vw;text-align:center}
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:16px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:2000;max-width:88vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .spin{display:inline-block;width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -336,13 +336,26 @@ nav.bottom button.on{color:var(--ai)}
 .wz-next{background:var(--shu);color:#fff}
 .wz-next:disabled{opacity:.4}
 #wizFab{display:block} /* 電腦與手機都顯示快速規劃 */
+@media(max-width:700px){
+  #wizFab{bottom:calc(72px + env(safe-area-inset-bottom));right:12px;padding:11px 16px;font-size:13.5px}
+  /* 安裝鈕:堆在統計膠囊上方,錯開不疊 */
+  #pwaBtn{left:12px;bottom:calc(118px + env(safe-area-inset-bottom));padding:8px 13px;font-size:12.5px}
+  /* 手機的小地圖是文流排版,收合小籤與收合鈕都不需要 */
+  #mmPill{display:none !important}
+  #mmMin{display:none}
+  /* 桌機讓位的右欄 padding 手機不適用(保險歸零) */
+  body.mm-open #pane-home{padding-right:0}
+  /* 詳情/精靈等面板內按鈕列在窄幕換行 */
+  .centerbar{padding:12px 14px}
+  .day-hd{flex-wrap:wrap;row-gap:6px}
+}
 /* ── 照片燈箱 ── */
 #lbOverlay{position:fixed;inset:0;background:rgba(10,15,25,.93);z-index:2500;display:none;align-items:center;justify-content:center}
 #lbOverlay.show{display:flex}
 #lbImg{max-width:94vw;max-height:86vh;object-fit:contain;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
-#dbStat{position:fixed;left:12px;bottom:76px;z-index:890;background:var(--ai-deep);color:#F4EFE2;font-size:12px;font-weight:700;padding:7px 13px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;display:none;font-family:var(--font-b)}
+#dbStat{position:fixed;left:12px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:890;background:var(--ai-deep);color:#F4EFE2;font-size:12px;font-weight:700;padding:7px 13px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;display:none;font-family:var(--font-b)}
 #dbStat.show{display:block}
-@media(min-width:701px){#dbStat{bottom:16px}}
+@media(min-width:701px){#dbStat{bottom:16px}#pwaBtn{bottom:60px}}
 .lb-x{position:absolute;top:14px;right:16px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:19px;cursor:pointer;z-index:2}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:76px;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:34px;cursor:pointer;border-radius:12px;z-index:2}
 .lb-nav:hover{background:rgba(255,255,255,.25)}
@@ -476,7 +489,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r106</span>
+    <span class="build">build r107</span>
   </div>
 </header>
 
@@ -691,7 +704,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r106
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r107
 </footer>
 
 <nav class="bottom">
@@ -715,7 +728,7 @@ button{transition:transform .15s ease}
   </div>
 </div>
 <button id="toTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到頂端">↑</button>
-<button id="pwaBtn" onclick="pwaInstall()" style="display:none;position:fixed;left:12px;bottom:120px;z-index:890;background:#fff;color:var(--ai);border:2px solid var(--ai);border-radius:99px;padding:9px 16px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer;box-shadow:var(--shadow-lg)">📲 安裝為 App</button>
+<button id="pwaBtn" onclick="pwaInstall()" style="display:none;position:fixed;left:12px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:890;background:#fff;color:var(--ai);border:2px solid var(--ai);border-radius:99px;padding:9px 16px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer;box-shadow:var(--shadow-lg)">📲 安裝為 App</button>
 <div id="dbStat" onclick="dbStatInfo()" title="點我看分類統計"></div>
 <div id="lbOverlay" onclick="if(event.target===this)closeLB()">
   <button class="lb-x" onclick="closeLB()">✕</button>
@@ -1548,10 +1561,12 @@ function renderMiniMap(){
   const pts=S.centers.length?S.centers:(S.center?[S.center]:[]);
   const onHome=$("pane-home")&&$("pane-home").classList.contains("on");
   const show=pts.length&&onHome;
+  const isMob=window.matchMedia&&matchMedia("(max-width:700px)").matches;
+  const minned=MM_MIN&&!isMob; // 手機為文流排版,忽略收合狀態
   const pill=$("mmPill");
-  if(pill)pill.style.display=(show&&MM_MIN)?"block":"none";
-  document.body.classList.toggle("mm-open",!!(show&&!MM_MIN));
-  if(!show||MM_MIN){wrap.style.display="none";return}
+  if(pill)pill.style.display=(show&&minned)?"block":"none";
+  document.body.classList.toggle("mm-open",!!(show&&!minned));
+  if(!show||minned){wrap.style.display="none";return}
   wrap.style.display="block";
   if(!MMAP){
     MMAP=L.map("miniMap",{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
