@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r93</span>
+    <span class="build">build r94</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r93
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r94
 </footer>
 
 <nav class="bottom">
@@ -1507,10 +1507,10 @@ function renderHeroLoc(){
     <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>
     ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序)</span></div>${(()=>{
       const pv=allocPreview(S.centers,S.days);
-      if(pv.over)return `<div style="width:100%;margin-top:7px;font-size:13px;font-weight:700;color:var(--shu)">⚠️ 分配合計 ${pv.sum} 天,超過總天數 ${S.days} 天 — 請調低某些地點或把總天數改為 ${pv.sum} 天(生成時會截掉後面的地點)</div>`;
+      if(pv.over)return `<div style="width:100%;margin-top:7px;font-size:13px;font-weight:700;color:var(--shu)">⚠️ 分配合計 ${pv.sum} 天,超過總天數 ${S.days} 天(生成時會截掉後面的地點)${pv.sum<=30?`　<button onclick="S.days=${pv.sum};syncDaysUI();renderHeroLoc()" style="border:none;background:var(--shu);color:#fff;border-radius:8px;padding:4px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-b)">一鍵把總天數改為 ${pv.sum} 天</button>`:"(超過 30 天上限,請調低)"}</div>`;
       const parts=S.centers.map((c,i)=>`${c.n.split(",")[0]} <b>${pv.alloc[i]}</b>天${(c.dd&&c.dd!=="auto")?"":"<span style=\'color:#A39B87\'>(自動)</span>"}`).join("・");
       const left=S.days-pv.sum;
-      return `<div style="width:100%;margin-top:7px;font-size:13px;color:#5A5346">🧮 天數分配預覽:${parts} = <b style="color:var(--ai)">${pv.sum}</b> / 總 <b>${S.days}</b> 天${left>0?`<span style="color:var(--shu);font-weight:700">(還剩 ${left} 天未分配,自動點會多分)</span>`:""}</div>`;
+      return `<div style="width:100%;margin-top:7px;font-size:13px;color:#5A5346">🧮 天數分配預覽:${parts} = <b style="color:var(--ai)">${pv.sum}</b> / 總 <b>${S.days}</b> 天${left>0?`<span style="color:var(--shu);font-weight:700">(還剩 ${left} 天未分配,自動點會多分)</span>`:""}${(pv.sum!==S.days&&pv.sum<=30)?`　<button onclick="S.days=${pv.sum};syncDaysUI();renderHeroLoc()" style="border:1px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-b)">總天數設為 ${pv.sum} 天</button>`:""}</div>`;
     })()}`:""}
   </div>`;
 }
@@ -1577,8 +1577,26 @@ function addCenter(){
   S.centers.push({...S.center}); renderCenter();
   toast("✅ 已加入第 "+S.centers.length+" 個地點:"+S.center.n.split(",")[0]+"。繼續搜尋或快選下一個地點!");
 }
+function syncDaysUI(){
+  let hit=false;
+  document.querySelectorAll("#daySel button").forEach(b=>{
+    const on=+b.textContent===S.days;
+    b.classList.toggle("on",on); if(on)hit=true;
+  });
+  const c=$("dayCustom"); if(c)c.value=hit?"":S.days; // 非預設值顯示在自訂欄
+}
 function setCenterDays(i,v){
   if(S.centers[i])S.centers[i].dd=v;
+  // ★ 全部地點都指定天數 → 總天數自動 = 合計(仍可手動改)
+  const allFixed=S.centers.length&&S.centers.every(c=>c.dd&&c.dd!=="auto");
+  if(allFixed){
+    const sum=S.centers.reduce((a,c)=>a+ +c.dd,0);
+    if(sum>30){toast("⚠️ 分配合計 "+sum+" 天超過上限 30 天,請調低");}
+    else if(sum!==S.days){
+      S.days=sum; syncDaysUI();
+      toast("🧮 旅遊天數已自動設為 "+sum+" 天(要手動改也可以)");
+    }
+  }
   renderHeroLoc();
 }
 function rmCenter(i){S.centers.splice(i,1);renderCenter()}
