@@ -1,0 +1,17 @@
+{
+  "name": "旅日和 TABIBIYORI — 日本旅遊行程規劃",
+  "short_name": "旅日和",
+  "description": "輸入一個地點,安排一趟剛剛好的日本旅行。33 萬筆景點美食住宿資料庫、智慧排程、離線可用。",
+  "lang": "zh-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F6F3EB",
+  "theme_color": "#28497C",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

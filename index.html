@@ -2,6 +2,12 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#28497C">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="旅日和">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>旅日和 TABIBIYORI｜日本旅遊行程規劃</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -470,7 +476,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r105</span>
+    <span class="build">build r106</span>
   </div>
 </header>
 
@@ -685,7 +691,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r105
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r106
 </footer>
 
 <nav class="bottom">
@@ -709,6 +715,7 @@ button{transition:transform .15s ease}
   </div>
 </div>
 <button id="toTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="回到頂端">↑</button>
+<button id="pwaBtn" onclick="pwaInstall()" style="display:none;position:fixed;left:12px;bottom:120px;z-index:890;background:#fff;color:var(--ai);border:2px solid var(--ai);border-radius:99px;padding:9px 16px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer;box-shadow:var(--shadow-lg)">📲 安裝為 App</button>
 <div id="dbStat" onclick="dbStatInfo()" title="點我看分類統計"></div>
 <div id="lbOverlay" onclick="if(event.target===this)closeLB()">
   <button class="lb-x" onclick="closeLB()">✕</button>
@@ -2238,6 +2245,21 @@ function watchImgs(){if(!IMGOBS)return;document.querySelectorAll(".ph[data-img]:
 try{JSON.parse(localStorage.getItem("wayu_custom")||"[]").forEach(o=>{
   if(o&&o.n&&!findByName(o.n))DB.push({n:o.n,j:"",la:o.la,lo:o.lo,c:"hotel",a:"自訂",ad:o.ad||"",pr:"自訂旅館(自行輸入)",custom:1,s:0,p:3,t:[]});
 })}catch(e){}
+// ═══ PWA:離線殼層 + 安裝為 App ═══
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})});
+}
+window._pwaEvt=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();window._pwaEvt=e;
+  const b=$("pwaBtn");if(b)b.style.display="block";
+});
+function pwaInstall(){
+  const e=window._pwaEvt;if(!e){toast("你的瀏覽器不支援一鍵安裝;iPhone 請用 Safari 分享 → 加入主畫面");return}
+  e.prompt();
+  e.userChoice.then(r=>{if(r.outcome==="accepted"){toast("📲 已安裝!可從主畫面開啟「旅日和」");const b=$("pwaBtn");if(b)b.style.display="none";window._pwaEvt=null}});
+}
+window.addEventListener("appinstalled",()=>{const b=$("pwaBtn");if(b)b.style.display="none"});
 S.homeCat="all";
 // 開站自檢:確認 OSM 分區庫是否可連線、有幾個分區檔
 (async()=>{
