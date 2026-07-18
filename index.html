@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r97</span>
+    <span class="build">build r98</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r97
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r98
 </footer>
 
 <nav class="bottom">
@@ -1393,19 +1393,25 @@ function pickCity(i,btn){
   renderCenter(); renderHomePicks(); toast("📍 已設定中心:"+S.center.n);
 }
 function togglePref(el,p){el.classList.toggle("on");el.classList.contains("on")?S.prefs.add(p):S.prefs.delete(p)}
+// 連接制:各點的「N 天」含交界日(前一地最後一天=下一地第一天)
+// 引擎內部用「獨立天」= 指定天數 - 1(最後一點不減);總天數=獨立天合計
+const inclToExcl=(incl,i,n)=>Math.max(1,incl-(i<n-1?1:0));
 function allocPreview(pts,total){
-  const fixed=pts.map(c=>(c.dd&&c.dd!=="auto")?Math.min(+c.dd,total):null);
-  const fixedSum=fixed.reduce((a,v)=>a+(v||0),0);
-  const autoIdx=fixed.map((v,i)=>v==null?i:-1).filter(i=>i>=0);
-  let alloc=fixed.slice();
+  const n=pts.length;
+  const fixedEx=pts.map((c,i)=>(c.dd&&c.dd!=="auto")?Math.min(inclToExcl(+c.dd,i,n),total):null);
+  const fixedSum=fixedEx.reduce((a,v)=>a+(v||0),0);
+  const autoIdx=fixedEx.map((v,i)=>v==null?i:-1).filter(i=>i>=0);
+  let alloc=fixedEx.slice();
   if(autoIdx.length){
     const remain=Math.max(total-fixedSum,autoIdx.length);
     const per=Math.max(1,Math.floor(remain/autoIdx.length));
     let rem=remain-per*autoIdx.length;
     autoIdx.forEach(i=>{alloc[i]=per+(rem-->0?1:0)});
   }
-  const sum=alloc.reduce((a,v)=>a+v,0);
-  return {alloc,fixedSum,autoCnt:autoIdx.length,sum,over:sum>total};
+  const sum=alloc.reduce((a,v)=>a+v,0); // 獨立天合計 = 實際行程總天數
+  const incl=alloc.map((v,i)=>v+(i<n-1?1:0)); // 顯示用:換回含交界日
+  const junctions=Math.max(n-1,0);
+  return {alloc,incl,junctions,autoCnt:autoIdx.length,sum,over:sum>total};
 }
 function setDays(d,el){S.days=d;document.querySelectorAll("#daySel button").forEach(b=>b.classList.remove("on"));el.classList.add("on");const c=$("dayCustom");if(c)c.value="";renderHeroLoc()}
 function setDaysCustom(inp){
@@ -1505,12 +1511,12 @@ function renderHeroLoc(){
     <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
     <span style="margin-left:auto;font-size:13px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
     <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>
-    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序・N 天=N−1 夜,住宿夜數自動對應)</span></div>${(()=>{
+    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市依你的順序・交界日共用:前一地最後一天=下一地第一天,例:日光4天+東京3天=6天行程)</span></div>${(()=>{
       const pv=allocPreview(S.centers,S.days);
-      if(pv.over)return `<div style="width:100%;margin-top:7px;font-size:13px;font-weight:700;color:var(--shu)">⚠️ 分配合計 ${pv.sum} 天(=${Math.max(pv.sum-1,0)} 夜),超過總天數 ${S.days} 天(生成時會截掉後面的地點)${pv.sum<=30?`　<button onclick="S.days=${pv.sum};syncDaysUI();renderHeroLoc()" style="border:none;background:var(--shu);color:#fff;border-radius:8px;padding:4px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-b)">一鍵把總天數改為 ${pv.sum} 天</button>`:"(超過 30 天上限,請調低)"}</div>`;
-      const parts=S.centers.map((c,i)=>`${c.n.split(",")[0]} <b>${pv.alloc[i]}</b>天${(c.dd&&c.dd!=="auto")?"":"<span style=\'color:#A39B87\'>(自動)</span>"}`).join("・");
+      if(pv.over)return `<div style="width:100%;margin-top:7px;font-size:13px;font-weight:700;color:var(--shu)">⚠️ 扣掉交界共用後行程仍需 ${pv.sum} 天(=${Math.max(pv.sum-1,0)} 夜),超過總天數 ${S.days} 天(生成時會截掉後面的地點)${pv.sum<=30?`　<button onclick="S.days=${pv.sum};syncDaysUI();renderHeroLoc()" style="border:none;background:var(--shu);color:#fff;border-radius:8px;padding:4px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font-b)">一鍵把總天數改為 ${pv.sum} 天</button>`:"(超過 30 天上限,請調低)"}</div>`;
+      const parts=S.centers.map((c,i)=>`${c.n.split(",")[0]} <b>${pv.incl[i]}</b>天${(c.dd&&c.dd!=="auto")?"":"<span style=\'color:#A39B87\'>(自動)</span>"}`).join("・");
       const left=S.days-pv.sum;
-      return `<div style="width:100%;margin-top:7px;font-size:13px;color:#5A5346">🧮 天數分配預覽:${parts} = <b style="color:var(--ai)">${pv.sum}</b> 天 / 總 <b>${S.days}</b> 天<span style="color:#8A8272">(${S.days} 天 = ${Math.max(S.days-1,0)} 夜)</span>${left>0?`<span style="color:var(--shu);font-weight:700">(還剩 ${left} 天未分配,自動點會多分)</span>`:""}${(pv.sum!==S.days&&pv.sum<=30)?`　<button onclick="S.days=${pv.sum};syncDaysUI();renderHeroLoc()" style="border:1px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-b)">總天數設為 ${pv.sum} 天</button>`:""}</div>`;
+      return `<div style="width:100%;margin-top:7px;font-size:13px;color:#5A5346">🧮 天數分配預覽:${parts}<span style="color:#8A8272"> − 交界共用 ${pv.junctions} 天</span> = 行程 <b style="color:var(--ai)">${pv.sum}</b> 天 / 總 <b>${S.days}</b> 天<span style="color:#8A8272">(${S.days} 天 = ${Math.max(S.days-1,0)} 夜)</span>${left>0?`<span style="color:var(--shu);font-weight:700">(還剩 ${left} 天,自動點會多分)</span>`:""}${(pv.sum!==S.days&&pv.sum<=30)?`　<button onclick="S.days=${pv.sum};syncDaysUI();renderHeroLoc()" style="border:1px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-b)">總天數設為 ${pv.sum} 天</button>`:""}</div>`;
     })()}`:""}
   </div>`;
 }
@@ -1590,7 +1596,8 @@ function setCenterDays(i,v){
   // ★ 全部地點都指定天數 → 總天數自動 = 合計(仍可手動改)
   const allFixed=S.centers.length&&S.centers.every(c=>c.dd&&c.dd!=="auto");
   if(allFixed){
-    const sum=S.centers.reduce((a,c)=>a+ +c.dd,0);
+    const n=S.centers.length;
+    const sum=S.centers.reduce((a,c,i)=>a+inclToExcl(+c.dd,i,n),0); // 連接制:交界日共用
     if(sum>30){toast("⚠️ 分配合計 "+sum+" 天超過上限 30 天,請調低");}
     else if(sum!==S.days){
       S.days=sum; syncDaysUI();
@@ -2849,7 +2856,7 @@ async function generate(reshuffle){
   // 天數分配:尊重各點指定天數;「自動」的點均分剩餘(至少 1 天)
   let alloc;
   {
-    const fixed=route.map(c=>(c.dd&&c.dd!=="auto")?Math.min(+c.dd,S.days):null);
+    const fixed=route.map((c,i)=>(c.dd&&c.dd!=="auto")?Math.min(inclToExcl(+c.dd,i,route.length),S.days):null); // 連接制
     const fixedSum=fixed.reduce((a,v)=>a+(v||0),0);
     const autoIdx=fixed.map((v,i)=>v==null?i:-1).filter(i=>i>=0);
     let remain=S.days-fixedSum;
