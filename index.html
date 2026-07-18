@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r98</span>
+    <span class="build">build r99</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r98
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r99
 </footer>
 
 <nav class="bottom">
@@ -2421,6 +2421,15 @@ function setupFlights(){
   rebuildDay(0);
   if(it.days.length>1||!(F.inAp&&F.inT!=null))rebuildDay(it.days.length-1);
 }
+function setItiTmode(m){
+  if(!S.iti)return;
+  S.iti.tmode=m;S.tmode=m;
+  document.querySelectorAll("#tmodeChips label").forEach(l=>l.classList.toggle("on",l.dataset.v===m)); // 同步主表單
+  for(let i=0;i<S.iti.days.length;i++)rebuildDay(i);
+  renderIti();
+  const M=TMODES[m];
+  toast(M.ic+" 已切換為「"+M.n+"」,全行程移動時間已重算");
+}
 function rebuildDay(di){
   const it=S.iti,d=it.days[di];
   const oc=S.center; if(d.center)S.center=d.center;
@@ -2931,7 +2940,8 @@ function renderIti(){
     fRow=`<div class="wxcard" style="background:linear-gradient(135deg,#F5F0E4,#EDE7F2)"><div class="wxtop"><span class="wxemoji">✈️</span><div>`;
     if(F.inAp&&F.inT!=null)fRow+=`<div style="font-size:14px;font-weight:700">去程:${hhmm(F.inT)} 降落 ${F.inAp[0]} ${F.inAp[1]} → 約 ${hhmm((S.iti.days[0]&&S.iti.days[0].startMin)||9*60)} 開始行程</div>`;
     if(F.outAp&&F.outT!=null)fRow+=`<div style="font-size:14px;font-weight:700;margin-top:2px">回程:${hhmm(F.outT)} 起飛 ${F.outAp[0]} ${F.outAp[1]} → 建議 ${hhmm(F.outT-150)} 前抵達機場</div>`;
-    fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:3px">${MD.ic} 全程以「${MD.n}」估算移動時間</div></div></div></div>`;
+    const tBtns=[["transit","🚃 電車/巴士"],["drive","🚗 開車"],["charter","🚐 包車"]].map(([m,t])=>`<button onclick="setItiTmode('${m}')" style="border:1.5px solid ${(S.iti.tmode||"transit")===m?"var(--ai)":"var(--line)"};background:${(S.iti.tmode||"transit")===m?"var(--ai)":"#fff"};color:${(S.iti.tmode||"transit")===m?"#fff":"var(--ink)"};border-radius:99px;padding:5px 13px;font-size:12.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">${t}</button>`).join(" ");
+    fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">移動時間以此估算:${tBtns}<span style="color:#A39B87">(點擊切換,全行程即時重算)</span></div></div></div></div>`;
   }
   $("wxBox").innerHTML+=fRow;
   let h="";
