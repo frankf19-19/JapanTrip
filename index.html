@@ -87,10 +87,14 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
 .mm-hd span{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--ink);letter-spacing:1px}
 .mm-hd b{font-size:12px;color:var(--shu);font-weight:700}
 .mm-ft{font-size:11px;color:#A39B87;margin-top:7px;text-align:center;letter-spacing:.5px}
-#miniMap{height:280px;border-radius:12px;border:1px solid var(--line);z-index:1}
+#miniMap{height:320px;border-radius:12px;border:1px solid var(--line);z-index:1}
 @media(min-width:1100px){
-  #miniMapWrap{position:fixed;right:20px;top:108px;width:400px;max-width:none;margin-top:0;z-index:600;box-shadow:0 10px 32px rgba(32,48,63,.16)}
-  #miniMap{height:330px}
+  #miniMapWrap{position:fixed;right:20px;top:100px;width:480px;max-width:none;margin-top:0;z-index:600;box-shadow:0 10px 32px rgba(32,48,63,.16)}
+  #miniMap{height:470px}
+}
+@media(min-width:1500px){
+  #miniMapWrap{width:560px}
+  #miniMap{height:540px}
 }
 .mm-num{background:var(--shu);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35)}
 .mm-tip{background:#fff !important;color:var(--ink) !important;border:1px solid var(--line) !important;border-radius:8px !important;box-shadow:0 2px 8px rgba(32,48,63,.15) !important;font-family:var(--font-b);font-size:11.5px;font-weight:700;padding:3px 9px !important}
@@ -455,7 +459,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r86</span>
+    <span class="build">build r87</span>
   </div>
 </header>
 
@@ -667,7 +671,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r86
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r87
 </footer>
 
 <nav class="bottom">
@@ -1482,7 +1486,7 @@ function renderMiniMap(){
   wrap.style.display="block";
   if(!MMAP){
     MMAP=L.map("miniMap",{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(MMAP);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd"}).addTo(MMAP);
   }
   if(MMLYR)MMLYR.remove();
   MMLYR=L.layerGroup().addTo(MMAP);
@@ -3382,7 +3386,7 @@ function renderMap(){
   if(!MAP){
     MAP=L.map("map");
     CANVAS=L.canvas({padding:.4}); // 高效渲染,數百點也順
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(MAP);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap © CARTO",maxZoom:20,subdomains:"abcd"}).addTo(MAP);
   }
   if(LAYER)LAYER.remove();
   LAYER=L.layerGroup().addTo(MAP);
