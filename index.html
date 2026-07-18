@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r91</span>
+    <span class="build">build r92</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r91
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r92
 </footer>
 
 <nav class="bottom">
@@ -1481,13 +1481,18 @@ function renderSubFilter(){
 function renderHeroLoc(){
   const el=$("heroLoc"); if(!el)return;
   if(!S.center){el.innerHTML="";return}
-  const cs=S.centers.map(c=>c.n.split(",")[0]).join(" → ");
-  el.innerHTML=`📍 <b>${S.center.n.split(",")[0]}</b>
-    <span class="hl-chips" style="cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
-    ${S.centers.length?`<span class="hl-chips">多地點:${cs}</span>`:""}
-    <span style="flex:1"></span>
-    <button class="hl-btn" onclick="addCenter()">＋加入多地點</button>
-    <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>`;
+  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:2px solid var(--shu);color:var(--shu);border-radius:99px;padding:5px 8px 5px 14px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px">${i+1}. ${c.n.split(",")[0]}
+    <select onchange="setCenterDays(${i},this.value)" style="border:1px solid var(--line);border-radius:8px;padding:3px 4px;font-size:12.5px;color:var(--ink);font-family:var(--font-b);cursor:pointer" title="這個地點打算待幾天">
+      ${["auto","1","2","3","4","5","6","7"].map(v=>`<option value="${v}" ${(c.dd||"auto")==v?"selected":""}>${v==="auto"?"自動":v+" 天"}</option>`).join("")}
+    </select>
+    <b style="cursor:pointer;font-size:15px" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
+  el.innerHTML=`<div class="centerbar" style="flex-wrap:wrap;margin-top:12px">📍 <b>${S.center.n.split(",")[0]}</b>
+    <button style="border:2px solid var(--shu);background:#fff;color:var(--shu);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:900;cursor:pointer" onclick="addCenter()">＋加入行程地點</button>
+    <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
+    <span style="margin-left:auto;font-size:13px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
+    <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>
+    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序)</span></div>`:""}
+  </div>`;
 }
 let MMAP=null,MMLYR=null;
 let MM_MIN=(localStorage.getItem("wayu_mm_min")==="1");
@@ -1543,17 +1548,7 @@ function renderCenter(){
     $("centerInfo").innerHTML=`<div class="centerbar" style="border-color:#D9D2BF;background:#F3EFE3;box-shadow:none">📍 <span style="color:#8A8272;font-size:15px">尚未選擇地點 — 請在上方搜尋或快選城市</span></div>`;
     return;
   }
-  const chips=S.centers.map((c,i)=>`<span style="background:#fff;border:2px solid var(--shu);color:var(--shu);border-radius:99px;padding:5px 8px 5px 14px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px">${i+1}. ${c.n.split(",")[0]}
-    <select onchange="setCenterDays(${i},this.value)" style="border:1px solid var(--line);border-radius:8px;padding:3px 4px;font-size:12.5px;color:var(--ink);font-family:var(--font-b);cursor:pointer" title="這個地點打算待幾天">
-      ${["auto","1","2","3","4","5","6","7"].map(v=>`<option value="${v}" ${(c.dd||"auto")==v?"selected":""}>${v==="auto"?"自動":v+" 天"}</option>`).join("")}
-    </select>
-    <b style="cursor:pointer;font-size:15px" onclick="rmCenter(${i})">✕</b></span>`).join(" ");
-  $("centerInfo").innerHTML=`<div class="centerbar" style="flex-wrap:wrap">📍 目前中心點:<b>${S.center.n}</b>
-    <button style="border:2px solid var(--shu);background:#fff;color:var(--shu);border-radius:10px;padding:9px 16px;font-size:14.5px;font-weight:900;cursor:pointer;min-height:40px" onclick="addCenter()">＋把「${S.center.n.split(",")[0]}」加入行程地點</button>
-    <span style="font-size:13px;color:#8A8272;cursor:pointer;text-decoration:underline" onclick="clearCenter()">✕ 清除</span>
-    <span style="margin-left:auto;font-size:13.5px;color:#8A8272;font-weight:700">半徑 ${$("radius")?$("radius").value:25} km</span>
-    ${S.centers.length?`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span style="font-size:12px;color:#8A8272">🗺️ 多地點:</span>${chips}<span style="font-size:11px;color:#A39B87">(自動順路排序;有重複城市時依你的順序)</span></div>`:""}
-  </div>`;
+  $("centerInfo").innerHTML=""; // 已選地點:狀態列統一顯示在搜尋框下方
 }
 function addCenter(){
   if(!S.center){toast("請先搜尋或快選一個地點");return}
