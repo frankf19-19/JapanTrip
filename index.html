@@ -96,6 +96,17 @@ nav.top button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:700}
   #miniMapWrap{width:560px}
   #miniMap{height:540px}
 }
+/* 地圖展開時,規劃頁內容讓出右欄 → 永不互相遮擋 */
+@media(min-width:1100px){
+  body.mm-open #pane-home{padding-right:520px}
+}
+@media(min-width:1500px){
+  body.mm-open #pane-home{padding-right:600px}
+}
+#mmMin{border:none;background:transparent;font-size:15px;cursor:pointer;color:#8A8272;padding:0 4px;line-height:1}
+#mmMin:hover{color:var(--shu)}
+#mmPill{display:none;position:fixed;right:0;top:150px;z-index:600;background:var(--ai-deep);color:#F4EFE2;border:none;border-radius:12px 0 0 12px;padding:12px 9px;font-size:13.5px;font-weight:700;font-family:var(--font-b);line-height:1.5;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#mmPill:hover{background:var(--shu)}
 .mm-num{background:var(--shu);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.35)}
 .mm-tip{background:#fff !important;color:var(--ink) !important;border:1px solid var(--line) !important;border-radius:8px !important;box-shadow:0 2px 8px rgba(32,48,63,.15) !important;font-family:var(--font-b);font-size:11.5px;font-weight:700;padding:3px 9px !important}
 .mm-tip::before{display:none !important}
@@ -459,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r90</span>
+    <span class="build">build r91</span>
   </div>
 </header>
 
@@ -479,8 +490,9 @@ button{transition:transform .15s ease}
       </div>
       <div id="heroLoc"></div>
       <div id="sugList"></div>
+      <button id="mmPill" onclick="mmToggle(0)" title="展開動線預覽">🗾<br>地<br>圖</button>
       <div id="miniMapWrap">
-        <div class="mm-hd"><span>🗾 行程動線預覽</span><b id="mmInfo"></b></div>
+        <div class="mm-hd"><span>🗾 行程動線預覽</span><span style="display:flex;align-items:center;gap:6px"><b id="mmInfo"></b><button id="mmMin" onclick="mmToggle(1)" title="收合地圖">─</button></span></div>
         <div id="miniMap"></div>
         <div class="mm-ft">紅線為地點間動線示意・生成後行程頁有完整每日路線</div>
       </div>
@@ -671,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r90
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r91
 </footer>
 
 <nav class="bottom">
@@ -1478,11 +1490,17 @@ function renderHeroLoc(){
     <button class="hl-btn pri" onclick="document.querySelector('.plannercard').scrollIntoView({behavior:'smooth'})">開始規劃 ↓</button>`;
 }
 let MMAP=null,MMLYR=null;
+let MM_MIN=(localStorage.getItem("wayu_mm_min")==="1");
+function mmToggle(min){MM_MIN=!!min;try{localStorage.setItem("wayu_mm_min",min?"1":"0")}catch(e){};renderMiniMap()}
 function renderMiniMap(){
   const wrap=$("miniMapWrap");if(!wrap||!window.L)return;
   const pts=S.centers.length?S.centers:(S.center?[S.center]:[]);
   const onHome=$("pane-home")&&$("pane-home").classList.contains("on");
-  if(!pts.length||!onHome){wrap.style.display="none";return}
+  const show=pts.length&&onHome;
+  const pill=$("mmPill");
+  if(pill)pill.style.display=(show&&MM_MIN)?"block":"none";
+  document.body.classList.toggle("mm-open",!!(show&&!MM_MIN));
+  if(!show||MM_MIN){wrap.style.display="none";return}
   wrap.style.display="block";
   if(!MMAP){
     MMAP=L.map("miniMap",{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
