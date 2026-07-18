@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r94</span>
+    <span class="build">build r95</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r94
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r95
 </footer>
 
 <nav class="bottom">
@@ -2314,6 +2314,17 @@ async function overpassSearch(){
 function foodsPool(rad){return DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad)}
 const isNight=s=>(s.t||[]).includes("夜景展望")&&!(s.t||[]).includes("市場老街");
 const isDayOnly=s=>(s.t||[]).some(t=>["神社寺廟","歷史古蹟","博物館藝術"].includes(t))&&!isNight(s);
+// 各類型可造訪時間窗(分鐘):引擎會「硬性」遵守,排不進的略過並告知
+function spotWindow(s){
+  const T=s.t||[];
+  if(isNight(s))return{open:17*60+30,close:22*60};          // 夜景:入夜後
+  if(T.includes("溫泉"))return{open:10*60,close:22*60+30};   // 溫泉錢湯:到深夜
+  if(isDayOnly(s))return{open:8*60,close:16*60+30};          // 寺社/古蹟/博物館:16:30 閉門
+  if(T.includes("市場老街"))return{open:7*60+30,close:17*60};// 市場:早市為主
+  if((s.s||0)>=420)return{open:9*60,close:20*60};            // 主題樂園
+  if(s.c==="shop")return{open:10*60,close:20*60};            // 商店
+  return{open:9*60,close:18*60+30};                          // 一般景點:天黑前
+}
 function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
   const foods=foodsPool(rad);
   const M=TMODES[S.iti&&S.iti.tmode||S.tmode]||TMODES.transit;
@@ -2321,7 +2332,7 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
   const early=dayList.filter(isDayOnly),night=dayList.filter(isNight),
         mid=dayList.filter(s=>!isDayOnly(s)&&!isNight(s));
   dayList=[...early,...mid,...night];
-  let t=startMin||9*60; const stops=[];
+  let t=startMin||9*60; const stops=[],dropped=[];
   dayList.forEach(x=>{if(x.c==="food")usedF.add(x.n)});
   const nearestFood=(pt,slot)=>{
     // 這餐被使用者設為「不安排」
@@ -2353,18 +2364,24 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
       const f=nearestFood(s,"snack");
       if(f){stops.push({type:"stop",s:f,t,meal:1,snack:1});t+=Math.min(f.s||40,40);snack=true;}
     }
-    // 夜景點:等到入夜時段(17:30 後),空檔標示自由時間
-    if(isNight(s)&&t<17*60+30){
-      const gap=17*60+30-t;
-      if(gap>=25)stops.push({type:"gap",min:gap});
-      t=17*60+30;
+    // ★ 通用營業時間窗:太早到=等開門(標自由時間);來不及=不硬塞,略過並告知
+    const W=spotWindow(s);
+    if(t<W.open){
+      const gap=W.open-t;
+      if(gap>=25)stops.push({type:"gap",min:gap,night:isNight(s)});
+      t=W.open;
+    }
+    if(t>W.close-40){ // 到達時距閉門不足 40 分 → 排不進
+      dropped.push(s);return;
     }
     const st={type:"stop",s,t};
-    // 關門警告:寺社/博物館/城 16:30 後才到
-    if(isDayOnly(s)&&t>16*60+30)st.warn="多數寺社・博物館・城 16:30–17:00 閉門,建議調到上午,或點景點名稱→「營業時間」確認";
-    if((s.c==="shop")&&t>19*60+30)st.warn="部分商店 20:00 打烊,留意打烊時間";
-    stops.push(st); t+=s.s||60;
+    const stay=s.s||60;
+    if(t+stay>W.close)st.warn="⏰ 接近閉門時間("+fmtHM(W.close)+"),停留可能要縮短,建議確認營業時間";
+    stops.push(st); t+=stay;
   });
+  if(dropped.length){
+    stops.push({type:"note",txt:"⏰ 因營業/閉門時間排不進今天:"+dropped.map(x=>x.n).join("、")+" — 建議放到隔天上午,或點「＋加入」手動安排"});
+  }
   if(wantMeal&&dayList.length){
     const last=dayList[dayList.length-1];
     if(t<19*60)t=Math.max(t+20,18*60);
@@ -2373,6 +2390,7 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
   }
   return stops;
 }
+const fmtHM=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 function travelMin(km){const M=TMODES[(S.iti&&S.iti.tmode)||S.tmode]||TMODES.transit;return Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5)}
 function setupFlights(){
   const it=S.iti,F=it.flight; if(!F)return;
@@ -2918,7 +2936,8 @@ function renderIti(){
       if(st.type==="travel"){
         const nav=st.f?`<a href="https://www.google.com/maps/dir/?api=1&origin=${st.f[0]},${st.f[1]}&destination=${st.g[0]},${st.g[1]}&travelmode=${M.gm}" target="_blank" rel="noopener" style="color:var(--ai);border-bottom:1px dotted var(--ai);text-decoration:none;margin-left:6px">🧭 ${M.gm==="transit"?"怎麼搭":"導航"}</a>`:"";
         h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">${M.ic} ${M.n}約 ${st.min} 分(${fmtD(st.km)})${nav}</div></div>`;return}
-      if(st.type==="gap"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:#8A6A1E">🌆 自由時間約 ${Math.round(st.min/5)*5} 分(逛街/咖啡/提早用餐),等待夜景時段</div></div>`;return}
+      if(st.type==="gap"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:#8A6A1E">🌆 自由時間約 ${Math.round(st.min/5)*5} 分(逛街/咖啡${st.night?"/提早用餐),等待夜景時段":"),等待景點開門"}</div></div>`;return}
+      if(st.type==="note"){h+=`<div class="stop" style="min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="warnbox" style="flex:1">${st.txt}</div></div>`;return}
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
@@ -3286,7 +3305,8 @@ function copyItinerary(){
     txt+="── DAY "+(i+1)+"("+d.areas+")──\n";
     (d.pre||[]).concat(d.stops).forEach(st=>{
       if(st.type==="travel"){txt+="   ↓ 移動約 "+st.min+" 分\n";return}
-      if(st.type==="gap"){txt+="   … 自由時間約 "+Math.round(st.min/5)*5+" 分,等待夜景\n";return}
+      if(st.type==="gap"){txt+="   … 自由時間約 "+Math.round(st.min/5)*5+" 分\n";return}
+      if(st.type==="note"){txt+="   "+st.txt+"\n";return}
       if(st.type==="note"){txt+=st.txt.replace(/<[^>]*>/g,"")+"\n";return}
       txt+=hhmm(st.t)+" "+(S.visited.has(st.s.n)?"✔":"□")+" "+(st.meal?(st.dinner?"[晚餐] ":st.snack?"[小吃] ":"[午餐] "):"")+st.s.n+(st.s.pr?"("+st.s.pr+")":"")+"\n";
     });
