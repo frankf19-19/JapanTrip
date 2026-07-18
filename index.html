@@ -470,7 +470,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r102</span>
+    <span class="build">build r103</span>
   </div>
 </header>
 
@@ -683,7 +683,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r102
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r103
 </footer>
 
 <nav class="bottom">
@@ -3288,27 +3288,49 @@ function openDetail(name,fromPop){
         near=pics.length>0;
       }catch(e){}
     }
-    // ★ 後援B:商家「名稱比對」— 標題必須含店名關鍵字才採用(可證實是本店)
+    // ★ 後援B:商家「名稱比對」多來源鏈 — 一律要求可證實是本店
     let named=false;
     if(!pics.length&&(s.c==="hotel"||s.c==="food"||s.c==="shop")){
-      // 取具辨識度的關鍵字:日文名+顯示名斷詞,棄過短/通用詞
-      const GENERIC=new Set(["食堂","餐廳","飯店","酒店","旅館","ホテル","カフェ","cafe","hotel","the","and"]);
-      const toks=[...new Set(((s.j||"")+" "+s.n).split(/[\s,、・()\-]+/)
-        .map(x=>x.trim()).filter(x=>x&&!GENERIC.has(x.toLowerCase())&&(/[a-z]/i.test(x)?x.length>=4:x.length>=2)))].slice(0,4);
+      const GENERIC=new Set(["食堂","餐廳","飯店","酒店","旅館","ホテル","カフェ","cafe","hotel","the","and","nikko"]);
+      const allToks=[...new Set(((s.j||"")+" "+s.n).split(/[\s,、・()\-]+/)
+        .map(x=>x.trim()).filter(x=>x&&!GENERIC.has(x.toLowerCase())&&(/[a-z]/i.test(x)?x.length>=4:x.length>=2)))];
+      const latin=allToks.filter(x=>/^[a-z0-9]+$/i.test(x)).slice(0,3);
+      const cjk=allToks.filter(x=>!/^[a-z0-9]+$/i.test(x)).slice(0,3);
+      const toks=allToks.slice(0,5);
       const hasTok=title=>{const tl=(title||"").toLowerCase();return toks.some(k=>tl.includes(k.toLowerCase()))};
+      const commonsSearch=async q=>{
+        const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=440`;
+        const r=await fetch(u);const dd=await r.json();
+        return Object.values((dd.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]&&hasTok(p.title))
+          .map(p=>({t:p.imageinfo[0].thumburl||p.imageinfo[0].url,f:p.imageinfo[0].url}));
+      };
       if(toks.length){
-        try{ // ① Commons 名稱搜尋
-          const q=encodeURIComponent(toks.slice(0,2).join(" "));
-          const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${q}&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=440`;
-          const r=await fetch(u);const dd=await r.json();
-          pics=Object.values((dd.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]&&hasTok(p.title))
-            .map(p=>({t:p.imageinfo[0].thumburl||p.imageinfo[0].url,f:p.imageinfo[0].url}));
+        try{ // ① Wikidata 實體代表圖(P18):最準,知名旅宿/名店幾乎都有
+          const nm=s.j||s.n;
+          for(const lg of ["ja","en","zh"]){
+            const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&origin=*&type=item&limit=3&language=${lg}&uselang=${lg}&search=${encodeURIComponent(nm)}`);
+            const hits=((await r.json()).search||[]).filter(x=>hasTok(x.label)||hasTok(x.description||""));
+            for(const hit of hits){
+              const r2=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&format=json&origin=*&entity=${hit.id}&property=P18`);
+              const cl=((await r2.json()).claims||{}).P18||[];
+              if(cl.length){
+                const file=cl[0].mainsnak.datavalue.value.replace(/ /g,"_");
+                pics=[{t:`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=440`,
+                       f:`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}`}];
+                break;
+              }
+            }
+            if(pics.length)break;
+          }
         }catch(e){}
+        if(!pics.length&&latin.length){try{pics=await commonsSearch(latin.join(" "))}catch(e){}} // ② Commons 英文
+        if(!pics.length&&cjk.length){try{pics=await commonsSearch(cjk.join(" "))}catch(e){}}     // ③ Commons 日文
         if(!pics.length){
-          try{ // ② Openverse(Flickr 等 CC 圖庫聚合,免金鑰)
-            const r=await fetch(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(toks.join(" "))}&page_size=8`);
+          try{ // ④ Openverse(Flickr 等 CC 聚合;拉丁詞優先,對國際店命中率高)
+            const q=(latin.length?latin:cjk).join(" ");
+            const r=await fetch(`https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=10`);
             const dd=await r.json();
-            pics=(dd.results||[]).filter(x=>hasTok(x.title))
+            pics=(dd.results||[]).filter(x=>hasTok(x.title)).slice(0,8)
               .map(x=>({t:x.thumbnail||x.url,f:x.url}));
           }catch(e){}
         }
