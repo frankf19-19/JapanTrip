@@ -281,6 +281,14 @@ nav.bottom button.on{color:var(--ai)}
 .wxcard .wxemoji{font-size:34px}
 .wxcard .wxt{font-size:20px;font-weight:900;color:var(--ai-deep)}
 .wxcard .wxnote{font-size:12.5px;color:#5C5A50;margin-top:6px}
+.dayWx{padding:0 16px}
+.wxday{background:#F2F7FC;border:1px solid #DCE6F0;border-radius:12px;padding:9px 12px;margin:10px 0 4px}
+.wxday-ttl{font-size:12.5px;font-weight:700;color:var(--ai-deep)}
+.wxh-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.wxh{flex:1;min-width:62px;text-align:center;font-size:11.5px;color:#5C5A50;background:#fff;border-radius:8px;padding:5px 4px;line-height:1.5}
+.wxh b{color:var(--ink)}
+.wxday-alert{margin-top:7px;font-size:12.5px;font-weight:700}
+.wxday-note{font-size:12px;color:#8A8272;padding:8px 0}
 .wxcard .wxbtn{margin-left:auto;border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
 .wxlive{display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:4px}
 .wxday{flex-shrink:0;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 9px;text-align:center;font-size:11px;min-width:66px}
@@ -496,7 +504,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r124</span>
+    <span class="build">build r125</span>
   </div>
 </header>
 
@@ -722,7 +730,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r124
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r125
 </footer>
 
 <nav class="bottom">
@@ -2554,6 +2562,76 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
   return stops;
 }
 const fmtHM=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const fmtDur=m=>{m=Math.round(m);if(m<60)return m+" 分";const h=Math.floor(m/60),mm=m%60;return mm?h+" 小時 "+mm+" 分":h+" 小時"};
+// 冬季易積雪山區/雪國路段(緯度經度粗略範圍):自駕+12~3月時提醒查即時路況
+const SNOW_ZONES=[
+  {n:"日光・いろは坂/中禪寺湖",la:[36.6,36.85],lo:[139.3,139.6]},
+  {n:"白川鄉・五箇山",la:[36.2,36.45],lo:[136.85,137.05]},
+  {n:"立山黑部・北陸山區",la:[36.4,36.7],lo:[137.4,137.7]},
+  {n:"輕井澤・碓氷峠",la:[36.3,36.45],lo:[138.5,138.7]},
+  {n:"奧飛驒・高山山區",la:[36.1,36.3],lo:[137.2,137.6]},
+  {n:"藏王・山形山區",la:[38.0,38.3],lo:[140.3,140.7]},
+  {n:"北海道山區",la:[42.5,45.5],lo:[140.0,144.5]},
+  {n:"越後湯澤・新潟山區",la:[36.8,37.2],lo:[138.7,139.1]}
+];
+// ── 當天逐時天氣預報(Open-Meteo,免費免金鑰;預報僅未來~16天內有效) ──
+const WMO=(c)=>{
+  if(c===0)return["☀️","晴"];if(c<=2)return["🌤️","晴時多雲"];if(c===3)return["☁️","陰"];
+  if(c<=48)return["🌫️","有霧"];if(c<=57)return["🌦️","毛毛雨"];if(c<=67)return["🌧️","下雨"];
+  if(c<=77)return["🌨️","下雪"];if(c<=82)return["🌧️","陣雨"];if(c<=86)return["🌨️","陣雪"];
+  return["⛈️","雷雨"];
+};
+async function loadDaysWeather(){
+  const nodes=document.querySelectorAll(".dayWx");
+  for(const el of nodes){
+    if(el.dataset.done)continue;
+    const date=el.dataset.date,la=+el.dataset.la,lo=+el.dataset.lo;
+    // 只抓未來 16 天內(超過預報範圍會回空)
+    const diff=(new Date(date)-new Date())/86400000;
+    if(diff<-1||diff>16){el.innerHTML=`<div class="wxday-note">📅 ${fmtMD(date)}・此日超出即時預報範圍(~16天),請參考上方氣候平均;出發前 1~2 週再看預報</div>`;el.dataset.done=1;continue}
+    try{
+      const u=`https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}&hourly=temperature_2m,precipitation,precipitation_probability,weathercode&start_date=${date}&end_date=${date}&timezone=Asia%2FTokyo`;
+      const r=await fetch(u);const d=await r.json();
+      const H=d.hourly;if(!H||!H.time){el.dataset.done=1;continue}
+      // 取白天 07-21 時,每 3 小時一格
+      let cells="",rainHours=[],snowHours=[];
+      for(let hr=7;hr<=21;hr+=3){
+        const idx=H.time.findIndex(t=>t.endsWith("T"+String(hr).padStart(2,"0")+":00"));
+        if(idx<0)continue;
+        const code=H.weathercode[idx],[emo,desc]=WMO(code);
+        const pop=H.precipitation_probability?H.precipitation_probability[idx]:null;
+        const tmp=Math.round(H.temperature_2m[idx]);
+        if(code>=71&&code<=86||code>=85)snowHours.push(hr);
+        else if(code>=51)rainHours.push(hr);
+        cells+=`<span class="wxh"><b>${String(hr).padStart(2,"0")}時</b>${emo}<br>${tmp}° ${desc}${pop!=null?` ${pop}%`:""}</span>`;
+      }
+      let alert="";
+      if(snowHours.length)alert=`<div class="wxday-alert" style="color:#3B6E9E">🌨️ 預報 ${snowHours.map(x=>x+"時").join("、")} 前後可能降雪,自駕請留意路況、備妥雪胎</div>`;
+      else if(rainHours.length)alert=`<div class="wxday-alert" style="color:#8A6A1E">☔ 預報 ${rainHours.map(x=>x+"時").join("、")} 前後可能降雨,記得帶傘</div>`;
+      el.innerHTML=`<div class="wxday"><span class="wxday-ttl">📅 ${fmtMD(date)} 當天預報</span><div class="wxh-row">${cells}</div>${alert}</div>`;
+    }catch(e){el.innerHTML=`<div class="wxday-note">天氣預報暫時無回應</div>`}
+    el.dataset.done=1;
+  }
+}
+function snowNote(st){
+  try{
+    if(!st||!st.g||!S.iti)return "";
+    const m=S.iti.month||S.month||0;
+    const isWinter=(m>=12||m<=3);
+    const isDrive=((S.iti.tmode||"transit")!=="transit");
+    if(!isWinter||!isDrive)return "";
+    // 交通段起訖任一端落在雪區
+    const pts=[st.f,st.g].filter(Boolean);
+    for(const z of SNOW_ZONES){
+      for(const p of pts){
+        if(p[0]>=z.la[0]&&p[0]<=z.la[1]&&p[1]>=z.lo[0]&&p[1]<=z.lo[1]){
+          return `<div style="margin-top:4px;font-size:12px;color:#8A6A1E;background:#FBF6E8;border:1px solid var(--kin);border-radius:8px;padding:5px 9px">❄️ 途經「${z.n}」冬季易積雪/封路 — 出發前務必查即時路況(日本道路交通情報 JARTIC),自駕請備雪胎/鏈</div>`;
+        }
+      }
+    }
+  }catch(e){}
+  return "";
+}
 function travelMin(km){const M=TMODES[(S.iti&&S.iti.tmode)||S.tmode]||TMODES.transit;return Math.max(M.min,Math.round((km/M.v*60+(M.extra||0))/5)*5)}
 function setupFlights(){
   const it=S.iti,F=it.flight; if(!F)return;
@@ -3173,6 +3251,7 @@ function renderIti(){
     fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">移動時間以此估算:${tBtns}<span style="color:#A39B87">(點擊切換,全行程即時重算)</span></div></div></div></div>`;
   }
   $("wxBox").innerHTML+=fRow;
+  setTimeout(loadDaysWeather,300); // 有選日期的天,抓當天逐時預報
   // ── 城市段順序調整 + 順路推薦(多城市行程) ──
   const groups=segGroups();
   if(groups.length>1){
@@ -3191,13 +3270,13 @@ function renderIti(){
   }
   let h="";
   S.iti.days.forEach((d,i)=>{
-    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span>${d.date?`<span style="background:rgba(255,255,255,.16);color:#F4EFE2;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:700">📅 ${fmtMD(d.date)}</span>`:""}<span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
+    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span>${d.date?`<span style="background:rgba(255,255,255,.16);color:#F4EFE2;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:700">📅 ${fmtMD(d.date)}</span>`:""}<span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div>${d.date?`<div class="dayWx" id="dayWx${i}" data-date="${d.date}" data-la="${(d.center||S.iti.center).la}" data-lo="${(d.center||S.iti.center).lo}"></div>`:""}<div class="rail">`;
     const M=TMODES[S.iti.tmode||"transit"];
     (d.pre||[]).concat(d.stops).forEach(st=>{
       if(st.type==="note"){h+=`<div class="stop" style="padding-bottom:10px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:${st.warn?"#B4622A":"var(--ai-deep)"};font-weight:700;background:${st.warn?"#FBF0E2":"#EDF2F9"};border-radius:8px;padding:7px 10px">${st.txt}${st.warn?"<br><span style='font-weight:400'>⚠️ 行程稍趕,建議手動再移除一站</span>":""}</div></div>`;return}
       if(st.type==="travel"){
         const nav=st.f?`<a href="https://www.google.com/maps/dir/?api=1&origin=${st.f[0]},${st.f[1]}&destination=${st.g[0]},${st.g[1]}&travelmode=${M.gm}" target="_blank" rel="noopener" style="color:var(--ai);border-bottom:1px dotted var(--ai);text-decoration:none;margin-left:6px">🧭 ${M.gm==="transit"?"怎麼搭":"導航"}</a>`:"";
-        h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">${M.ic} ${M.n}約 ${st.min} 分(${fmtD(st.km)})${nav}</div></div>`;return}
+        h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">${M.ic} ${M.n}約 ${fmtDur(st.min)}(${fmtD(st.km)})${nav}${snowNote(st)}</div></div>`;return}
       if(st.type==="gap"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:#8A6A1E">🌆 自由時間約 ${Math.round(st.min/5)*5} 分(逛街/咖啡${st.night?"/提早用餐),等待夜景時段":"),等待景點開門"}</div></div>`;return}
       if(st.type==="note"){h+=`<div class="stop" style="min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="warnbox" style="flex:1">${st.txt}</div></div>`;return}
       const s=st.s;
@@ -3247,7 +3326,7 @@ function renderHotelBlock(d,i){
       <div class="ja">${ht.j||""}</div>
       ${(()=>{const ls=(d.stops||[]).filter(x=>x.type==="stop").slice(-1)[0];if(!ls)return "";
         const km=dist(ls.s.la,ls.s.lo,ht.la,ht.lo),mn=travelMin(km),M=TMODES[(S.iti&&S.iti.tmode)||"transit"];
-        return `<div class="inforow"><span class="ic">${M.ic}</span><span>從「${ls.s.n}」${M.n}約 ${mn} 分(${fmtD(km)})</span>　<a href="https://www.google.com/maps/dir/?api=1&origin=${ls.s.la},${ls.s.lo}&destination=${ht.la},${ht.lo}&travelmode=${M.gm}" target="_blank" rel="noopener">🧭 導航</a></div>`})()}
+        return `<div class="inforow"><span class="ic">${M.ic}</span><span>從「${ls.s.n}」${M.n}約 ${fmtDur(mn)}(${fmtD(km)})</span>　<a href="https://www.google.com/maps/dir/?api=1&origin=${ls.s.la},${ls.s.lo}&destination=${ht.la},${ht.lo}&travelmode=${M.gm}" target="_blank" rel="noopener">🧭 導航</a></div>`})()}
       ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
       ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}
       <div class="hs-acts">
@@ -4040,7 +4119,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r124"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r125"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
