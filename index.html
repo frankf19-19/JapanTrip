@@ -511,7 +511,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r128</span>
+    <span class="build">build r129</span>
   </div>
 </header>
 
@@ -610,7 +610,7 @@ button{transition:transform .15s ease}
         </div>
       </div>
     </div>
-    <div style="font-size:11px;color:#A39B87;margin-top:6px">＊選了日期:總天數自動計算、行程逐日標日期,並依 OSM 營業時間「避開當天公休的店」。入境+提領行李預估 90 分;回程以「起飛前 2.5 小時抵達機場」倒推。</div>
+    <div style="font-size:11px;color:#A39B87;margin-top:6px">＊選了去程日期,回程自動接在其後(不能更早)、總天數自動算、行程逐日標日期、避開當天公休店。選好城市後,機場清單會把「附近機場」⭐標示並排前。入境+提領行李約 90 分;回程以起飛前 2.5 小時抵達機場倒推。</div>
 
     <div class="f-label">🍜 餐廳偏好(價位・料理,影響行程中的午晚餐挑選)</div>
     <div style="font-size:12px;color:#8A8272;margin-bottom:4px">價位(可複選,不選=不限):</div>
@@ -737,7 +737,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r128
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r129
 </footer>
 
 <nav class="bottom">
@@ -1316,6 +1316,28 @@ const TMODES={
 S.tmode="transit";
 S.fPrice=new Set();S.fCui=new Set();S.hTier=new Set();S.hBudget=new Set();
 const HBUD={b1:[0,10000,"1萬內"],b2:[10000,20000,"1–2萬"],b3:[20000,42000,"2–4萬"],b4:[40000,9e9,"4萬以上"]};
+function nearestAirports(){
+  // 以第一個中心點(或所有城市重心)算各機場距離,回傳排序後索引
+  let la,lo;
+  const pts=S.centers.length?S.centers:(S.center?[S.center]:[]);
+  if(pts.length){la=pts.reduce((s,c)=>s+c.la,0)/pts.length;lo=pts.reduce((s,c)=>s+c.lo,0)/pts.length}
+  return AIRPORTS.map((a,i)=>({i,d:(la!=null)?dist(la,lo,a[2],a[3]):null}))
+    .sort((x,y)=>(x.d==null?1:y.d==null?-1:x.d-y.d));
+}
+function rebuildAirportOpts(){
+  const inSel=$("fInAp"),outSel=$("fOutAp");if(!inSel||!outSel)return;
+  const curIn=inSel.value,curOut=outSel.value;
+  const ranked=nearestAirports();
+  const hasLoc=(S.center||S.centers.length);
+  const opts=`<option value="">(不設定)</option>`+ranked.map(({i,d})=>{
+    const a=AIRPORTS[i];
+    const near=(hasLoc&&d!=null&&d<=120)?" ⭐附近":"";
+    const km=(hasLoc&&d!=null)?` (${Math.round(d)}km)`:"";
+    return `<option value="${i}">${a[0]} ${a[1]}${near}${km}</option>`;
+  }).join("");
+  inSel.innerHTML=opts;outSel.innerHTML=opts;
+  inSel.value=curIn;outSel.value=curOut; // 保留已選
+}
 function foodMatch(f){
   if(S.fPrice.size){const p=foodPrice(f);if(p&&!S.fPrice.has(p))return false}
   if(S.fCui.size&&!S.fCui.has(foodCui(f)))return false;
@@ -1412,8 +1434,7 @@ function init(){
   renderCityChips();
   const cc=$("cuiChips");
   if(cc)cc.innerHTML=CUI_LIST.map(v=>`<label data-v="${v}" onclick="toggleCui(this,'${v}')">${v}</label>`).join("");
-  const apOpts=AIRPORTS.map((a,i)=>`<option value="${i}">${a[0]} ${a[1]}</option>`).join("");
-  $("fInAp").innerHTML+=apOpts; $("fOutAp").innerHTML+=apOpts;
+  rebuildAirportOpts();
   $("monChips").innerHTML=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${m===S.month?'on':''}" onclick="setMonth(${m},this)">${m}月</label>`).join("");
   $("prefChips").innerHTML=PREFS.map(p=>`<label onclick="togglePref(this,'${p}')">${p}</label>`).join("");
   // 航班時間下拉:05:00–23:30 每 30 分一格,點選即完成(不用打字)
@@ -1643,6 +1664,7 @@ function renderMiniMap(){
 function renderCenter(){
   renderHeroLoc();
   renderMiniMap();
+  try{rebuildAirportOpts()}catch(e){}
   if($("cityChips"))renderCityChips();
   if(!S.center){
     $("centerInfo").innerHTML=`<div class="centerbar" style="border-color:#D9D2BF;background:#F3EFE3;box-shadow:none">📍 <span style="color:#8A8272;font-size:15px">尚未選擇地點 — 請在上方搜尋或快選城市</span></div>`;
@@ -1661,6 +1683,16 @@ const WD_ZH=["日","一","二","三","四","五","六"];
 const addD=(iso,n)=>{const d=new Date(iso+"T00:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const fmtMD=iso=>{const d=new Date(iso+"T00:00:00");return (d.getMonth()+1)+"/"+d.getDate()+"(週"+WD_ZH[d.getDay()]+")"};
 function flightDates(){
+  const inEl=$("fInD"),outEl=$("fOutD");
+  // 回程最小值=去程日(不能選更早);選了去程且回程還空/更早 → 自動預填合理回程
+  if(inEl&&inEl.value&&outEl){
+    outEl.min=inEl.value;
+    if(!outEl.value||outEl.value<inEl.value){
+      // 預填:若已選城市,用地點數估天數;否則預設 +4 天(5天4夜)
+      const guess=(S.centers.length?Math.max(S.centers.length+1,3):4);
+      outEl.value=addD(inEl.value,guess);
+    }
+  }
   const a=$("fInD")?$("fInD").value:"",b=$("fOutD")?$("fOutD").value:"";
   S.dateIn=a||null;S.dateOut=b||null;
   if(a){ // 月份自動同步(氣候建議)
@@ -4257,7 +4289,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r128"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r129"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
