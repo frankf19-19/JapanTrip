@@ -226,13 +226,19 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .stop.meal .dot{border-color:var(--kin)}
 .stop.hotel .dot{border-color:var(--matcha)}
 .stop .info{flex:1;margin-top:-3px;min-width:0}
-.stopThumb{width:104px;height:78px;flex-shrink:0;border-radius:12px;background:#EDE8DC center/cover no-repeat;border:1px solid var(--line);cursor:pointer;position:relative;overflow:hidden;order:3;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:transform .15s}
-.stopThumb:hover{transform:scale(1.03)}
-.stopThumb.loading::after{content:"📷";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.3}
-.stopThumb.multi::before{content:"📷＋";position:absolute;right:5px;bottom:4px;font-size:10px;font-weight:700;color:#fff;background:rgba(32,48,63,.72);border-radius:6px;padding:1px 6px;z-index:2}
-.stopThumb.none{background:#EDE8DC}
-.stopThumb.none::after{content:"🏞️";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;opacity:.35}
-@media(max-width:700px){.stopThumb{width:76px;height:60px}}
+.stopThumb{width:200px;flex-shrink:0;order:3;align-self:flex-start}
+.stopThumb .thumbRow{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.stopThumb .thumbRow::-webkit-scrollbar{height:5px}
+.stopThumb .thumbRow::-webkit-scrollbar-thumb{background:#D9D2BF;border-radius:3px}
+.stopThumb img{width:200px;height:140px;flex-shrink:0;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:pointer;scroll-snap-align:start;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:transform .15s;background:#EDE8DC}
+.stopThumb img:hover{transform:scale(1.02)}
+.stopThumb.loading{height:140px;border-radius:12px;background:#EDE8DC;position:relative}
+.stopThumb.loading::after{content:"📷 載入照片…";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.4}
+.stopThumb.none{height:140px;border-radius:12px;background:#EDE8DC;position:relative;border:1px solid var(--line)}
+.stopThumb.none::after{content:"🏞️ 此地暫無公開照片";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;opacity:.45;text-align:center;padding:0 10px}
+.stopThumb .thumbCount{font-size:11px;color:#8A8272;margin-top:3px;text-align:center}
+@media(min-width:1200px){.stopThumb{width:240px}.stopThumb img{width:240px;height:168px}}
+@media(max-width:700px){.stopThumb{width:140px}.stopThumb img{width:140px;height:100px}.stopThumb.loading,.stopThumb.none{height:100px}}
 .stop .info h4{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;line-height:1.45}
 .stop .info h4 .rmv{margin-left:auto}
 .stop .info .ja{font-size:11px;color:#A39B87}
@@ -511,7 +517,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r130</span>
+    <span class="build">build r131</span>
   </div>
 </header>
 
@@ -737,7 +743,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r130
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r131
 </footer>
 
 <nav class="bottom">
@@ -3292,6 +3298,7 @@ async function loadStopThumbs(){
     el.dataset.done="1"; el.classList.add("loading");
     let meta;try{meta=JSON.parse(decodeURIComponent(el.dataset.thumb))}catch(e){el.classList.remove("loading");el.classList.add("none");continue}
     const [j,n,c,la,lo]=meta;
+    el.dataset.name=n;
     const key=n+"@"+la;
     if(THUMB_CACHE[key]!==undefined){applyThumb(el,THUMB_CACHE[key]);continue}
     let pics=[];
@@ -3323,8 +3330,9 @@ async function loadStopThumbs(){
 function applyThumb(el,pics){
   el.classList.remove("loading");
   if(pics&&pics.length){
-    el.style.backgroundImage=`url("${pics[0]}")`;
-    if(pics.length>1)el.classList.add("multi");
+    const name=el.dataset.name||"";
+    const imgs=pics.slice(0,8).map((u,idx)=>`<img src="${u}" loading="lazy" alt="照片${idx+1}" onerror="this.style.display='none'">`).join("");
+    el.innerHTML=`<div class="thumbRow">${imgs}</div>${pics.length>1?`<div class="thumbCount">← 滑看 ${Math.min(pics.length,8)} 張・點開更多 →</div>`:""}`;
   }else el.classList.add("none");
 }
 // Wikidata 實體代表圖 P18(飯店/名店官方圖;名稱比對避免張冠李戴)
@@ -4315,7 +4323,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r130"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r131"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
