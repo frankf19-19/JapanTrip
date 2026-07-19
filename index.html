@@ -504,7 +504,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r125</span>
+    <span class="build">build r126</span>
   </div>
 </header>
 
@@ -730,7 +730,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r125
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r126
 </footer>
 
 <nav class="bottom">
@@ -3366,10 +3366,10 @@ function renderHotelPicker(){
   window._HPOOL=list;
   const tierChips=`<div class="chips" style="margin:6px 0 10px"><label class="${tier==="全部"?"on":""}" onclick="hpSet('tier','全部')">全部</label>`+["青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(t=>`<label class="${tier===t?"on":""}" onclick="hpSet('tier','${t}')">${t}</label>`).join("")+`</div>`;
   const rows=list.length?list.map((ht,k)=>{const t=hotelTier(ht);
-    return `<div class="hp-row ${cur&&cur.n===ht.n?"on":""}" onclick="pickHotel(${di},${k})">
+    return `<div class="hp-row ${cur&&cur.n===ht.n?"on":""}" onclick="hotelDetail(${di},${k})" title="點我看照片與詳細資料">
       <div style="flex:1"><b>${ht.n}</b> <span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-size:10px">${t}</span>${ht.st?` <span style="color:var(--kin);font-size:11px">★${ht.st}</span>`:""}
       <div style="font-size:11.5px;color:#8A8272">${ht.pr||""}${ht.ad?" ・"+ht.ad:""}</div></div>
-      ${cur&&cur.n===ht.n?'<span style="color:var(--shu)">目前</span>':""}</div>`;
+      ${cur&&cur.n===ht.n?'<span style="color:var(--shu);font-size:12px;flex-shrink:0">目前</span>':`<span style="color:var(--ai);font-size:12px;font-weight:700;flex-shrink:0">👁 看詳情</span><button onclick="event.stopPropagation();pickHotel(${di},${k})" style="border:1.5px solid var(--shu);background:#fff;color:var(--shu);border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:700;font-family:var(--font-b);cursor:pointer;flex-shrink:0">選這間</button>`}</div>`;
   }).join(""):`<div style="padding:14px;color:#8A8272;font-size:13.5px">這個等級附近沒有,換個等級看看</div>`;
   const more=total>n?`<button onclick="window._HP.n+=30;renderHotelPicker()" style="margin-top:10px;width:100%;border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${list.length.toLocaleString()} / 共 ${total.toLocaleString()} 間)</button>`:"";
   $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">選擇 DAY ${di+1} 的住宿 <span style="font-size:13px;color:#8A8272;font-weight:400">附近共 ${total.toLocaleString()} 間</span></h3>
@@ -3387,6 +3387,21 @@ function renderHotelPicker(){
     <div class="hp-list">${rows}</div>
     ${more}
     <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+}
+function clearPickFor(){window._PICKFOR=null}
+function pickHotelByName(name){
+  const pf=window._PICKFOR; if(!pf)return;
+  const ht=findByName(name); if(!ht)return;
+  S.iti.days[pf.di].hotel=ht;
+  S.iti.days[pf.di].lastNight=false;
+  window._PICKFOR=null;
+  closeDetail();renderIti();
+  toast("✅ DAY "+(pf.di+1)+" 住宿已更新:"+ht.n);
+}
+function hotelDetail(di,k){
+  const ht=window._HPOOL[k]; if(!ht)return;
+  window._PICKFOR={di};        // 記住:從哪一天的換宿面板點進來的
+  openDetail(ht.n);
 }
 function pickHotel(di,k){
   const ht=window._HPOOL[k];
@@ -3517,6 +3532,7 @@ function openDetail(name,fromPop){
     <div class="d-gal" id="dGal"></div>
     <div class="d-bd">
       <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
+      ${(s.c==="hotel"&&window._PICKFOR)?`<button onclick="pickHotelByName('${esc(s.n)}')" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:13px;font-size:15.5px;font-weight:800;font-family:var(--font-b);cursor:pointer;margin:10px 0 4px">✓ 選這間住 DAY ${window._PICKFOR.di+1}</button>`:""}
       <div class="d-meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
         ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
@@ -3667,13 +3683,26 @@ function openDetail(name,fromPop){
       if(im)im.onclick=()=>openLB(LB.i);
     }else if(s.c==="food"||s.c==="hotel"||s.c==="shop"){
       // 商家類拿不到「可證實為本店」的照片 → 提供直達按鈕,不放附近風景誤導
-      const bst="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:7px 14px;font-size:12.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)";
-      gal.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 2px;width:100%">
-        <span style="font-size:12px;color:#8A8272">為避免張冠李戴,不顯示未經確認的照片。看本店完整照片:</span>
-        <a style="${bst}" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.j||s.n)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 相片</a>
-        ${s.c==="food"?`<a style="${bst}" href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+(s.j||s.n))}" target="_blank" rel="noopener">🍽️ Tabelog</a>`:""}
-        ${s.c==="hotel"?`<a style="${bst}" href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 房照</a>`:""}
-      </div>`;
+      const bst="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:8px 15px;font-size:13px;font-weight:700;text-decoration:none;font-family:var(--font-b);display:inline-flex;align-items:center;gap:4px";
+      const nm=s.j||s.n;
+      if(s.c==="hotel"){
+        // 飯店:強調房間/設施照片入口(版權照片無法內嵌,以醒目直達提供)
+        gal.innerHTML=`<div style="padding:8px 2px;width:100%">
+          <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">🏨 房間・館內・設施照片(點開看實際房型與衛浴)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <a style="${bst};border-color:#003580;color:#003580" href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(nm)}" target="_blank" rel="noopener">🛏️ Booking 房型/衛浴照</a>
+            <a style="${bst}" href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:agoda.com "+nm)}" target="_blank" rel="noopener">🏩 Agoda 房照</a>
+            <a style="${bst}" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nm)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 實景/評論照</a>
+          </div>
+          <div style="font-size:11px;color:#A39B87;margin-top:7px">訂房網站的房型、浴室、公共設施照片最齊全;因屬各網站版權資料,提供一鍵直達</div>
+        </div>`;
+      }else{
+        gal.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 2px;width:100%">
+          <span style="font-size:12px;color:#8A8272">為避免張冠李戴,不顯示未經確認的照片。看本店完整照片:</span>
+          <a style="${bst}" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nm)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 相片</a>
+          ${s.c==="food"?`<a style="${bst}" href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+nm)}" target="_blank" rel="noopener">🍽️ Tabelog</a>`:""}
+        </div>`;
+      }
     }
   })();
 }
@@ -4119,7 +4148,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r125"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r126"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
