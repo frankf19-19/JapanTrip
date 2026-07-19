@@ -226,19 +226,24 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .stop.meal .dot{border-color:var(--kin)}
 .stop.hotel .dot{border-color:var(--matcha)}
 .stop .info{flex:1;margin-top:-3px;min-width:0}
-.stopThumb{width:200px;flex-shrink:0;order:3;align-self:flex-start}
-.stopThumb .thumbRow{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;-webkit-overflow-scrolling:touch}
-.stopThumb .thumbRow::-webkit-scrollbar{height:5px}
-.stopThumb .thumbRow::-webkit-scrollbar-thumb{background:#D9D2BF;border-radius:3px}
-.stopThumb img{width:200px;height:140px;flex-shrink:0;object-fit:cover;border-radius:12px;border:1px solid var(--line);cursor:pointer;scroll-snap-align:start;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:transform .15s;background:#EDE8DC}
+.stopThumb{width:260px;flex-shrink:0;order:3;align-self:flex-start}
+.thumbWrap{position:relative}
+.stopThumb .thumbRow{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.stopThumb .thumbRow::-webkit-scrollbar{height:7px}
+.stopThumb .thumbRow::-webkit-scrollbar-thumb{background:#C9C0A8;border-radius:4px}
+.stopThumb .thumbRow::-webkit-scrollbar-track{background:#F0EBDD;border-radius:4px}
+.stopThumb img{width:260px;height:180px;flex-shrink:0;object-fit:cover;border-radius:14px;border:1px solid var(--line);cursor:zoom-in;scroll-snap-align:center;box-shadow:0 2px 10px rgba(0,0,0,.12);transition:transform .15s;background:#EDE8DC}
 .stopThumb img:hover{transform:scale(1.02)}
-.stopThumb.loading{height:140px;border-radius:12px;background:#EDE8DC;position:relative}
+.thumbNav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:var(--ink);font-size:24px;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+.thumbNav:hover{background:#fff;transform:translateY(-50%) scale(1.08)}
+.thumbNav.prev{left:6px}.thumbNav.next{right:6px}
+.stopThumb.loading{height:180px;border-radius:14px;background:#EDE8DC;position:relative}
 .stopThumb.loading::after{content:"📷 載入照片…";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.4}
-.stopThumb.none{height:140px;border-radius:12px;background:#EDE8DC;position:relative;border:1px solid var(--line)}
+.stopThumb.none{height:180px;border-radius:14px;background:#EDE8DC;position:relative;border:1px solid var(--line)}
 .stopThumb.none::after{content:"🏞️ 此地暫無公開照片";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;opacity:.45;text-align:center;padding:0 10px}
-.stopThumb .thumbCount{font-size:11px;color:#8A8272;margin-top:3px;text-align:center}
-@media(min-width:1200px){.stopThumb{width:240px}.stopThumb img{width:240px;height:168px}}
-@media(max-width:700px){.stopThumb{width:140px}.stopThumb img{width:140px;height:100px}.stopThumb.loading,.stopThumb.none{height:100px}}
+.stopThumb .thumbCount{font-size:11.5px;color:#8A8272;margin-top:4px;text-align:center}
+@media(min-width:1400px){.stopThumb{width:320px}.stopThumb img{width:320px;height:214px}.stopThumb.loading,.stopThumb.none{height:214px}}
+@media(max-width:700px){.stopThumb{width:200px}.stopThumb img{width:200px;height:140px}.stopThumb.loading,.stopThumb.none{height:140px}.thumbNav{width:32px;height:32px;font-size:20px}}
 .stop .info h4{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;line-height:1.45}
 .stop .info h4 .rmv{margin-left:auto}
 .stop .info .ja{font-size:11px;color:#A39B87}
@@ -517,7 +522,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r131</span>
+    <span class="build">build r134</span>
   </div>
 </header>
 
@@ -743,7 +748,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r131
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r134
 </footer>
 
 <nav class="bottom">
@@ -2622,6 +2627,51 @@ const SNOW_ZONES=[
   {n:"越後湯澤・新潟山區",la:[36.8,37.2],lo:[138.7,139.1]}
 ];
 // ── 當天逐時天氣預報(Open-Meteo,免費免金鑰;預報僅未來~16天內有效) ──
+// ═══ 日本節慶行事曆(每年固定/規律的大型活動;僅收時間穩定可預期者) ═══
+const FESTIVALS=[
+  // 冬季燈飾・聖誕(11月中~12/25,全國主要城市)
+  {m:11,d1:15,m2:12,d2:25,n:"聖誕燈飾・聖誕市集",e:"🎄",city:["東京","橫濱","大阪","名古屋","札幌","神戶","福岡"],desc:"車站廣場與百貨周邊聖誕市集、燈飾點燈(如東京六本木、惠比壽、橫濱紅磚倉庫、大阪梅田)"},
+  {m:12,d1:1,m2:12,d2:25,n:"德國聖誕市集",e:"🎅",city:["橫濱","大阪","札幌","東京"],desc:"紅磚倉庫/梅田/大通公園等德式聖誕市集,熱紅酒與工藝攤"},
+  // 跨年・初詣(12/31~1/3)
+  {m:12,d1:31,m2:1,d2:3,n:"跨年・初詣參拜",e:"⛩️",city:[],desc:"神社寺廟跨年參拜(初詣),淺草寺/明治神宮/伏見稻荷等人潮眾多,部分景點除夕通宵開放"},
+  // 札幌雪祭(2月上旬)
+  {m:2,d1:4,m2:2,d2:11,n:"札幌雪祭",e:"⛄",city:["札幌"],desc:"大通公園巨型雪雕、冰雕,日本最大冬季祭典"},
+  // 節分(2/3前後)
+  {m:2,d1:2,m2:2,d2:4,n:"節分・撒豆祭",e:"👹",city:[],desc:"神社寺廟撒豆驅邪(成田山、吉田神社等有大型豆撒式)"},
+  // 梅花(2月下~3月中)
+  {m:2,d1:20,m2:3,d2:20,n:"梅花季",e:"🌸",city:["水戶","大阪","太宰府","熱海"],desc:"偕樂園、大阪城梅林、太宰府天滿宮等梅花盛開"},
+  // 雛祭(3/3)
+  {m:3,d1:1,m2:3,d2:3,n:"雛祭(女兒節)",e:"🎎",city:[],desc:"各地擺設雛人形,勝浦、柳川等有大型雛人形階梯展示"},
+  // 櫻花季(3月下~4月上,依地區)
+  {m:3,d1:25,m2:4,d2:15,n:"櫻花季・賞夜櫻",e:"🌸",city:["東京","京都","大阪","奈良","名古屋","金澤","弘前","福岡"],desc:"賞櫻名所點燈夜櫻(上野、目黑川、哲學之道、大阪造幣局、弘前城)"},
+  // 祇園祭(7月,京都)
+  {m:7,d1:1,m2:7,d2:31,n:"祇園祭",e:"🏮",city:["京都"],desc:"京都八坂神社千年大祭,山鉾巡行(7/17、7/24)、宵山夜市"},
+  // 天神祭(7月下,大阪)
+  {m:7,d1:24,m2:7,d2:25,n:"天神祭",e:"🎆",city:["大阪"],desc:"大阪天滿宮大祭,船渡御與大川花火"},
+  // 隅田川花火(7月最後週六)
+  {m:7,d1:25,m2:7,d2:31,n:"隅田川花火大會",e:"🎆",city:["東京"],desc:"東京最大花火,淺草・晴空塔周邊觀賞"},
+  // 青森睡魔(8月上)
+  {m:8,d1:2,m2:8,d2:7,n:"青森睡魔祭",e:"🏮",city:["青森"],desc:"巨型燈籠花車巡遊,東北三大祭之一"},
+  // 仙台七夕(8月上)
+  {m:8,d1:6,m2:8,d2:8,n:"仙台七夕祭",e:"🎋",city:["仙台"],desc:"商店街華麗七夕飾,東北三大祭之一"},
+  // 阿波舞(8月中,德島)
+  {m:8,d1:12,m2:8,d2:15,n:"德島阿波舞",e:"💃",city:["德島"],desc:"日本最大盆舞祭,街頭連舞"},
+  // 五山送火(8/16,京都)
+  {m:8,d1:16,m2:8,d2:16,n:"京都五山送火",e:"🔥",city:["京都"],desc:"如意嶽「大」字等山火,盂蘭盆送靈"},
+  // 楓葉季(10月下~12月上,依地區)
+  {m:10,d1:20,m2:12,d2:5,n:"楓葉季・賞夜楓",e:"🍁",city:["京都","日光","箱根","高山","東京","大阪","奈良"],desc:"賞楓名所點燈夜楓(清水寺、永觀堂、日光、六義園、高山)"},
+];
+function dayFestivals(dateISO,center,areas){
+  const d=new Date(dateISO+"T00:00:00");const mo=d.getMonth()+1,dy=d.getDate();
+  const loc=((center&&center.n)||"")+(areas||"");
+  const inRange=(f)=>{
+    if(f.m===f.m2)return mo===f.m&&dy>=f.d1&&dy<=f.d2;
+    // 跨月/跨年
+    if(f.m2<f.m){return (mo===f.m&&dy>=f.d1)||(mo===f.m2&&dy<=f.d2)||(mo>f.m)||(mo<f.m2)}
+    return (mo===f.m&&dy>=f.d1)||(mo===f.m2&&dy<=f.d2)||(mo>f.m&&mo<f.m2);
+  };
+  return FESTIVALS.filter(f=>inRange(f)&&(f.city.length===0||f.city.some(c=>loc.includes(c))));
+}
 const WMO=(c)=>{
   if(c===0)return["☀️","晴"];if(c<=2)return["🌤️","晴時多雲"];if(c===3)return["☁️","陰"];
   if(c<=48)return["🌫️","有霧"];if(c<=57)return["🌦️","毛毛雨"];if(c<=67)return["🌧️","下雨"];
@@ -2736,6 +2786,62 @@ function moveSeg(gi,dir){
   for(let i=0;i<it.days.length;i++)rebuildDay(i);
   renderIti();
   toast("🔀 已調整順序:"+segGroups().map(g=>g.name).join(" → "));
+}
+function setSegDays(gi,delta){
+  const it=S.iti; if(!it)return;
+  const gs=segGroups();
+  const g=gs[gi]; if(!g)return;
+  const newLen=g.len+delta;
+  if(newLen<1){toast("每個城市至少 1 天");return}
+  const total=it.days.length+delta;
+  if(total>30){toast("總天數上限 30 天");return}
+  if(total<1)return;
+  // 重建 days:該段增/減一天(複製該段的 center/日期屬性)
+  const nd=[];
+  gs.forEach((seg,si)=>{
+    const segDays=it.days.slice(seg.start,seg.end+1);
+    let cnt=seg.len;
+    if(si===gi)cnt=newLen;
+    for(let k=0;k<cnt;k++){
+      if(k<segDays.length)nd.push(segDays[k]);
+      else{ // 新增的天:複製該段最後一天的 center,清空景點清單(重生成會重排)
+        const base=segDays[segDays.length-1];
+        nd.push({center:base.center?{...base.center}:null,list:[],stops:[],areas:base.areas});
+      }
+    }
+  });
+  it.days=nd;
+  // 重置位置屬性
+  const sm0=it.days[0]?9*60:undefined;
+  it.days.forEach(d=>{delete d.startMin;delete d.airportOut;d.lastNight=false});
+  it.days[it.days.length-1].lastNight=true;
+  if(it.dateIn)it.days.forEach((d,i)=>{d.date=addD(it.dateIn,i)});
+  // 首日航班開始時間保留
+  if(it.flight&&it.flight.inAp&&it.flight.inT!=null)it.days[0].startMin=Math.min(it.flight.inT+90,22*60);
+  if(it.flight&&it.flight.outAp)it.days[it.days.length-1].airportOut=it.flight.outT-150;
+  // 全部重生成(重新選景點/餐廳/住宿)
+  regenAllDays();
+  toast("📅 "+g.name+" 改為 "+newLen+" 天,總 "+it.days.length+" 天(行程已重排)");
+}
+function regenAllDays(){
+  const it=S.iti; if(!it)return;
+  // 清空各天景點,重新從中心點附近選(沿用 rebuildDay 的邏輯)
+  it.exclF=new Set();
+  for(let i=0;i<it.days.length;i++){
+    const d=it.days[i];
+    if(!d.list||!d.list.length){
+      // 新天:從該 center 附近補景點
+      const ctr=d.center||it.center;
+      if(ctr){
+        const oc=S.center;S.center={...ctr};
+        const near=DB.filter(s=>s.c==="spot"&&dKm(s)<=(it.rad||25)).sort((a,b)=>dKm(a)-dKm(b)).slice(0,S.pace||3);
+        d.list=near.map(x=>({...x}));
+        S.center=oc;
+      }
+    }
+    rebuildDay(i);
+  }
+  renderIti();
 }
 function suggestOnRoute(){
   const box=$("segSug"); if(!box)return;
@@ -3291,6 +3397,15 @@ async function generate(reshuffle){
 }
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
+function festivalBanner(d){
+  const fes=dayFestivals(d.date,d.center||S.iti.center,d.areas);
+  if(!fes.length)return "";
+  return `<div style="margin:8px 16px 0;background:linear-gradient(135deg,#FBF0F2,#F5EEE0);border:1px solid #E8C9CE;border-radius:12px;padding:10px 13px">
+    <div style="font-size:12.5px;font-weight:800;color:#A03B4A;margin-bottom:4px">🎉 這天有特別活動!</div>
+    ${fes.map(f=>`<div style="font-size:12.5px;color:#5C5346;margin-top:3px"><b>${f.e} ${f.n}</b> — ${f.desc}</div>`).join("")}
+    <div style="font-size:11px;color:#A39B87;margin-top:5px">活動日期每年略有調整,實際場次請查主辦官網</div>
+  </div>`;
+}
 const THUMB_CACHE={};
 async function loadStopThumbs(){
   const nodes=document.querySelectorAll(".stopThumb:not([data-done])");
@@ -3327,13 +3442,25 @@ async function loadStopThumbs(){
     applyThumb(el,pics);
   }
 }
+let _THUMBID=0;
 function applyThumb(el,pics){
   el.classList.remove("loading");
   if(pics&&pics.length){
-    const name=el.dataset.name||"";
-    const imgs=pics.slice(0,8).map((u,idx)=>`<img src="${u}" loading="lazy" alt="照片${idx+1}" onerror="this.style.display='none'">`).join("");
-    el.innerHTML=`<div class="thumbRow">${imgs}</div>${pics.length>1?`<div class="thumbCount">← 滑看 ${Math.min(pics.length,8)} 張・點開更多 →</div>`:""}`;
+    const nm=el.dataset.name||"";
+    const rid="tr"+(_THUMBID++);
+    const imgs=pics.slice(0,8).map((u,idx)=>`<img src="${u}" loading="lazy" alt="照片${idx+1}" onclick="openDetail('${(nm||"").replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join("");
+    const multi=pics.length>1;
+    el.innerHTML=`<div class="thumbWrap">
+      ${multi?`<button class="thumbNav prev" onclick="thumbScroll('${rid}',-1)" aria-label="上一張">‹</button>`:""}
+      <div class="thumbRow" id="${rid}">${imgs}</div>
+      ${multi?`<button class="thumbNav next" onclick="thumbScroll('${rid}',1)" aria-label="下一張">›</button>`:""}
+    </div>${multi?`<div class="thumbCount">${Math.min(pics.length,8)} 張・◀▶ 或滑動看更多</div>`:""}`;
   }else el.classList.add("none");
+}
+function thumbScroll(id,dir){
+  const row=document.getElementById(id);if(!row)return;
+  const step=row.querySelector("img")?row.querySelector("img").offsetWidth+8:210;
+  row.scrollBy({left:dir*step,behavior:"smooth"});
 }
 // Wikidata 實體代表圖 P18(飯店/名店官方圖;名稱比對避免張冠李戴)
 async function wikidataThumbs(name,cat){
@@ -3394,13 +3521,18 @@ function renderIti(){
   // ── 城市段順序調整 + 順路推薦(多城市行程) ──
   const groups=segGroups();
   if(groups.length>1){
-    const segChips=groups.map((g,gi)=>`<span style="background:#fff;border:2px solid var(--ai);color:var(--ai);border-radius:99px;padding:6px 10px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
-      ${gi>0?`<b style="cursor:pointer" onclick="moveSeg(${gi},-1)" title="往前移">◀</b>`:""}
-      ${gi+1}. ${g.name}(${g.len}天)
-      ${gi<groups.length-1?`<b style="cursor:pointer" onclick="moveSeg(${gi},1)" title="往後移">▶</b>`:""}
+    const segChips=groups.map((g,gi)=>`<span style="background:#fff;border:2px solid var(--ai);color:var(--ai);border-radius:99px;padding:6px 8px 6px 10px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:5px">
+      ${gi>0?`<b style="cursor:pointer;font-size:15px" onclick="moveSeg(${gi},-1)" title="往前移">◀</b>`:""}
+      <span>${gi+1}. ${g.name}</span>
+      <span style="display:inline-flex;align-items:center;gap:3px;background:var(--ai);color:#fff;border-radius:99px;padding:2px 4px">
+        <b style="cursor:pointer;padding:0 4px;font-size:15px" onclick="setSegDays(${gi},-1)" title="減一天">−</b>
+        <span style="min-width:30px;text-align:center;font-size:12.5px">${g.len}天</span>
+        <b style="cursor:pointer;padding:0 4px;font-size:15px" onclick="setSegDays(${gi},1)" title="加一天">＋</b>
+      </span>
+      ${gi<groups.length-1?`<b style="cursor:pointer;font-size:15px" onclick="moveSeg(${gi},1)" title="往後移">▶</b>`:""}
     </span>`).join('<span style="color:#A39B87">→</span>');
     $("wxBox").innerHTML+=`<div class="wxcard" style="background:#fff">
-      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">🔀 城市順序(點 ◀▶ 調整,日期/住宿/航班自動跟著換)</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">🔀 城市順序與天數(◀▶ 調順序・−＋ 改天數,行程即時重排)</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${segChips}
         <button onclick="suggestOnRoute()" style="border:1.5px solid var(--kin);background:#FBF6E8;color:#8A6A1E;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer">🧭 推薦順路城市</button>
       </div>
@@ -3409,7 +3541,7 @@ function renderIti(){
   }
   let h="";
   S.iti.days.forEach((d,i)=>{
-    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span>${d.date?`<span style="background:rgba(255,255,255,.16);color:#F4EFE2;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:700">📅 ${fmtMD(d.date)}</span>`:""}<span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div>${d.date?`<div class="dayWx" id="dayWx${i}" data-date="${d.date}" data-la="${(d.center||S.iti.center).la}" data-lo="${(d.center||S.iti.center).lo}"></div>`:""}<div class="rail">`;
+    h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span>${d.date?`<span style="background:rgba(255,255,255,.16);color:#F4EFE2;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:700">📅 ${fmtMD(d.date)}</span>`:""}<span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div>${d.date?`<div class="dayWx" id="dayWx${i}" data-date="${d.date}" data-la="${(d.center||S.iti.center).la}" data-lo="${(d.center||S.iti.center).lo}"></div>`:""}${d.date?festivalBanner(d):""}<div class="rail">`;
     const M=TMODES[S.iti.tmode||"transit"];
     (d.pre||[]).concat(d.stops).forEach(st=>{
       if(st.type==="note"){h+=`<div class="stop" style="padding-bottom:10px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:${st.warn?"#B4622A":"var(--ai-deep)"};font-weight:700;background:${st.warn?"#FBF0E2":"#EDF2F9"};border-radius:8px;padding:7px 10px">${st.txt}${st.warn?"<br><span style='font-weight:400'>⚠️ 行程稍趕,建議手動再移除一站</span>":""}</div></div>`;return}
@@ -4323,7 +4455,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r131"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r134"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
