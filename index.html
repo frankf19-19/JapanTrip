@@ -304,6 +304,10 @@ nav.bottom button.on{color:var(--ai)}
 .wxcard .wxemoji{font-size:34px}
 .wxcard .wxt{font-size:20px;font-weight:900;color:var(--ai-deep)}
 .wxcard .wxnote{font-size:12.5px;color:#5C5A50;margin-top:6px}
+.nameLines{margin:2px 0 6px}
+.nameLines>div{font-size:13px;color:#6E6754;margin-top:2px;line-height:1.5}
+.nameLines .nameEn{color:#5A6B7C;font-style:italic}
+.nameLines .nameTrans{color:var(--matcha);font-weight:700}
 .dayWx{padding:0 16px}
 .wxday{background:#F2F7FC;border:1px solid #DCE6F0;border-radius:12px;padding:9px 12px;margin:10px 0 4px}
 .wxday-ttl{font-size:12.5px;font-weight:700;color:var(--ai-deep)}
@@ -528,7 +532,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r141</span>
+    <span class="build">build r142</span>
   </div>
 </header>
 
@@ -762,7 +766,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r141
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r142
 </footer>
 
 <nav class="bottom">
@@ -3839,7 +3843,7 @@ function renderIti(){
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
         <div class="stopThumb" data-thumb="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.c,s.la,s.lo]))}" onclick="openDetail('${esc(s.n)}')" title="點看更多照片"></div>
-        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${s.j||""}</div>
+        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${[s.j&&s.j!==s.n?s.j:"",s.en?("· "+s.en):""].filter(Boolean).join(" ")}</div>
         <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
         ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${s.la},${s.lo}" target="_blank" rel="noopener">${s.ad}</a></div>`:""}
@@ -4107,17 +4111,46 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowRight")openLB(LB.i+1);
   if(e.key==="ArrowLeft")openLB(LB.i-1);
 });
+async function translateName(text,target){
+  // 免費翻譯:MyMemory API(免金鑰);快取避免重複
+  try{
+    if(!text)return "";
+    translateName._c=translateName._c||{};
+    const ck=target+"|"+text;
+    if(translateName._c[ck]!==undefined)return translateName._c[ck];
+    const r=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ja|${target}`);
+    const d=await r.json();
+    const out=(d.responseData&&d.responseData.translatedText)||"";
+    translateName._c[ck]=out;
+    return out;
+  }catch(e){return ""}
+}
+function isJapanese(t){return /[\u3040-\u30ff\u4e00-\u9fff]/.test(t)&&!/[\uff01-\uff5e]/.test(t)}
+async function fillTransName(s){
+  const box=$("dTrans");if(!box)return;
+  // 顯示名 s.n 若是日文、且沒有現成中文 → 即時翻中文
+  const looksJa=/[\u3040-\u30ff]/.test(s.n)||(s.j&&s.j===s.n);
+  if(!looksJa)return;
+  const zh=await translateName(s.j||s.n,"zh-TW");
+  if(zh&&zh!==(s.j||s.n))box.innerHTML=`🇹🇼 ${zh} <span style="font-size:10px;color:#A39B87">(自動翻譯,僅供參考)</span>`;
+}
 function openDetail(name,fromPop){
   const s=findByName(name); if(!s)return;
   if(!fromPop)history.pushState({pane:(history.state&&history.state.pane)||"home",detail:name},"","#spot");
   const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
   const gmap="https://www.google.com/maps/search/?api=1&query="+s.la+","+s.lo;
   const grev="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((s.j||s.n)+" "+(s.ad||""));
+  setTimeout(()=>fillTransName(s),50);
   $("dPanel").innerHTML=`
     <div class="d-hero"><div class="fb">${FB[s.c]||"📍"}</div><img id="dImg" alt="${s.n}" title="點我放大" style="cursor:zoom-in" onclick="if(LB.pics.length)openLB(LB.i)"><button class="d-close" onclick="closeDetail()">✕</button></div>
     <div class="d-gal" id="dGal"></div>
     <div class="d-bd">
-      <h3>${s.n}</h3><div class="ja">${s.j||""}</div>
+      <h3>${s.n}</h3>
+      <div class="nameLines">
+        ${s.en?`<div class="nameEn">🔤 ${s.en}</div>`:""}
+        ${s.j&&s.j!==s.n?`<div class="ja">🇯🇵 ${s.j}</div>`:""}
+        <div id="dTrans" class="nameTrans"></div>
+      </div>
       ${(s.c==="hotel"&&window._PICKFOR)?`<button onclick="pickHotelByName('${esc(s.n)}')" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:13px;font-size:15.5px;font-weight:800;font-family:var(--font-b);cursor:pointer;margin:10px 0 4px">✓ 選這間住 DAY ${window._PICKFOR.di+1}</button>`:""}
       <div class="d-meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
@@ -4733,7 +4766,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r141"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r142"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
