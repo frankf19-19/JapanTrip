@@ -511,7 +511,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r129</span>
+    <span class="build">build r130</span>
   </div>
 </header>
 
@@ -737,7 +737,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r129
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r130
 </footer>
 
 <nav class="bottom">
@@ -3296,22 +3296,24 @@ async function loadStopThumbs(){
     if(THUMB_CACHE[key]!==undefined){applyThumb(el,THUMB_CACHE[key]);continue}
     let pics=[];
     try{
-      // 景點:維基相簿(可證實);其餘:座標 150m 周邊實地照(僅景點)
       const tries=[];
       if(j)tries.push([j.split(" ")[0],"ja"]);
       tries.push([n.split("・")[0].split("(")[0],"zh"]);
       if(c==="spot"){
+        // 景點:維基相簿(可多張)→ 座標周邊實地照
         for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
-        if(!pics.length&&Number.isFinite(+la)){
+        if(pics.length<2&&Number.isFinite(+la)){
           try{
-            const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=150&ggslimit=3&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=220`;
+            const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=150&ggslimit=4&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=220`;
             const r=await fetch(u);const d=await r.json();
-            pics=Object.values((d.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]).map(p=>p.imageinfo[0].thumburl);
+            const geo=Object.values((d.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]).map(p=>p.imageinfo[0].thumburl);
+            pics=[...new Set(pics.concat(geo))];
           }catch(e){}
         }
       }else{
-        // 商家:只用維基相簿(有條目才顯示,避免張冠李戴)
-        for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
+        // 飯店/商家:① Wikidata P18 官方代表圖 ② 維基相簿(名稱比對)
+        pics=await wikidataThumbs(j||n,c);
+        if(!pics.length)for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
       }
     }catch(e){}
     THUMB_CACHE[key]=pics;
@@ -3324,6 +3326,28 @@ function applyThumb(el,pics){
     el.style.backgroundImage=`url("${pics[0]}")`;
     if(pics.length>1)el.classList.add("multi");
   }else el.classList.add("none");
+}
+// Wikidata 實體代表圖 P18(飯店/名店官方圖;名稱比對避免張冠李戴)
+async function wikidataThumbs(name,cat){
+  try{
+    const GEN=new Set(["食堂","餐廳","飯店","酒店","旅館","ホテル","カフェ","cafe","hotel","the","and","nikko","tokyo","osaka","kyoto"]);
+    const toks=[...new Set(name.split(/[\s,、・()\-]+/).map(x=>x.trim()).filter(x=>x&&!GEN.has(x.toLowerCase())&&(/[a-z]/i.test(x)?x.length>=4:x.length>=2)))].slice(0,4);
+    if(!toks.length)return [];
+    const hasTok=t=>{const tl=(t||"").toLowerCase();return toks.some(k=>tl.includes(k.toLowerCase()))};
+    for(const lg of ["ja","en","zh"]){
+      const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&origin=*&type=item&limit=3&language=${lg}&uselang=${lg}&search=${encodeURIComponent(name)}`);
+      const hits=((await r.json()).search||[]).filter(x=>hasTok(x.label)||hasTok(x.description||""));
+      for(const hit of hits){
+        const r2=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&format=json&origin=*&entity=${hit.id}&property=P18`);
+        const cl=((await r2.json()).claims||{}).P18||[];
+        if(cl.length){
+          return cl.slice(0,4).map(c=>{const f=c.mainsnak.datavalue.value.replace(/ /g,"_");
+            return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(f)}?width=220`});
+        }
+      }
+    }
+  }catch(e){}
+  return [];
 }
 // 維基相簿縮圖(首 N 張 url)
 async function wikiThumbs(title,lang){
@@ -3449,7 +3473,9 @@ function renderHotelBlock(d,i){
         <button onclick="changeHotel(${i})">🔄 換其他推薦</button>
         <button onclick="removeHotel(${i})">✕ 移除</button>
       </div>
-    </div></div></div>`;
+    </div>
+    <div class="stopThumb" data-thumb="${encodeURIComponent(JSON.stringify([ht.j||"",ht.n,ht.c||"hotel",ht.la,ht.lo]))}" onclick="openDetail('${esc(ht.n)}')" title="點看更多照片"></div>
+    </div></div>`;
 }
 /* ═══ 住宿編輯 ═══ */
 function hotelPool(di){
@@ -3791,9 +3817,9 @@ function openDetail(name,fromPop){
               const r2=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetclaims&format=json&origin=*&entity=${hit.id}&property=P18`);
               const cl=((await r2.json()).claims||{}).P18||[];
               if(cl.length){
-                const file=cl[0].mainsnak.datavalue.value.replace(/ /g,"_");
-                pics=[{t:`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=440`,
-                       f:`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}`}];
+                pics=cl.slice(0,6).map(c=>{const file=c.mainsnak.datavalue.value.replace(/ /g,"_");
+                  return {t:`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=440`,
+                          f:`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}`}});
                 break;
               }
             }
@@ -4289,7 +4315,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r129"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r130"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
