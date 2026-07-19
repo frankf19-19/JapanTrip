@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r114</span>
+    <span class="build">build r115</span>
   </div>
 </header>
 
@@ -712,7 +712,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r114
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r115
 </footer>
 
 <nav class="bottom">
@@ -3936,7 +3936,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r114"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r115"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -3994,7 +3994,8 @@ async function loadAllJapanSilent(){
   }
   updateDbStat();renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
-  toast("💾 全日本資料已就緒("+wan(DB.length)+" 筆)");
+  idbSet("_full",{ts:Date.now()}); // 記住已全載,下次開站自動還原
+  toast("✅ 全日本資料已全數就緒("+wan(DB.length)+" 筆)");
 }
 async function forceRefreshDB(){
   closeDetail();
@@ -4043,7 +4044,13 @@ async function preloadMetros(){
   if(addSum){
     renderHomePicks();
     if($("pane-explore").classList.contains("on"))renderExplore();
-    toast("🌆 都市圈載入完成 +"+addSum.toLocaleString()+" 筆(全庫 "+DB.length.toLocaleString()+" 筆,點左下角看分類統計)");
+    toast("🌆 主要都市圈就緒 "+wan(DB.length)+" 筆,持續在背景載入全日本…");
+  }
+  // ★ 都市圈載入完 → 自動接續把全日本剩餘分區載滿(背景靜默,無需手動)
+  //   省流量/2G 才停在都市圈
+  const con2=navigator.connection||{};
+  if(!(con2.saveData||/^(slow-2g|2g)$/.test(con2.effectiveType||""))){
+    setTimeout(loadAllJapanSilent,1200);
   }
 }
 // 定位後自動載入該區
