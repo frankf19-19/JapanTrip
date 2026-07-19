@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r108</span>
+    <span class="build">build r110</span>
   </div>
 </header>
 
@@ -711,7 +711,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r108
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r110
 </footer>
 
 <nav class="bottom">
@@ -2545,6 +2545,76 @@ function setupFlights(){
   rebuildDay(0);
   if(it.days.length>1||!(F.inAp&&F.inT!=null))rebuildDay(it.days.length-1);
 }
+/* ═══ 城市段:分組/移動/順路推薦 ═══ */
+function segGroups(){
+  const it=S.iti; if(!it)return [];
+  const gs=[];
+  it.days.forEach((d,i)=>{
+    const nm=(d.center&&d.center.n?d.center.n:(it.center?it.center.n:"")).split(",")[0];
+    const last=gs[gs.length-1];
+    if(last&&last.name===nm){last.len++;last.end=i}
+    else gs.push({name:nm,start:i,end:i,len:1,la:d.center?d.center.la:it.center.la,lo:d.center?d.center.lo:it.center.lo});
+  });
+  return gs;
+}
+function moveSeg(gi,dir){
+  const it=S.iti; if(!it)return;
+  const gs=segGroups(); const gj=gi+dir;
+  if(gj<0||gj>=gs.length)return;
+  // 位置屬性(航班日/機場倒推/末夜)先取下
+  const sm0=it.days[0]?it.days[0].startMin:undefined;
+  const apOut=it.days[it.days.length-1]?it.days[it.days.length-1].airportOut:undefined;
+  // 依群組重排 days
+  const order=gs.map((g,i)=>i); order[gi]=gj; order[gj]=gi;
+  const nd=[];
+  order.forEach(i=>{for(let k=gs[i].start;k<=gs[i].end;k++)nd.push(it.days[k])});
+  it.days=nd;
+  it.days.forEach(d=>{delete d.startMin;delete d.airportOut;d.lastNight=false});
+  if(sm0!=null)it.days[0].startMin=sm0;
+  if(apOut!=null)it.days[it.days.length-1].airportOut=apOut;
+  it.days[it.days.length-1].lastNight=true;
+  if(it.dateIn)it.days.forEach((d,i)=>{d.date=addD(it.dateIn,i)});
+  for(let i=0;i<it.days.length;i++)rebuildDay(i);
+  renderIti();
+  toast("🔀 已調整順序:"+segGroups().map(g=>g.name).join(" → "));
+}
+function suggestOnRoute(){
+  const box=$("segSug"); if(!box)return;
+  const gs=segGroups(); if(gs.length<2){box.innerHTML="";return}
+  const inRoute=new Set(gs.map(g=>g.name));
+  const sug=[];
+  for(let i=0;i<gs.length-1;i++){
+    const A=gs[i],B=gs[i+1];
+    const leg=dist(A.la,A.lo,B.la,B.lo);
+    CITIES.forEach(c=>{
+      if(inRoute.has(c.n))return;
+      const det=dist(A.la,A.lo,c.la,c.lo)+dist(c.la,c.lo,B.la,B.lo)-leg;
+      if(det<=Math.max(30,leg*0.3))sug.push({c,det,i,A:A.name,B:B.name});
+    });
+  }
+  sug.sort((a,b)=>a.det-b.det);
+  const seen=new Set(),top=[];
+  for(const x of sug){if(!seen.has(x.c.n)){seen.add(x.c.n);top.push(x);if(top.length>=6)break}}
+  box.innerHTML=top.length?`<div style="font-size:12.5px;color:#8A8272;margin-bottom:6px">這些城市加進去幾乎不繞路(點擊加入 1 天並重新生成):</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${top.map(x=>`<button onclick="addSegCity('${esc(x.c.n)}',${x.i})" style="border:1.5px solid var(--shu);background:#fff;color:var(--shu);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer">＋${x.c.n} <span style="color:#A39B87;font-weight:400">(${x.A}→${x.B} 間・繞 ${Math.round(x.det)}km)</span></button>`).join("")}</div>`
+    :'<div style="font-size:12.5px;color:#8A8272">目前路線之間沒有明顯順路的城市(繞路都超過 30km)</div>';
+}
+function addSegCity(name,afterGi){
+  const city=CITIES.find(c=>c.n===name); if(!city)return;
+  const gs=segGroups(); const n=gs.length+1;
+  // 以目前段序重建 centers(連接制天數),插入新城市 1 天
+  const centers=[];
+  gs.forEach((g,i)=>{
+    centers.push({n:g.name,la:g.la,lo:g.lo,dd:String(g.len+(i<gs.length-1?1:0))}); // excl→incl
+    if(i===afterGi)centers.push({n:city.n,la:city.la,lo:city.lo,dd:"2"}); // 1 獨立天
+  });
+  // 修正:插入後非最後段的 incl 需 +1 交界 — 已在上面以原段處理;新城市 dd=2(=1天)
+  S.centers=centers; S.center={...centers[0]};
+  S.days=(S.iti&&S.iti.days?S.iti.days.length:S.days)+1;
+  syncDaysUI(); S.keepOrder=true;
+  toast("＋已加入 "+city.n+" 1 天,重新生成中…(手動調整會重置)");
+  setTimeout(()=>generate(),150);
+}
 function setItiTmode(m){
   if(!S.iti)return;
   S.iti.tmode=m;S.tmode=m;
@@ -2973,7 +3043,8 @@ async function generate(reshuffle){
   let route=multi?[...S.centers]:[{...S.center}];
   if(multi){
     const hasDup=new Set(route.map(c=>c.n)).size!==route.length;
-    if(hasDup){
+    if(S.keepOrder){S.keepOrder=false;/* 依目前段序生成 */}
+    else if(hasDup){
       // 有重複城市(如最後回東京):尊重你加入的順序,不做順路重排
       toast("🔁 偵測到重複城市,依你排定的順序生成");
     }else{ // 依地理順路重排(從第一個地點出發,貪婪最近鄰)
@@ -3070,6 +3141,22 @@ function renderIti(){
     fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">移動時間以此估算:${tBtns}<span style="color:#A39B87">(點擊切換,全行程即時重算)</span></div></div></div></div>`;
   }
   $("wxBox").innerHTML+=fRow;
+  // ── 城市段順序調整 + 順路推薦(多城市行程) ──
+  const groups=segGroups();
+  if(groups.length>1){
+    const segChips=groups.map((g,gi)=>`<span style="background:#fff;border:2px solid var(--ai);color:var(--ai);border-radius:99px;padding:6px 10px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+      ${gi>0?`<b style="cursor:pointer" onclick="moveSeg(${gi},-1)" title="往前移">◀</b>`:""}
+      ${gi+1}. ${g.name}(${g.len}天)
+      ${gi<groups.length-1?`<b style="cursor:pointer" onclick="moveSeg(${gi},1)" title="往後移">▶</b>`:""}
+    </span>`).join('<span style="color:#A39B87">→</span>');
+    $("wxBox").innerHTML+=`<div class="wxcard" style="background:#fff">
+      <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px">🔀 城市順序(點 ◀▶ 調整,日期/住宿/航班自動跟著換)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${segChips}
+        <button onclick="suggestOnRoute()" style="border:1.5px solid var(--kin);background:#FBF6E8;color:#8A6A1E;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer">🧭 推薦順路城市</button>
+      </div>
+      <div id="segSug" style="margin-top:8px"></div>
+    </div>`;
+  }
   let h="";
   S.iti.days.forEach((d,i)=>{
     h+=`<div class="day-card"><div class="day-hd"><span class="dnum">DAY ${i+1}</span>${d.date?`<span style="background:rgba(255,255,255,.16);color:#F4EFE2;border-radius:8px;padding:3px 10px;font-size:12.5px;font-weight:700">📅 ${fmtMD(d.date)}</span>`:""}<span class="darea">${S.iti.multi&&d.center?("📍 "+d.center.n.split(",")[0]+"|"):""}${d.areas}</span><span class="dstat">${d.list.length} 個景點</span></div><div class="rail">`;
