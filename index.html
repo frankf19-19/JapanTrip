@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r117</span>
+    <span class="build">build r118</span>
   </div>
 </header>
 
@@ -712,7 +712,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r117
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r118
 </footer>
 
 <nav class="bottom">
@@ -2303,7 +2303,7 @@ S.homeCat="all";
     // ★ 版本偵測(先於任何載入):管線重跑後自動汰換本機快取
     await checkDbVersion();
     // 一律:先快速載都市圈,再自動接續載滿全日本(不論本機有無旗標)
-    setTimeout(preloadMetros,800);
+    setTimeout(loadAllJapanSilent,600);
   }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
 })();
 const SHOP_QUICK=[["超商","🏪"],["藥妝","💊"],["激安雜貨","🛒"],["服飾","👕"],["電器","📷"],["動漫電玩","🕹️"]];
@@ -3935,7 +3935,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r117"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r118"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -3983,29 +3983,27 @@ function dbStatInfo(){
 }
 async function loadAllJapanSilent(){
   if(!window._OSMIDX||!window._OSMIDX.length){
-    // index 還沒載到 → 重抓一次再啟動
     try{const r=await fetch("data/osm/index.json",{cache:"no-cache"});if(r.ok)window._OSMIDX=await r.json()}catch(e){}
-    if(!window._OSMIDX||!window._OSMIDX.length){setTimeout(loadAllJapanSilent,1500);return}
+    if(!window._OSMIDX||!window._OSMIDX.length){setTimeout(loadAllJapanSilent,2000);return}
   }
-  let keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3);
-  if(!keys.length){
-    // 可能是 OSMFAIL 卡住 → 清失敗計數再試一次(排除因逾時被跳過的格)
-    const failed=window._OSMIDX.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)>=3);
-    if(failed.length){failed.forEach(k=>OSMFAIL[k]=0);keys=failed}
-    else{idbSet("_full",{ts:Date.now()});updateDbStat();return} // 真的全載了
+  // 都市圈排前面(熱門城市先出現),其餘全接上 = 強制載滿全部 115 格
+  const metro=METRO_CELLS.filter(k=>window._OSMIDX.includes(k));
+  const rest=window._OSMIDX.filter(k=>!METRO_CELLS.includes(k));
+  const all=[...metro,...rest];
+  const total=all.length;
+  for(let i=0;i<all.length;i+=6){
+    const batch=all.slice(i,i+6).filter(k=>!OSMCELLS.has(k)); // 已載跳過(本機快取秒回)
+    if(batch.length){batch.forEach(k=>{if(OSMFAIL[k])OSMFAIL[k]=0}); await loadCellKeys(batch);}
+    updateDbStat("🗾 載入全日本 "+OSMCELLS.size+"/"+total+" 格 ・"+wan(DB.length)+" 筆");
+    if((i/6)%5===0){renderHomePicks();if($("pane-explore").classList.contains("on"))renderExplore()}
   }
-  let done=0;
-  for(let i=0;i<keys.length;i+=8){ // 批次 8 格(本機快取秒回,網路則逐批下載)
-    const batch=keys.slice(i,i+8);
-    await loadCellKeys(batch);
-    done+=batch.length;
-    updateDbStat("🗾 載入全日本 "+Math.min(done,keys.length)+"/"+keys.length+" ・"+wan(DB.length)+" 筆");
-    if(done%24===0){renderHomePicks();if($("pane-explore").classList.contains("on"))renderExplore()}
-  }
+  // 收尾補漏(網路失敗的格再試一輪)
+  const miss=all.filter(k=>!OSMCELLS.has(k));
+  for(const k of miss){OSMFAIL[k]=0;await loadCellKeys([k]);updateDbStat("🗾 補載 "+OSMCELLS.size+"/"+total+" 格 ・"+wan(DB.length)+" 筆");}
   updateDbStat();renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
   idbSet("_full",{ts:Date.now()});
-  toast("✅ 全日本資料已全數就緒("+wan(DB.length)+" 筆)");
+  toast("✅ 全日本 "+OSMCELLS.size+"/"+total+" 格已就緒("+wan(DB.length)+" 筆)");
 }
 async function forceRefreshDB(){
   closeDetail();
@@ -4017,7 +4015,7 @@ async function forceRefreshDB(){
   updateDbStat();renderHomePicks();
   toast("🔄 已清除本機快取,重新載入最新資料…");
   const full=await idbGet("_full");
-  if(full)loadAllJapanSilent(); else preloadMetros();
+  loadAllJapanSilent();
 }
 async function loadAllJapan(){
   closeDetail();
