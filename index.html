@@ -225,7 +225,14 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .stop .dot{width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--shu);flex-shrink:0;margin-top:2px;position:relative;z-index:1}
 .stop.meal .dot{border-color:var(--kin)}
 .stop.hotel .dot{border-color:var(--matcha)}
-.stop .info{flex:1;margin-top:-3px}
+.stop .info{flex:1;margin-top:-3px;min-width:0}
+.stopThumb{width:104px;height:78px;flex-shrink:0;border-radius:12px;background:#EDE8DC center/cover no-repeat;border:1px solid var(--line);cursor:pointer;position:relative;overflow:hidden;order:3;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:transform .15s}
+.stopThumb:hover{transform:scale(1.03)}
+.stopThumb.loading::after{content:"📷";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.3}
+.stopThumb.multi::before{content:"📷＋";position:absolute;right:5px;bottom:4px;font-size:10px;font-weight:700;color:#fff;background:rgba(32,48,63,.72);border-radius:6px;padding:1px 6px;z-index:2}
+.stopThumb.none{background:#EDE8DC}
+.stopThumb.none::after{content:"🏞️";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;opacity:.35}
+@media(max-width:700px){.stopThumb{width:76px;height:60px}}
 .stop .info h4{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;line-height:1.45}
 .stop .info h4 .rmv{margin-left:auto}
 .stop .info .ja{font-size:11px;color:#A39B87}
@@ -504,7 +511,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r127</span>
+    <span class="build">build r128</span>
   </div>
 </header>
 
@@ -730,7 +737,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r127
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r128
 </footer>
 
 <nav class="bottom">
@@ -2615,6 +2622,7 @@ async function loadDaysWeather(){
     el.dataset.done=1;
   }
 }
+let _SNOW_SHOWN=new Set(); // 每次 renderIti 重置;同一雪區每天只提醒一次
 function snowNote(st){
   try{
     if(!st||!st.g||!S.iti)return "";
@@ -2622,12 +2630,13 @@ function snowNote(st){
     const isWinter=(m>=12||m<=3);
     const isDrive=((S.iti.tmode||"transit")!=="transit");
     if(!isWinter||!isDrive)return "";
-    // 交通段起訖任一端落在雪區
     const pts=[st.f,st.g].filter(Boolean);
     for(const z of SNOW_ZONES){
       for(const p of pts){
         if(p[0]>=z.la[0]&&p[0]<=z.la[1]&&p[1]>=z.lo[0]&&p[1]<=z.lo[1]){
-          return `<div style="margin-top:4px;font-size:12px;color:#8A6A1E;background:#FBF6E8;border:1px solid var(--kin);border-radius:8px;padding:5px 9px">❄️ 途經「${z.n}」冬季易積雪/封路 — 出發前務必查即時路況(日本道路交通情報 JARTIC),自駕請備雪胎/鏈</div>`;
+          if(_SNOW_SHOWN.has(z.n))return ""; // 已提醒過同一區,不重複
+          _SNOW_SHOWN.add(z.n);
+          return `<div style="margin-top:4px;font-size:12px;color:#8A6A1E;background:#FBF6E8;border:1px solid var(--kin);border-radius:8px;padding:5px 9px">❄️ 途經「${z.n}」冬季易積雪 — 查即時路況(JARTIC),自駕備雪胎/鏈</div>`;
         }
       }
     }
@@ -3244,8 +3253,60 @@ async function generate(reshuffle){
 }
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
+const THUMB_CACHE={};
+async function loadStopThumbs(){
+  const nodes=document.querySelectorAll(".stopThumb:not([data-done])");
+  for(const el of nodes){
+    el.dataset.done="1"; el.classList.add("loading");
+    let meta;try{meta=JSON.parse(decodeURIComponent(el.dataset.thumb))}catch(e){el.classList.remove("loading");el.classList.add("none");continue}
+    const [j,n,c,la,lo]=meta;
+    const key=n+"@"+la;
+    if(THUMB_CACHE[key]!==undefined){applyThumb(el,THUMB_CACHE[key]);continue}
+    let pics=[];
+    try{
+      // 景點:維基相簿(可證實);其餘:座標 150m 周邊實地照(僅景點)
+      const tries=[];
+      if(j)tries.push([j.split(" ")[0],"ja"]);
+      tries.push([n.split("・")[0].split("(")[0],"zh"]);
+      if(c==="spot"){
+        for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
+        if(!pics.length&&Number.isFinite(+la)){
+          try{
+            const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=150&ggslimit=3&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=220`;
+            const r=await fetch(u);const d=await r.json();
+            pics=Object.values((d.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]).map(p=>p.imageinfo[0].thumburl);
+          }catch(e){}
+        }
+      }else{
+        // 商家:只用維基相簿(有條目才顯示,避免張冠李戴)
+        for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
+      }
+    }catch(e){}
+    THUMB_CACHE[key]=pics;
+    applyThumb(el,pics);
+  }
+}
+function applyThumb(el,pics){
+  el.classList.remove("loading");
+  if(pics&&pics.length){
+    el.style.backgroundImage=`url("${pics[0]}")`;
+    if(pics.length>1)el.classList.add("multi");
+  }else el.classList.add("none");
+}
+// 維基相簿縮圖(首 N 張 url)
+async function wikiThumbs(title,lang){
+  try{
+    const api=`https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages|images&piprop=thumbnail&pithumbsize=220&titles=${encodeURIComponent(title)}`;
+    const r=await fetch(api);const d=await r.json();
+    const pages=(d.query||{}).pages||{};
+    const out=[];
+    for(const k in pages){if(pages[k].thumbnail&&pages[k].thumbnail.source)out.push(pages[k].thumbnail.source)}
+    return out;
+  }catch(e){return []}
+}
 function renderIti(){
   if(!S.iti){return}
+  _SNOW_SHOWN=new Set(); // 重置雪區提醒去重
   $("itiActions").style.display="flex";
   const c=climate(S.iti.month,S.iti.center);
   $("wxBox").innerHTML=`<div class="wxcard"><div class="wxtop"><span class="wxemoji">${c.emoji}</span>
@@ -3265,6 +3326,7 @@ function renderIti(){
   }
   $("wxBox").innerHTML+=fRow;
   setTimeout(loadDaysWeather,300); // 有選日期的天,抓當天逐時預報
+  setTimeout(loadStopThumbs,150);    // 每個景點旁載照片縮圖
   // ── 城市段順序調整 + 順路推薦(多城市行程) ──
   const groups=segGroups();
   if(groups.length>1){
@@ -3302,6 +3364,7 @@ function renderIti(){
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
+        <div class="stopThumb" data-thumb="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.c,s.la,s.lo]))}" onclick="openDetail('${esc(s.n)}')" title="點看更多照片"></div>
         <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${s.j||""}</div>
         <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
@@ -4194,7 +4257,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r127"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r128"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
