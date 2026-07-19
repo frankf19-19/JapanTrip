@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r113</span>
+    <span class="build">build r114</span>
   </div>
 </header>
 
@@ -645,6 +645,7 @@ button{transition:transform .15s ease}
     </div>
     <a href="javascript:void(0)" onclick="goExplore(S.homeCat)" style="margin-left:auto;font-size:13px;color:var(--ai);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--ai)">更多 ›</a>
   </div>
+  <div id="shopQuick" style="display:none;gap:6px;flex-wrap:wrap;margin:-4px 0 12px"></div>
   <div class="grid" id="homePicks"></div>
 </section>
 
@@ -711,7 +712,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r113
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r114
 </footer>
 
 <nav class="bottom">
@@ -1520,9 +1521,10 @@ function loadIti(i){
   S.iti.days.forEach((d,di)=>rebuildDay(di));
   renderCenter(); renderIti(); showPane("iti"); toast("已載入行程:"+it.name);
 }
-function setCat(el){S.cat=el.dataset.c;S.expN=60;
+function setCat(el){S.cat=el.dataset.c;S.expN=60;if(S.shopSub)S.shopSub.clear();
   document.querySelectorAll("#catTabs button").forEach(b=>b.classList.remove("on"));el.classList.add("on");
   renderSubFilter();renderExplore()}
+const SHOP_SUB=["超商","藥妝","服飾","電器","激安雜貨","二手古著","動漫電玩","市場老街","美食巡禮","美酒微醺","娛樂"];
 function renderSubFilter(){
   const box=$("subFilter"); if(!box)return;
   if(S.cat==="hotel"){
@@ -1536,6 +1538,11 @@ function renderSubFilter(){
       +`<span style="font-size:12px;color:#8A8272;align-self:center;margin-left:6px">價位(可複選):</span>`
       +`<label class="${S.fPrice.size===0?"on":""}" onclick="S.fPrice.clear();renderSubFilter();renderExplore()">全部</label>`
       +["平價","中檔","高級"].map(t=>`<label class="${S.fPrice.has(t)?"on":""}" onclick="S.fPrice.has('${t}')?S.fPrice.delete('${t}'):S.fPrice.add('${t}');renderSubFilter();renderExplore()">${t}</label>`).join("");
+  }else if(S.cat==="shop"){
+    S.shopSub=S.shopSub||new Set();
+    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">類型(可複選):</span>`
+      +`<label class="${S.shopSub.size===0?"on":""}" onclick="S.shopSub.clear();renderSubFilter();renderExplore()">全部</label>`
+      +SHOP_SUB.map(t=>`<label class="${S.shopSub.has(t)?"on":""}" onclick="S.shopSub.has('${t}')?S.shopSub.delete('${t}'):S.shopSub.add('${t}');renderSubFilter();renderExplore()">${t}</label>`).join("");
   }else box.innerHTML="";
 }
 function renderHeroLoc(){
@@ -2300,16 +2307,28 @@ S.homeCat="all";
     else setTimeout(preloadMetros,800); // 背景預載大都市圈
   }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
 })();
+const SHOP_QUICK=[["超商","🏪"],["藥妝","💊"],["激安雜貨","🛒"],["服飾","👕"],["電器","📷"],["動漫電玩","🕹️"]];
+function renderShopQuick(){
+  const box=$("shopQuick"); if(!box)return;
+  if(S.homeCat==="shop"){
+    box.style.display="flex";
+    box.innerHTML=`<span style="font-size:12px;color:#8A8272;align-self:center">找附近:</span>`+
+      SHOP_QUICK.map(([t,e])=>`<button onclick="goExplore('shop','${t}')" style="border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 13px;font-size:13px;font-weight:700;font-family:var(--font-b);cursor:pointer">${e} ${t}</button>`).join("");
+  }else box.style.display="none";
+}
 function setHomeCat(el){
   S.homeCat=el.dataset.c;S.homeN=24;
   document.querySelectorAll("#homeCatChips label").forEach(l=>l.classList.remove("on"));
   el.classList.add("on");
+  renderShopQuick();
   renderHomePicks();
 }
-function goExplore(cat){
+function goExplore(cat,sub){
   if(cat&&cat!=="all"){
     S.cat=cat;
     document.querySelectorAll("#catTabs button").forEach(b=>b.classList.toggle("on",b.dataset.c===cat));
+    if(sub){S.shopSub=S.shopSub||new Set();S.shopSub.clear();S.shopSub.add(sub)}
+    else if(S.shopSub)S.shopSub.clear();
     renderSubFilter();
   }
   showPane("explore");renderExplore();
@@ -2345,6 +2364,7 @@ function renderExplore(){
     if(S.fCui.size)list=list.filter(s=>S.fCui.has(foodCui(s)));
     if(S.fPrice.size)list=list.filter(s=>{const p=foodPrice(s);return p&&S.fPrice.has(p)});
   }
+  if(S.cat==="shop"&&S.shopSub&&S.shopSub.size)list=list.filter(s=>(s.t||[]).some(t=>S.shopSub.has(t)));
   if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
   const m=$("sortSel").value;
   list.sort((a,b)=>m==="pop"?(((b.rt?1:0)-(a.rt?1:0))||(b.p||0)-(a.p||0)||((b.rt||0)-(a.rt||0))):m==="stay"?(a.s||0)-(b.s||0):dKm(a)-dKm(b));
@@ -3916,7 +3936,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r113"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r114"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
