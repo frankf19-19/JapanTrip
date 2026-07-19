@@ -520,9 +520,10 @@ button{transition:transform .15s ease}
       <button id="nt-explore" onclick="showPane('explore')">探索景點</button>
       <button id="nt-iti" onclick="showPane('iti')">我的行程</button>
       <button id="nt-map" onclick="showPane('map')">地圖</button>
+      <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r134</span>
+    <span class="build">build r136</span>
   </div>
 </header>
 
@@ -726,6 +727,14 @@ button{transition:transform .15s ease}
   <div class="grid" id="favGrid"></div>
 </section>
 
+<!-- ═══ 節慶專區 ═══ -->
+<section class="pane" id="pane-fest">
+  <h2 class="sec">日本節慶行事曆 <small>FESTIVALS</small></h2>
+  <p style="color:#8A8272;font-size:13.5px;margin:-6px 0 14px">每年固定或規律舉辦的大型活動,依月份瀏覽。實際日期每年略有調整,出發前請查主辦官網。</p>
+  <div class="chips" id="festMonChips" style="margin-bottom:14px"></div>
+  <div id="festList"></div>
+</section>
+
 <!-- ═══ 地圖頁 ═══ -->
 <section class="pane" id="pane-map">
   <h2 class="sec">行程地圖 <small>MAP</small></h2>
@@ -748,7 +757,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r134
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r136
 </footer>
 
 <nav class="bottom">
@@ -756,6 +765,7 @@ button{transition:transform .15s ease}
   <button id="nb-explore" onclick="showPane('explore')"><span class="ic">🧭</span>探索</button>
   <button id="nb-iti" onclick="showPane('iti')"><span class="ic">📋</span>行程</button>
   <button id="nb-map" onclick="showPane('map')"><span class="ic">🗺️</span>地圖</button>
+  <button id="nb-fest" onclick="showPane('fest')"><span class="ic">🎉</span>節慶</button>
   <button id="nb-fav" onclick="showPane('fav')"><span class="ic">♥</span>最愛</button>
 </nav>
 
@@ -1429,7 +1439,7 @@ function showPane(k,fromPop){
   document.querySelectorAll("section.pane").forEach(s=>s.classList.remove("on"));
   $("pane-"+k).classList.add("on");
   setTimeout(()=>{try{renderMiniMap()}catch(e){}},30); // 小地圖只在規劃頁出現
-  ["home","explore","iti","map"].forEach(x=>{
+  ["home","explore","iti","map","fest","fav"].forEach(x=>{
     const a=$("nt-"+x),b=$("nb-"+x);
     if(a)a.classList.toggle("on",x===k); if(b)b.classList.toggle("on",x===k);
   });
@@ -1437,6 +1447,7 @@ function showPane(k,fromPop){
   if(k==="explore")renderExplore();
   if(k==="fav")renderFav();
   if(k==="map")setTimeout(renderMap,60);
+  if(k==="fest")renderFestPage();
   window.scrollTo({top:0});
 }
 
@@ -2629,38 +2640,65 @@ const SNOW_ZONES=[
 // ── 當天逐時天氣預報(Open-Meteo,免費免金鑰;預報僅未來~16天內有效) ──
 // ═══ 日本節慶行事曆(每年固定/規律的大型活動;僅收時間穩定可預期者) ═══
 const FESTIVALS=[
-  // 冬季燈飾・聖誕(11月中~12/25,全國主要城市)
-  {m:11,d1:15,m2:12,d2:25,n:"聖誕燈飾・聖誕市集",e:"🎄",city:["東京","橫濱","大阪","名古屋","札幌","神戶","福岡"],desc:"車站廣場與百貨周邊聖誕市集、燈飾點燈(如東京六本木、惠比壽、橫濱紅磚倉庫、大阪梅田)"},
-  {m:12,d1:1,m2:12,d2:25,n:"德國聖誕市集",e:"🎅",city:["橫濱","大阪","札幌","東京"],desc:"紅磚倉庫/梅田/大通公園等德式聖誕市集,熱紅酒與工藝攤"},
-  // 跨年・初詣(12/31~1/3)
-  {m:12,d1:31,m2:1,d2:3,n:"跨年・初詣參拜",e:"⛩️",city:[],desc:"神社寺廟跨年參拜(初詣),淺草寺/明治神宮/伏見稻荷等人潮眾多,部分景點除夕通宵開放"},
-  // 札幌雪祭(2月上旬)
-  {m:2,d1:4,m2:2,d2:11,n:"札幌雪祭",e:"⛄",city:["札幌"],desc:"大通公園巨型雪雕、冰雕,日本最大冬季祭典"},
-  // 節分(2/3前後)
-  {m:2,d1:2,m2:2,d2:4,n:"節分・撒豆祭",e:"👹",city:[],desc:"神社寺廟撒豆驅邪(成田山、吉田神社等有大型豆撒式)"},
-  // 梅花(2月下~3月中)
-  {m:2,d1:20,m2:3,d2:20,n:"梅花季",e:"🌸",city:["水戶","大阪","太宰府","熱海"],desc:"偕樂園、大阪城梅林、太宰府天滿宮等梅花盛開"},
-  // 雛祭(3/3)
-  {m:3,d1:1,m2:3,d2:3,n:"雛祭(女兒節)",e:"🎎",city:[],desc:"各地擺設雛人形,勝浦、柳川等有大型雛人形階梯展示"},
-  // 櫻花季(3月下~4月上,依地區)
-  {m:3,d1:25,m2:4,d2:15,n:"櫻花季・賞夜櫻",e:"🌸",city:["東京","京都","大阪","奈良","名古屋","金澤","弘前","福岡"],desc:"賞櫻名所點燈夜櫻(上野、目黑川、哲學之道、大阪造幣局、弘前城)"},
-  // 祇園祭(7月,京都)
-  {m:7,d1:1,m2:7,d2:31,n:"祇園祭",e:"🏮",city:["京都"],desc:"京都八坂神社千年大祭,山鉾巡行(7/17、7/24)、宵山夜市"},
-  // 天神祭(7月下,大阪)
-  {m:7,d1:24,m2:7,d2:25,n:"天神祭",e:"🎆",city:["大阪"],desc:"大阪天滿宮大祭,船渡御與大川花火"},
-  // 隅田川花火(7月最後週六)
-  {m:7,d1:25,m2:7,d2:31,n:"隅田川花火大會",e:"🎆",city:["東京"],desc:"東京最大花火,淺草・晴空塔周邊觀賞"},
-  // 青森睡魔(8月上)
-  {m:8,d1:2,m2:8,d2:7,n:"青森睡魔祭",e:"🏮",city:["青森"],desc:"巨型燈籠花車巡遊,東北三大祭之一"},
-  // 仙台七夕(8月上)
-  {m:8,d1:6,m2:8,d2:8,n:"仙台七夕祭",e:"🎋",city:["仙台"],desc:"商店街華麗七夕飾,東北三大祭之一"},
-  // 阿波舞(8月中,德島)
-  {m:8,d1:12,m2:8,d2:15,n:"德島阿波舞",e:"💃",city:["德島"],desc:"日本最大盆舞祭,街頭連舞"},
-  // 五山送火(8/16,京都)
-  {m:8,d1:16,m2:8,d2:16,n:"京都五山送火",e:"🔥",city:["京都"],desc:"如意嶽「大」字等山火,盂蘭盆送靈"},
-  // 楓葉季(10月下~12月上,依地區)
-  {m:10,d1:20,m2:12,d2:5,n:"楓葉季・賞夜楓",e:"🍁",city:["京都","日光","箱根","高山","東京","大阪","奈良"],desc:"賞楓名所點燈夜楓(清水寺、永觀堂、日光、六義園、高山)"},
-];
+  // 冬季燈飾・聖誕(11月中~12/25)
+  {m:11,d1:15,m2:12,d2:25,n:"聖誕燈飾・聖誕市集",e:"🎄",city:["東京","橫濱","大阪","名古屋","札幌","神戶","福岡"],desc:"車站廣場與百貨周邊聖誕市集、燈飾點燈",
+   spots:[{n:"六本木けやき坂イルミネーション",la:35.6604,lo:139.7292,city:"東京",s:60},{n:"横浜赤レンガ倉庫 クリスマスマーケット",la:35.4530,lo:139.6425,city:"橫濱",s:90},{n:"なんばパークス イルミ",la:34.6626,lo:135.5013,city:"大阪",s:60},{n:"名古屋 セントラルパーク",la:35.1739,lo:136.9083,city:"名古屋",s:45},{n:"さっぽろホワイトイルミネーション(大通公園)",la:43.0608,lo:141.3469,city:"札幌",s:60},{n:"神戸ルミナリエ",la:34.6900,lo:135.1955,city:"神戶",s:60}]},
+  {m:12,d1:1,m2:12,d2:25,n:"德國聖誕市集",e:"🎅",city:["橫濱","大阪","札幌","東京"],desc:"德式聖誕市集,熱紅酒與工藝攤",
+   spots:[{n:"横浜赤レンガ クリスマスマーケット",la:35.4530,lo:139.6425,city:"橫濱",s:90},{n:"大阪スカイビル ドイツクリスマスマーケット",la:34.7052,lo:135.4903,city:"大阪",s:90},{n:"ミュンヘン・クリスマス市(札幌大通)",la:43.0608,lo:141.3469,city:"札幌",s:90}]},
+  {m:12,d1:31,m2:1,d2:3,n:"跨年・初詣參拜",e:"⛩️",city:[],desc:"神社寺廟跨年參拜(初詣),部分景點除夕通宵開放",
+   spots:[{n:"明治神宮 初詣",la:35.6764,lo:139.6993,city:"東京",s:90},{n:"浅草寺 初詣",la:35.7148,lo:139.7967,city:"東京",s:60},{n:"伏見稲荷大社 初詣",la:34.9671,lo:135.7727,city:"京都",s:90},{n:"住吉大社 初詣",la:34.6122,lo:135.4933,city:"大阪",s:60}]},
+  {m:2,d1:4,m2:2,d2:11,n:"札幌雪祭",e:"⛄",city:["札幌"],desc:"大通公園巨型雪雕冰雕,日本最大冬季祭典",
+   spots:[{n:"さっぽろ雪まつり(大通会場)",la:43.0608,lo:141.3469,city:"札幌",s:120},{n:"すすきの氷の祭典",la:43.0554,lo:141.3536,city:"札幌",s:60}]},
+  {m:2,d1:2,m2:2,d2:4,n:"節分・撒豆祭",e:"👹",city:[],desc:"神社寺廟撒豆驅邪",
+   spots:[{n:"成田山新勝寺 節分会",la:35.7863,lo:140.3182,city:"成田",s:60},{n:"吉田神社 節分祭",la:35.0272,lo:135.7889,city:"京都",s:60}]},
+  {m:2,d1:20,m2:3,d2:20,n:"梅花季",e:"🌸",city:["水戶","大阪","太宰府","熱海"],desc:"梅花盛開名所",
+   spots:[{n:"偕楽園 梅まつり",la:36.3778,lo:140.4517,city:"水戶",s:90},{n:"大阪城 梅林",la:34.6873,lo:135.5300,city:"大阪",s:60},{n:"太宰府天満宮 飛梅",la:33.5216,lo:130.5350,city:"太宰府",s:60}]},
+  {m:3,d1:1,m2:3,d2:3,n:"雛祭(女兒節)",e:"🎎",city:[],desc:"各地擺設雛人形",
+   spots:[{n:"勝浦ビッグひな祭り",la:35.1528,lo:140.3206,city:"勝浦",s:60}]},
+  {m:3,d1:25,m2:4,d2:15,n:"櫻花季・賞夜櫻",e:"🌸",city:["東京","京都","大阪","奈良","名古屋","金澤","弘前","福岡"],desc:"賞櫻名所點燈夜櫻",
+   spots:[{n:"上野恩賜公園 桜",la:35.7148,lo:139.7714,city:"東京",s:90},{n:"目黒川 桜並木",la:35.6415,lo:139.6982,city:"東京",s:60},{n:"哲学の道 桜",la:35.0264,lo:135.7947,city:"京都",s:60},{n:"大阪造幣局 桜の通り抜け",la:34.6994,lo:135.5222,city:"大阪",s:60},{n:"弘前公園 桜まつり",la:40.6076,lo:140.4637,city:"弘前",s:120}]},
+  {m:7,d1:1,m2:7,d2:31,n:"祇園祭",e:"🏮",city:["京都"],desc:"京都八坂神社千年大祭,山鉾巡行(7/17、7/24)、宵山夜市",
+   spots:[{n:"八坂神社 祇園祭",la:35.0036,lo:135.7785,city:"京都",s:90},{n:"四条烏丸 宵山",la:35.0037,lo:135.7595,city:"京都",s:90}]},
+  {m:7,d1:24,m2:7,d2:25,n:"天神祭",e:"🎆",city:["大阪"],desc:"大阪天滿宮大祭,船渡御與大川花火",
+   spots:[{n:"大阪天満宮 天神祭",la:34.6960,lo:135.5127,city:"大阪",s:120}]},
+  {m:7,d1:25,m2:7,d2:31,n:"隅田川花火大會",e:"🎆",city:["東京"],desc:"東京最大花火,淺草・晴空塔周邊",
+   spots:[{n:"隅田川花火大会(浅草)",la:35.7119,lo:139.8017,city:"東京",s:150}]},
+  {m:8,d1:2,m2:8,d2:7,n:"青森睡魔祭",e:"🏮",city:["青森"],desc:"巨型燈籠花車巡遊,東北三大祭",
+   spots:[{n:"青森ねぶた祭",la:40.8281,lo:140.7386,city:"青森",s:150}]},
+  {m:8,d1:6,m2:8,d2:8,n:"仙台七夕祭",e:"🎋",city:["仙台"],desc:"商店街華麗七夕飾,東北三大祭",
+   spots:[{n:"仙台七夕まつり(中央通)",la:38.2601,lo:140.8722,city:"仙台",s:90}]},
+  {m:8,d1:12,m2:8,d2:15,n:"德島阿波舞",e:"💃",city:["德島"],desc:"日本最大盆舞祭,街頭連舞",
+   spots:[{n:"阿波おどり(徳島市街)",la:34.0703,lo:134.5549,city:"德島",s:120}]},
+  {m:8,d1:16,m2:8,d2:16,n:"京都五山送火",e:"🔥",city:["京都"],desc:"如意嶽「大」字山火,盂蘭盆送靈",
+   spots:[{n:"五山送り火(鴨川堤防観賞)",la:35.0116,lo:135.7710,city:"京都",s:90}]},
+  {m:10,d1:20,m2:12,d2:5,n:"楓葉季・賞夜楓",e:"🍁",city:["京都","日光","箱根","高山","東京","大阪","奈良"],desc:"賞楓名所點燈夜楓",
+   spots:[{n:"清水寺 紅葉ライトアップ",la:34.9949,lo:135.7850,city:"京都",s:90},{n:"永観堂 紅葉",la:35.0143,lo:135.7947,city:"京都",s:60},{n:"六義園 紅葉ライトアップ",la:35.7331,lo:139.7464,city:"東京",s:60},{n:"日光いろは坂 紅葉",la:36.7387,lo:139.4869,city:"日光",s:60}]},
+  // ── 更多地方特色祭典 ──
+  {m:8,d1:1,m2:8,d2:5,n:"高知よさこい祭",e:"💃",city:["高知"],desc:"鳴子舞連隊遊行,四國夏日代表祭",
+   spots:[{n:"よさこい祭り(高知市中心)",la:33.5597,lo:133.5311,city:"高知",s:120}]},
+  {m:8,d1:5,m2:8,d2:8,n:"秋田竿燈祭",e:"🏮",city:["秋田"],desc:"竿燈平衡技藝,東北三大祭之一",
+   spots:[{n:"竿燈まつり(竿燈大通り)",la:39.7186,lo:140.1024,city:"秋田",s:120}]},
+  {m:7,d1:14,m2:7,d2:17,n:"博多祇園山笠",e:"🎏",city:["福岡","博多"],desc:"追山笠競速,博多夏日大祭",
+   spots:[{n:"櫛田神社 山笠",la:33.5920,lo:130.4106,city:"福岡",s:90}]},
+  {m:10,d1:7,m2:10,d2:9,n:"長崎くんち",e:"🐉",city:["長崎"],desc:"諏訪神社奉納舞,龍舞與異國風情",
+   spots:[{n:"諏訪神社 長崎くんち",la:32.7503,lo:129.8862,city:"長崎",s:90}]},
+  {m:5,d1:15,m2:5,d2:15,n:"葵祭",e:"🌿",city:["京都"],desc:"京都三大祭,平安裝束王朝行列",
+   spots:[{n:"葵祭(下鴨神社→上賀茂神社)",la:35.0389,lo:135.7727,city:"京都",s:90}]},
+  {m:10,d1:22,m2:10,d2:22,n:"時代祭",e:"👘",city:["京都"],desc:"京都三大祭,歷代風俗大行列",
+   spots:[{n:"時代祭(平安神宮)",la:35.0161,lo:135.7822,city:"京都",s:90}]},
+  {m:2,d1:15,m2:2,d2:16,n:"橫手雪屋祭(かまくら)",e:"🏔️",city:["橫手"],desc:"雪屋內奉水神,秋田冬季風物詩",
+   spots:[{n:"横手のかまくら",la:39.3109,lo:140.5666,city:"橫手",s:60}]},
+  {m:1,d1:15,m2:2,d2:28,n:"藏王樹冰",e:"🌲",city:["藏王","山形"],desc:"冬季樹冰奇景,纜車夜間點燈",
+   spots:[{n:"蔵王樹氷(ロープウェイ)",la:38.1621,lo:140.4392,city:"山形",s:120}]},
+  {m:1,d1:1,m2:2,d2:28,n:"熱海梅園・梅花",e:"🌺",city:["熱海"],desc:"日本最早開的梅,1月中~3月上",
+   spots:[{n:"熱海梅園",la:35.1088,lo:139.0703,city:"熱海",s:60}]},
+  {m:6,d1:1,m2:6,d2:30,n:"繡球花季",e:"💠",city:["鎌倉","箱根","東京"],desc:"梅雨季紫陽花名所",
+   spots:[{n:"明月院 あじさい",la:35.3369,lo:139.5497,city:"鎌倉",s:60},{n:"箱根登山鉄道 あじさい",la:35.2323,lo:139.1069,city:"箱根",s:45}]},
+  {m:4,d1:20,m2:5,d2:10,n:"藤花・紫藤季",e:"💜",city:["栃木","東京"],desc:"足利花卉公園大藤棚等",
+   spots:[{n:"あしかがフラワーパーク 大藤",la:36.3141,lo:139.5203,city:"栃木",s:90}]},
+  {m:11,d1:1,m2:11,d2:24,n:"酉の市",e:"🎋",city:["東京"],desc:"招福熊手市集,淺草鷲神社等",
+   spots:[{n:"浅草 鷲神社 酉の市",la:35.7220,lo:139.7906,city:"東京",s:45}]},
+]
 function dayFestivals(dateISO,center,areas){
   const d=new Date(dateISO+"T00:00:00");const mo=d.getMonth()+1,dy=d.getDate();
   const loc=((center&&center.n)||"")+(areas||"");
@@ -3391,20 +3429,103 @@ async function generate(reshuffle){
   setupFlights();
   GEN_BUDGET=0;
   S.sug=null;
+  autoInsertFestivals(); // 自動把當季節慶活動排入
   renderIti(); showPane("iti");
   if(days.length<S.days)toast("⚠️ 部分地點景點不足,共排出 "+days.length+" 天,可加大半徑再試");
   else toast("✅ 行程生成完成!"+(multi?route.length+" 個地點・":"")+days.reduce((a,d)=>a+d.list.length,0)+" 個景點");
 }
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
-function festivalBanner(d){
-  const fes=dayFestivals(d.date,d.center||S.iti.center,d.areas);
-  if(!fes.length)return "";
-  return `<div style="margin:8px 16px 0;background:linear-gradient(135deg,#FBF0F2,#F5EEE0);border:1px solid #E8C9CE;border-radius:12px;padding:10px 13px">
-    <div style="font-size:12.5px;font-weight:800;color:#A03B4A;margin-bottom:4px">🎉 這天有特別活動!</div>
-    ${fes.map(f=>`<div style="font-size:12.5px;color:#5C5346;margin-top:3px"><b>${f.e} ${f.n}</b> — ${f.desc}</div>`).join("")}
-    <div style="font-size:11px;color:#A39B87;margin-top:5px">活動日期每年略有調整,實際場次請查主辦官網</div>
+// 旺季節慶提醒(整趟行程若含大型節慶期→早訂房/交通)
+const PEAK_FEST=["櫻花季","楓葉季","祇園祭","天神祭","札幌雪祭","隅田川花火","青森睡魔","仙台七夕","跨年","黃金週"];
+function peakSeasonNote(){
+  if(!S.iti||!S.iti.dateIn)return "";
+  const hits=new Set();
+  S.iti.days.forEach(d=>{if(!d.date)return;
+    dayFestivals(d.date,d.center||S.iti.center,d.areas).forEach(f=>{
+      if(PEAK_FEST.some(p=>f.n.includes(p)))hits.add(f.n);
+    });
+  });
+  // 黃金週(4/29~5/5)/盂蘭盆(8/11~8/16)/年末年始 全國性旺季
+  const spanPeak=[];
+  S.iti.days.forEach(d=>{if(!d.date)return;const dt=new Date(d.date+"T00:00:00");const mo=dt.getMonth()+1,dy=dt.getDate();
+    if(mo===4&&dy>=29||mo===5&&dy<=5)spanPeak.push("黃金週");
+    if(mo===8&&dy>=11&&dy<=16)spanPeak.push("盂蘭盆連假");
+    if(mo===12&&dy>=29||mo===1&&dy<=3)spanPeak.push("年末年始");
+  });
+  spanPeak.forEach(x=>hits.add(x));
+  if(!hits.size)return "";
+  return `<div class="wxcard" style="background:linear-gradient(135deg,#FBF3E8,#F5EEE0);border-color:var(--kin)">
+    <div style="font-size:13.5px;font-weight:800;color:#8A6A1E">⚠️ 旺季提醒:行程遇上 ${[...hits].join("、")}</div>
+    <div style="font-size:12.5px;color:#5C5346;margin-top:5px">這段期間是日本旅遊旺季,<b>住宿與交通(新幹線指定席、租車)請盡早預訂</b>,熱門飯店常於 2~3 個月前售罄、價格也會上漲。景點與交通人潮多,建議行程抓寬鬆些。</div>
   </div>`;
+}
+let _FEST_MON=0; // 0=全部
+function renderFestPage(){
+  const mc=$("festMonChips");if(!mc)return;
+  mc.innerHTML=`<label class="${_FEST_MON===0?"on":""}" onclick="_FEST_MON=0;renderFestPage()">全年</label>`
+    +[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${_FEST_MON===m?"on":""}" onclick="_FEST_MON=${m};renderFestPage()">${m}月</label>`).join("");
+  // 依月份篩(跨月的活動,起或迄落在該月都算)
+  const inMon=f=>{if(_FEST_MON===0)return true;const a=f.m,b=f.m2;if(a<=b)return _FEST_MON>=a&&_FEST_MON<=b;return _FEST_MON>=a||_FEST_MON<=b};
+  const list=FESTIVALS.filter(inMon).sort((x,y)=>(x.m-y.m)||(x.d1-y.d1));
+  const monRange=f=>f.m===f.m2?`${f.m}/${f.d1}–${f.d2}`:`${f.m}/${f.d1}–${f.m2}/${f.d2}`;
+  $("festList").innerHTML=list.map(f=>`
+    <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:26px">${f.e}</span>
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:16px;font-weight:800;color:var(--ink)">${f.n}</div>
+          <div style="font-size:12.5px;color:var(--shu);font-weight:700">🗓️ ${monRange(f)}${f.city.length?" ・ "+f.city.slice(0,4).join("、")+(f.city.length>4?"…":""):" ・ 全國"}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#5C5346;margin-top:8px">${f.desc}</div>
+      ${(f.spots&&f.spots.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${f.spots.map(sp=>`<button onclick="festSpotToPlan(${JSON.stringify(sp).replace(/"/g,'&quot;')})" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:6px 13px;font-size:12.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">📍 ${sp.n.split("(")[0].split("・")[0]}</button>`).join("")}</div>`:""}
+    </div>`).join("")||`<div style="color:#8A8272;padding:20px;text-align:center">這個月份沒有收錄的大型活動</div>`;
+}
+function festSpotToPlan(sp){
+  // 從節慶專區點地點 → 若有行程,加進最近那天;否則設為規劃中心
+  if(S.iti){
+    let di=0,bd=1e18;
+    S.iti.days.forEach((d,i)=>{const c=d.center||S.iti.center;const dd=dist(c.la,c.lo,sp.la,sp.lo);if(dd<bd){bd=dd;di=i}});
+    const spot={n:sp.n,j:sp.n,la:sp.la,lo:sp.lo,c:"spot",t:["祭典活動"],a:"節慶",s:sp.s||60,d:"日本季節限定活動,實際場次請查官網。",pr:"活動詳情請查官網"};
+    if(!DB.some(x=>x.n===spot.n))DB.push(spot);
+    addStopToDay(di,spot.n);showPane("iti");
+    toast("🎉 已把「"+sp.n.split("(")[0]+"」排入 DAY "+(di+1));
+  }else{
+    S.center={n:sp.n,la:sp.la,lo:sp.lo};S.centers=[{...S.center}];
+    $("q").value=sp.n.split("(")[0];showPane("home");renderCenter();
+    toast("📍 已設為規劃中心,選好天數按「開始規劃」");
+  }
+}
+function festivalBanner(d){
+  const ctr=d.center||S.iti.center;
+  const fes=dayFestivals(d.date,ctr,d.areas);
+  if(!fes.length)return "";
+  const di=S.iti.days.indexOf(d);
+  const loc=((ctr&&ctr.n)||"")+(d.areas||"");
+  return `<div style="margin:8px 16px 0;background:linear-gradient(135deg,#FBF0F2,#F5EEE0);border:1px solid #E8C9CE;border-radius:12px;padding:11px 14px">
+    <div style="font-size:13px;font-weight:800;color:#A03B4A;margin-bottom:5px">🎉 這天有特別活動!</div>
+    ${fes.map((f,fi)=>{
+      // 篩出在這個城市的地點(city 空的節慶=全國,顯示 loc 命中的地點)
+      const spots=(f.spots||[]).filter(sp=>!sp.city||loc.includes(sp.city));
+      const spotBtns=spots.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">`
+        +spots.map(sp=>`<button onclick="addFestivalSpot(${di},${JSON.stringify(sp).replace(/"/g,'&quot;')})" style="border:1.5px solid #C4566A;background:#fff;color:#A03B4A;border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">➕ 排入「${sp.n.split("(")[0].split("・")[0]}」</button>`).join("")
+        +`</div>`:"";
+      return `<div style="margin-top:6px"><div style="font-size:12.5px;color:#5C5346"><b>${f.e} ${f.n}</b> — ${f.desc}</div>${spotBtns}</div>`;
+    }).join("")}
+    <div style="font-size:11px;color:#A39B87;margin-top:7px">活動日期每年略有調整,實際場次請查主辦官網</div>
+  </div>`;
+}
+function addFestivalSpot(di,sp){
+  if(!S.iti||!S.iti.days[di])return;
+  const d=S.iti.days[di];
+  if(d.list.some(x=>x.n===sp.n)){toast("這個活動地點已在 DAY "+(di+1)+"裡了");return}
+  // 加進 DB(供 findByName/詳情/縮圖用)與當天清單
+  const spot={n:sp.n,j:sp.n,la:sp.la,lo:sp.lo,c:"spot",t:["祭典活動"],a:"節慶",s:sp.s||60,
+    d:"日本季節限定活動,實際場次與時間請查主辦官網。",pr:"活動詳情請查官網"};
+  if(!DB.some(x=>x.n===spot.n))DB.push(spot);
+  addStopToDay(di,spot.n);
+  toast("🎉 已把「"+sp.n.split("(")[0]+"」排入 DAY "+(di+1)+"(可再拖動調整時段)");
 }
 const THUMB_CACHE={};
 async function loadStopThumbs(){
@@ -3495,6 +3616,28 @@ async function wikiThumbs(title,lang){
     return out;
   }catch(e){return []}
 }
+function autoInsertFestivals(){
+  if(!S.iti||!S.iti.dateIn||S.iti._festDone)return;
+  S.iti._festDone=true;
+  let added=0;
+  S.iti.days.forEach((d,di)=>{
+    if(!d.date)return;
+    const fes=dayFestivals(d.date,d.center||S.iti.center,d.areas);
+    const loc=((d.center&&d.center.n)||(S.iti.center&&S.iti.center.n)||"")+(d.areas||"");
+    fes.forEach(f=>{
+      const spots=(f.spots||[]).filter(sp=>!sp.city||loc.includes(sp.city));
+      if(spots.length){ // 每個命中節慶自動排「最具代表的第一個地點」到當天
+        const sp=spots[0];
+        if(!d.list.some(x=>x.n===sp.n)){
+          const spot={n:sp.n,j:sp.n,la:sp.la,lo:sp.lo,c:"spot",t:["祭典活動"],a:"節慶",s:sp.s||60,d:"日本季節限定活動,實際場次請查官網。",pr:"活動詳情請查官網",_fest:1};
+          if(!DB.some(x=>x.n===spot.n))DB.push(spot);
+          addStopToDay(di,spot.n);added++;
+        }
+      }
+    });
+  });
+  if(added)toast("🎉 已自動把 "+added+" 個當季節慶活動排入行程(可自行移除)");
+}
 function renderIti(){
   if(!S.iti){return}
   _SNOW_SHOWN=new Set(); // 重置雪區提醒去重
@@ -3516,6 +3659,9 @@ function renderIti(){
     fRow+=`<div style="font-size:12px;color:#6E6754;margin-top:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap">移動時間以此估算:${tBtns}<span style="color:#A39B87">(點擊切換,全行程即時重算)</span></div></div></div></div>`;
   }
   $("wxBox").innerHTML+=fRow;
+  // 旺季提醒:行程日期橫跨大型節慶 → 提示早訂房/交通
+  const peakNote=peakSeasonNote();
+  if(peakNote)$("wxBox").innerHTML+=peakNote;
   setTimeout(loadDaysWeather,300); // 有選日期的天,抓當天逐時預報
   setTimeout(loadStopThumbs,150);    // 每個景點旁載照片縮圖
   // ── 城市段順序調整 + 順路推薦(多城市行程) ──
@@ -4455,7 +4601,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r134"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r136"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
