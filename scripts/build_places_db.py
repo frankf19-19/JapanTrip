@@ -10,7 +10,7 @@
 import json, os, sys, time
 
 FOOD_AMENITY = {"restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream"}
-HOTEL_TOURISM = {"hotel", "hostel", "guest_house", "apartment", "motel"}
+HOTEL_TOURISM = {"hotel", "hostel", "guest_house", "apartment", "motel", "chalet", "love_hotel", "alpine_hut", "wilderness_hut", "camp_site", "caravan_site"}
 SHOP_KEEP = {"mall", "department_store", "supermarket"}
 # v12:旅遊相關購物(麵包甜點/和菓子/伴手禮/茶/酒/動漫玩具)
 SHOP_TRAVEL = {"bakery", "confectionery", "sweets", "gift", "souvenir", "tea", "sake", "anime", "toys"}
@@ -68,7 +68,7 @@ def classify(t):
     """回傳 (cat, tags, stay) 或 None"""
     am = t.get("amenity", "")
     tm = t.get("tourism", "")
-    if am in FOOD_AMENITY:
+    if am in FOOD_AMENITY or am == "biergarten":
         return "food", [], 50
     if tm in HOTEL_TOURISM:
         return "hotel", [], 0
@@ -103,6 +103,12 @@ def classify(t):
     if t.get("natural") in NATURAL_MAP:
         tags, stay = NATURAL_MAP[t["natural"]]
         return "spot", tags, stay
+    if t.get("natural") in ("cape", "bay", "cliff", "cave_entrance"):
+        return "spot", ["自然風景"], 40
+    if t.get("leisure") == "beach_resort":
+        return "spot", ["自然風景"], 90
+    if tm == "picnic_site":
+        return "spot", ["自然風景", "親子同樂"], 45
     if tm in SPOT_MAP:
         tags, stay = SPOT_MAP[tm]
         return "spot", tags, stay
@@ -176,7 +182,7 @@ def main():
                 e["w"] = w[:200]
             if t.get("stars"):
                 e["st"] = str(t["stars"])[:4]
-            if cat == "hotel" and t.get("tourism") in ("hostel", "guest_house", "apartment", "motel"):
+            if cat == "hotel" and t.get("tourism") in ("hostel", "guest_house", "apartment", "motel", "chalet", "love_hotel", "alpine_hut", "wilderness_hut", "camp_site", "caravan_site"):
                 e["ht"] = t["tourism"]
             cells.setdefault(key, {}).setdefault(cat, []).append(e)
             n_kept += 1
