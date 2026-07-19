@@ -504,7 +504,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r126</span>
+    <span class="build">build r127</span>
   </div>
 </header>
 
@@ -730,7 +730,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r126
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r127
 </footer>
 
 <nav class="bottom">
@@ -2546,10 +2546,12 @@ function makeStops(dayList,usedF,wantMeal,rad,startMin,dayRef){
     prev=s;
   });
   if(dropped.length){
-    stops.push({type:"note",txt:"⏰ 因閉門時間排不進今天:"+dropped.map(x=>x.n).join("、")+" — 建議放到隔天上午,或點「＋加入」手動安排"});
+    stops.push({type:"note",dropped:dropped.map(x=>x.n),kind:"close",
+      txt:"⏰ 因閉門時間今天排不下:"+dropped.map(x=>x.n).join("、")});
   }
   if(droppedClosed.length){
-    stops.push({type:"note",txt:"🚫 "+(dayRef&&dayRef.date?fmtMD(dayRef.date):"當天")+"公休(依 OSM 營業時間):"+droppedClosed.map(x=>x.n).join("、")+" — 已自動避開,可換到別天"});
+    stops.push({type:"note",dropped:droppedClosed.map(x=>x.n),kind:"closed",
+      txt:"🚫 "+(dayRef&&dayRef.date?fmtMD(dayRef.date):"當天")+"公休:"+droppedClosed.map(x=>x.n).join("、")+"(已自動避開)"});
   }
   if(wantMeal&&dayList.length){
     const last=prev||dayList[dayList.length-1];
@@ -2907,6 +2909,17 @@ function addStopToDay(di,name){
   }
   d.list.splice(best,0,s);
   S.sug=null; rebuildDay(di); renderIti(); toast("✅ 已加入 DAY "+(di+1)+":"+s.n);
+}
+function addStopNextDay(di,name){
+  if(!S.iti)return;
+  const ni=di+1;
+  if(ni>=S.iti.days.length){
+    // 沒有隔天 → 提示改用「換/移除」把當天騰空,或加大天數
+    toast("已經是最後一天了,請把總天數加 1 天,或先移除今天某一站再排入");
+    return;
+  }
+  addStopToDay(ni,name);
+  toast("➕ 已把「"+name.split("・")[0]+"」排到 DAY "+(ni+1)+"(可再拖動微調)");
 }
 function addToIti(name){
   if(!S.iti){toast("請先在「規劃行程」生成行程,再把喜歡的點加進去");return}
@@ -3278,7 +3291,14 @@ function renderIti(){
         const nav=st.f?`<a href="https://www.google.com/maps/dir/?api=1&origin=${st.f[0]},${st.f[1]}&destination=${st.g[0]},${st.g[1]}&travelmode=${M.gm}" target="_blank" rel="noopener" style="color:var(--ai);border-bottom:1px dotted var(--ai);text-decoration:none;margin-left:6px">🧭 ${M.gm==="transit"?"怎麼搭":"導航"}</a>`:"";
         h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel">${M.ic} ${M.n}約 ${fmtDur(st.min)}(${fmtD(st.km)})${nav}${snowNote(st)}</div></div>`;return}
       if(st.type==="gap"){h+=`<div class="stop" style="padding-bottom:6px;min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="travel" style="color:#8A6A1E">🌆 自由時間約 ${Math.round(st.min/5)*5} 分(逛街/咖啡${st.night?"/提早用餐),等待夜景時段":"),等待景點開門"}</div></div>`;return}
-      if(st.type==="note"){h+=`<div class="stop" style="min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="warnbox" style="flex:1">${st.txt}</div></div>`;return}
+      if(st.type==="note"){
+        let btns="";
+        if(st.dropped&&st.dropped.length){
+          btns=`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">`
+            +st.dropped.map(nm=>`<button onclick="addStopNextDay(${di},'${esc(nm)}')" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">➕ 把「${nm.split("・")[0]}」排到隔天上午</button>`).join("")
+            +`</div>`;
+        }
+        h+=`<div class="stop" style="min-height:0"><div class="time"></div><div style="width:18px;flex-shrink:0"></div><div class="warnbox" style="flex:1">${st.txt}${btns}</div></div>`;return}
       const s=st.s;
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
@@ -3389,6 +3409,33 @@ function renderHotelPicker(){
     <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
 }
 function clearPickFor(){window._PICKFOR=null}
+function hotelBookingBlock(s){
+  const nm=s.j||s.n;
+  // 若這間飯店正好是行程某天的住宿,帶入該天的入住/退房日期
+  let ci="",co="",dayLabel="";
+  if(S.iti&&S.iti.dateIn){
+    const di=S.iti.days.findIndex(d=>d.hotel&&d.hotel.n===s.n);
+    if(di>=0&&S.iti.days[di].date){
+      ci=S.iti.days[di].date;
+      co=addD(ci,1);
+      dayLabel=`(帶入 DAY ${di+1} ${fmtMD(ci)} 入住)`;
+    }
+  }
+  const bk=ci
+    ? `https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(nm)}&checkin=${ci}&checkout=${co}&group_adults=2`
+    : `https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(nm)}`;
+  const ag=`https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:agoda.com "+nm)}`;
+  const gh=`https://www.google.com/travel/hotels/${encodeURIComponent(nm)}`;
+  return `<div style="background:linear-gradient(135deg,#EAF2FA,#F5F0E4);border:1px solid #DCE6F0;border-radius:14px;padding:13px 15px;margin:12px 0">
+    <div style="font-size:14px;font-weight:800;color:var(--ai-deep);margin-bottom:3px">💰 即時查房價・看房型照片・線上訂房</div>
+    <div style="font-size:11.5px;color:#8A8272;margin-bottom:10px">連鎖與知名飯店的房價、房型、浴室、評分都在訂房網 ${dayLabel}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="${bk}" target="_blank" rel="noopener" style="flex:1;min-width:130px;text-align:center;background:#003580;color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)">🛏️ Booking 查價訂房</a>
+      <a href="${ag}" target="_blank" rel="noopener" style="flex:1;min-width:130px;text-align:center;background:#D4111E;color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)">🅰️ Agoda 查價訂房</a>
+      <a href="${gh}" target="_blank" rel="noopener" style="flex:1;min-width:130px;text-align:center;background:#fff;border:1.5px solid var(--line);color:var(--ink);border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)">🏨 Google 比價</a>
+    </div>
+  </div>`;
+}
 function pickHotelByName(name){
   const pf=window._PICKFOR; if(!pf)return;
   const ht=findByName(name); if(!ht)return;
@@ -3569,9 +3616,8 @@ function openDetail(name,fromPop){
         ${s.c==="food"?`<a href="https://www.google.com/search?q=${encodeURIComponent((s.j||s.n)+" 食べログ")}" target="_blank" rel="noopener">🍽️ 食べログ評價</a>`:""}
         ${s.c==="food"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+(s.j||s.n))}" target="_blank" rel="noopener">🍽️ Tabelog 食記照片</a>`:""}
         ${(s.c==="food"||s.c==="hotel")?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.j||s.n)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 地圖相片</a>`:""}
-        ${s.c==="hotel"?`<a href="https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(s.j||s.n)}" target="_blank" rel="noopener">🛏️ Booking 訂房比價</a>`:""}
-        ${s.c==="hotel"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:agoda.com "+(s.j||s.n))}" target="_blank" rel="noopener">🅰️ Agoda 訂房</a>`:""}
       </div>
+      ${s.c==="hotel"?hotelBookingBlock(s):""}
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
   $("dPanel").dataset.stars=(NOTES[s.n]&&NOTES[s.n].stars)||0;
@@ -4148,7 +4194,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r126"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r127"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
