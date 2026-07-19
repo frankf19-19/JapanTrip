@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r119</span>
+    <span class="build">build r120</span>
   </div>
 </header>
 
@@ -721,7 +721,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r119
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r120
 </footer>
 
 <nav class="bottom">
@@ -4005,7 +4005,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r119"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r120"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -4039,7 +4039,13 @@ function dbStatInfo(){
   const total=window._OSMIDX?window._OSMIDX.length:0;
   const loaded=OSMCELLS.size;
   const bv=(document.querySelector(".build")||{}).textContent||"";
-  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">📊 資料庫統計 <span style="font-size:11px;color:#A39B87;font-weight:400">${bv}</span></h3>
+  const _failList=Object.keys(OSMFAIL||{}).filter(k=>OSMFAIL[k]>0).slice(0,6);
+  const _diag=`<div style="background:#FBF6E8;border:1px dashed var(--kin);border-radius:10px;padding:9px 12px;margin:8px 0;font-size:12px;color:#5A5346;line-height:1.7">
+    🔧 診斷:狀態「<b>${window._LOADSTATE||"未啟動"}</b>」・已載格 <b>${OSMCELLS.size}</b>/${(window._OSMIDX||[]).length||"?"}
+    ${_failList.length?`・失敗格:${_failList.join(",")}`:""}
+    ${window._LOADERR?`<br>⚠️ 錯誤:<b style="color:var(--shu)">${window._LOADERR}</b>`:""}
+    <span style="text-decoration:underline;cursor:pointer;color:var(--ai)" onclick="closeDetail();loadAllJapanSilent()">重新載滿</span></div>`;
+  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">📊 資料庫統計 <span style="font-size:11px;color:#A39B87;font-weight:400">${bv}</span></h3>${_diag}
     <div style="margin:12px 0;font-size:15px;line-height:2.1">
       全庫已載入:<b style="font-size:22px;color:var(--shu)">${wan(DB.length)}</b> 筆(${DB.length.toLocaleString()})<br>
       ⛩️ 景點 <b>${wan(c.spot)}</b>|🍜 美食 <b>${wan(c.food)}</b><br>
@@ -4052,28 +4058,39 @@ function dbStatInfo(){
   $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
 }
 async function loadAllJapanSilent(){
+ try{
+  window._LOADSTATE="啟動";
   if(!window._OSMIDX||!window._OSMIDX.length){
     try{const r=await fetch("data/osm/index.json",{cache:"no-cache"});if(r.ok)window._OSMIDX=await r.json()}catch(e){}
-    if(!window._OSMIDX||!window._OSMIDX.length){setTimeout(loadAllJapanSilent,2000);return}
+    if(!window._OSMIDX||!window._OSMIDX.length){window._LOADSTATE="等待index重試";setTimeout(loadAllJapanSilent,2000);return}
   }
-  // 都市圈排前面(熱門城市先出現),其餘全接上 = 強制載滿全部 115 格
   const metro=METRO_CELLS.filter(k=>window._OSMIDX.includes(k));
   const rest=window._OSMIDX.filter(k=>!METRO_CELLS.includes(k));
   const all=[...metro,...rest];
   const total=all.length;
+  toast("🗾 開始載入全日本 "+total+" 格…");
+  window._LOADSTATE="載入中";
   for(let i=0;i<all.length;i+=6){
-    const batch=all.slice(i,i+6).filter(k=>!OSMCELLS.has(k)); // 已載跳過(本機快取秒回)
+    const batch=all.slice(i,i+6).filter(k=>!OSMCELLS.has(k));
     if(batch.length){batch.forEach(k=>{if(OSMFAIL[k])OSMFAIL[k]=0}); await loadCellKeys(batch);}
     updateDbStat("🗾 載入全日本 "+OSMCELLS.size+"/"+total+" 格 ・"+wan(DB.length)+" 筆");
     if((i/6)%5===0){renderHomePicks();if($("pane-explore").classList.contains("on"))renderExplore()}
   }
-  // 收尾補漏(網路失敗的格再試一輪)
   const miss=all.filter(k=>!OSMCELLS.has(k));
+  window._LOADSTATE="補載 "+miss.length+" 格";
   for(const k of miss){OSMFAIL[k]=0;await loadCellKeys([k]);updateDbStat("🗾 補載 "+OSMCELLS.size+"/"+total+" 格 ・"+wan(DB.length)+" 筆");}
   updateDbStat();renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
   idbSet("_full",{ts:Date.now()});
+  window._LOADSTATE="完成 "+OSMCELLS.size+"/"+total;
   toast("✅ 全日本 "+OSMCELLS.size+"/"+total+" 格已就緒("+wan(DB.length)+" 筆)");
+ }catch(err){
+  window._LOADERR=String((err&&err.message)||err);
+  window._LOADSTATE="中斷:"+window._LOADERR;
+  console.error("loadAllJapanSilent 中斷",err);
+  updateDbStat("⚠️ 載入中斷,點我看原因");
+  toast("⚠️ 全日本載入中斷:"+window._LOADERR+"(點左下膠囊看詳情)");
+ }
 }
 async function forceRefreshDB(){
   closeDetail();
