@@ -14,6 +14,15 @@ HOTEL_TOURISM = {"hotel", "hostel", "guest_house", "apartment", "motel"}
 SHOP_KEEP = {"mall", "department_store", "supermarket"}
 # v12:旅遊相關購物(麵包甜點/和菓子/伴手禮/茶/酒/動漫玩具)
 SHOP_TRAVEL = {"bakery", "confectionery", "sweets", "gift", "souvenir", "tea", "sake", "anime", "toys"}
+# v13:觀光購物再擴充 → 對應顯示標籤
+SHOP_MORE = {
+    "convenience": ("超商", 15),
+    "chemist": ("藥妝", 40), "cosmetics": ("藥妝", 40),
+    "clothes": ("服飾", 60), "shoes": ("服飾", 40),
+    "electronics": ("電器", 60),
+    "variety_store": ("激安雜貨", 60),
+    "second_hand": ("二手古著", 45),
+}
 SPOT_MAP = {
     "attraction":  ([],                       60),
     "viewpoint":   (["自然風景", "夜景展望"], 40),
@@ -65,6 +74,14 @@ def classify(t):
         return "hotel", [], 0
     if t.get("shop") in SHOP_KEEP or am == "marketplace":
         return "shop", (["市場老街"] if am == "marketplace" else []), 90
+    if t.get("shop") in SHOP_MORE:
+        tag, stay = SHOP_MORE[t["shop"]]
+        return "shop", [tag], stay
+    # v13:娛樂設施
+    if t.get("leisure") == "amusement_arcade":
+        return "spot", ["動漫電玩"], 60
+    if am == "karaoke_box":
+        return "spot", ["娛樂"], 90
     if t.get("shop") in SHOP_TRAVEL:
         tag = "美食巡禮" if t["shop"] in ("bakery", "confectionery", "sweets", "tea") else               "美酒微醺" if t["shop"] == "sake" else               "動漫電玩" if t["shop"] in ("anime", "toys") else "市場老街"
         return "shop", [tag], 40
