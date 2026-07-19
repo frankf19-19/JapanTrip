@@ -38,14 +38,14 @@ jobs:
       - name: 篩選 POI(本地處理,零限流)
         run: |
           osmium tags-filter japan.osm.pbf \
-            nwr/amenity=restaurant,cafe,fast_food,bar,pub,food_court,ice_cream,place_of_worship,marketplace,public_bath,karaoke_box \
-            nwr/tourism=attraction,viewpoint,museum,gallery,artwork,theme_park,zoo,aquarium,hotel,hostel,guest_house,apartment,motel \
+            nwr/amenity=restaurant,cafe,fast_food,bar,pub,food_court,ice_cream,biergarten,place_of_worship,marketplace,public_bath,karaoke_box \
+            nwr/tourism=attraction,viewpoint,museum,gallery,artwork,theme_park,zoo,aquarium,picnic_site,hotel,hostel,guest_house,apartment,motel,chalet,love_hotel,alpine_hut,wilderness_hut,camp_site,caravan_site \
             nwr/historic \
             nwr/shop=mall,department_store,supermarket,bakery,confectionery,sweets,gift,souvenir,tea,sake,anime,toys,convenience,chemist,cosmetics,clothes,shoes,electronics,variety_store,second_hand \
             nwr/craft=sake_brewery,brewery,winery,distillery \
-            nwr/leisure=park,garden,spa,amusement_arcade \
+            nwr/leisure=park,garden,spa,amusement_arcade,beach_resort \
             nwr/man_made=tower \
-            nwr/natural=peak,waterfall,hot_spring,beach \
+            nwr/natural=peak,waterfall,hot_spring,beach,cape,bay,cliff,cave_entrance \
             -o pois.osm.pbf --overwrite
       - name: 轉出 GeoJSON
         run: osmium export pois.osm.pbf -f geojsonseq -o pois.geojsonl --overwrite
