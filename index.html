@@ -308,6 +308,7 @@ nav.bottom button.on{color:var(--ai)}
 .nameLines>div{font-size:13px;color:#6E6754;margin-top:2px;line-height:1.5}
 .nameLines .nameEn{color:#5A6B7C;font-style:italic}
 .nameLines .nameTrans{color:var(--matcha);font-weight:700}
+.liTrans{color:var(--matcha);font-weight:600}
 .dayWx{padding:0 16px}
 .wxday{background:#F2F7FC;border:1px solid #DCE6F0;border-radius:12px;padding:9px 12px;margin:10px 0 4px}
 .wxday-ttl{font-size:12.5px;font-weight:700;color:var(--ai-deep)}
@@ -532,7 +533,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r142</span>
+    <span class="build">build r143</span>
   </div>
 </header>
 
@@ -766,7 +767,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r142
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r143
 </footer>
 
 <nav class="bottom">
@@ -2183,6 +2184,31 @@ const CUIMAP=[
  [/korean|thai|indian|vietnamese|asian|韓|泰|越|印度|アジア/i,"亞洲料理"],
  [/teishoku|kaiseki|japanese|定食|會席|懷石|和食|お節|割烹/i,"日式定食"]
 ];
+// 行程列表的具體類型標籤:景點=神社/古蹟…、餐廳=拉麵/壽司…、住宿=等級、購物=細類
+function stopTypeTags(s){
+  let tags=[];
+  if(s.c==="food"){
+    let cui=foodCui(s);
+    if(cui==="其他美食"){ // 從店名再猜一層
+      const nm=(s.n+(s.j||"")).toLowerCase();
+      if(/喫茶|カフェ|cafe|coffee|珈琲/i.test(nm))cui="咖啡輕食";
+      else if(/レストラン|食堂|restaurant|ダイニング|dining/i.test(nm))cui="餐廳";
+      else if(/居酒屋|バー|bar|酒場/i.test(nm))cui="居酒屋";
+      else if(/焼肉|燒肉|ホルモン/i.test(nm))cui="燒肉";
+      else if(/中華|中国|餃子/i.test(nm))cui="中式料理";
+      else cui="餐廳";
+    }
+    tags.push(cui);
+    const pr=foodPrice(s); if(pr)tags.push(pr);
+  }else if(s.c==="hotel"){
+    tags.push(hotelTier(s));
+  }else{
+    // 景點/購物:用既有 t 標籤(已是神社寺廟/自然風景/藥妝…)
+    tags=(s.t||[]).slice(0,3);
+    if(!tags.length)tags.push(s.c==="shop"?"購物":"景點");
+  }
+  return tags.slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("");
+}
 function foodCui(s){
   const src=(s.cu||"")+" "+s.n+" "+(s.j||"")+" "+(s.d||"").slice(0,20);
   for(const [re,lab] of CUIMAP)if(re.test(src))return lab;
@@ -3800,6 +3826,7 @@ function renderIti(){
   if(peakNote)$("wxBox").innerHTML+=peakNote;
   setTimeout(loadDaysWeather,300); // 有選日期的天,抓當天逐時預報
   setTimeout(loadStopThumbs,150);    // 每個景點旁載照片縮圖
+  setTimeout(loadListTranslations,200); // 日文名列表即時翻譯
   // ── 城市段順序調整 + 順路推薦(多城市行程) ──
   const groups=segGroups();
   if(groups.length>1){
@@ -3843,8 +3870,8 @@ function renderIti(){
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
         <div class="stopThumb" data-thumb="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.c,s.la,s.lo]))}" onclick="openDetail('${esc(s.n)}')" title="點看更多照片"></div>
-        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${[s.j&&s.j!==s.n?s.j:"",s.en?("· "+s.en):""].filter(Boolean).join(" ")}</div>
-        <div class="mrow">${(s.t||[]).slice(0,3).map(t=>`<span class="tag">${t}</span>`).join("")}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
+        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${[s.j&&s.j!==s.n?s.j:"",s.en?("· "+s.en):""].filter(Boolean).join(" ")}<span class="liTrans" data-tn="${encodeURIComponent(s.j||s.n)}" data-has="${(s.en||/[\u4e00-\u9fff]/.test(s.n)&&!/[\u3040-\u30ff]/.test(s.n))?1:0}"></span></div>
+        <div class="mrow">${stopTypeTags(s)}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
         ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${s.la},${s.lo}" target="_blank" rel="noopener">${s.ad}</a></div>`:""}
         ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
@@ -4111,6 +4138,17 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowRight")openLB(LB.i+1);
   if(e.key==="ArrowLeft")openLB(LB.i-1);
 });
+async function loadListTranslations(){
+  const nodes=document.querySelectorAll(".liTrans:not([data-done])");
+  for(const el of nodes){
+    el.dataset.done="1";
+    if(el.dataset.has==="1")continue; // 已有中文/英文,不需翻
+    const src=decodeURIComponent(el.dataset.tn||"");
+    if(!src||!/[\u3040-\u30ff]/.test(src))continue; // 只翻含假名的日文
+    const zh=await translateName(src,"zh-TW");
+    if(zh&&zh!==src)el.innerHTML=` 🇹🇼 ${zh}`;
+  }
+}
 async function translateName(text,target){
   // 免費翻譯:MyMemory API(免金鑰);快取避免重複
   try{
@@ -4766,7 +4804,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r142"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r143"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
