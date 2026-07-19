@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r115</span>
+    <span class="build">build r116</span>
   </div>
 </header>
 
@@ -712,7 +712,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r115
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r116
 </footer>
 
 <nav class="bottom">
@@ -2302,9 +2302,8 @@ S.homeCat="all";
     toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔");
     // ★ 版本偵測(先於任何載入):管線重跑後自動汰換本機快取
     await checkDbVersion();
-    const full=await idbGet("_full");
-    if(full){updateDbStat("💾 從本機還原全日本資料…");setTimeout(loadAllJapanSilent,300)}
-    else setTimeout(preloadMetros,800); // 背景預載大都市圈
+    // 一律:先快速載都市圈,再自動接續載滿全日本(不論本機有無旗標)
+    setTimeout(preloadMetros,800);
   }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
 })();
 const SHOP_QUICK=[["超商","🏪"],["藥妝","💊"],["激安雜貨","🛒"],["服飾","👕"],["電器","📷"],["動漫電玩","🕹️"]];
@@ -3936,7 +3935,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r115"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r116"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -3984,17 +3983,19 @@ function dbStatInfo(){
 }
 async function loadAllJapanSilent(){
   if(!window._OSMIDX)return;
-  const keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k));
+  const keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3);
+  if(!keys.length){idbSet("_full",{ts:Date.now()});updateDbStat();return} // 已全載
   let done=0;
-  for(let i=0;i<keys.length;i+=8){ // 本機快取快,批次 8 格
+  for(let i=0;i<keys.length;i+=8){ // 批次 8 格(本機快取秒回,網路則逐批下載)
     const batch=keys.slice(i,i+8);
     await loadCellKeys(batch);
     done+=batch.length;
-    updateDbStat("💾 還原中 "+Math.min(done,keys.length)+"/"+keys.length+" ・"+wan(DB.length)+" 筆");
+    updateDbStat("🗾 載入全日本 "+Math.min(done,keys.length)+"/"+keys.length+" ・"+wan(DB.length)+" 筆");
+    if(done%24===0){renderHomePicks();if($("pane-explore").classList.contains("on"))renderExplore()}
   }
   updateDbStat();renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
-  idbSet("_full",{ts:Date.now()}); // 記住已全載,下次開站自動還原
+  idbSet("_full",{ts:Date.now()});
   toast("✅ 全日本資料已全數就緒("+wan(DB.length)+" 筆)");
 }
 async function forceRefreshDB(){
@@ -4041,13 +4042,11 @@ async function preloadMetros(){
     updateDbStat("🌆 都市圈載入中 "+done+"/"+keys.length+" ・全庫 "+DB.length.toLocaleString()+" 筆");
   }
   updateDbStat();
-  if(addSum){
-    renderHomePicks();
-    if($("pane-explore").classList.contains("on"))renderExplore();
-    toast("🌆 主要都市圈就緒 "+wan(DB.length)+" 筆,持續在背景載入全日本…");
-  }
-  // ★ 都市圈載入完 → 自動接續把全日本剩餘分區載滿(背景靜默,無需手動)
-  //   省流量/2G 才停在都市圈
+  renderHomePicks();
+  if($("pane-explore").classList.contains("on"))renderExplore();
+  if(addSum)toast("🌆 主要都市圈就緒 "+wan(DB.length)+" 筆,持續在背景載入全日本…");
+  // ★ 無論都市圈是新載或已在快取,都自動接續把全日本 115 格載滿(背景靜默)
+  //   僅省流量/2G 停在都市圈
   const con2=navigator.connection||{};
   if(!(con2.saveData||/^(slow-2g|2g)$/.test(con2.effectiveType||""))){
     setTimeout(loadAllJapanSilent,1200);
