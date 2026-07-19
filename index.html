@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r116</span>
+    <span class="build">build r117</span>
   </div>
 </header>
 
@@ -712,7 +712,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r116
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r117
 </footer>
 
 <nav class="bottom">
@@ -3935,7 +3935,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r116"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r117"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -3974,7 +3974,7 @@ function dbStatInfo(){
       全庫已載入:<b style="font-size:22px;color:var(--shu)">${wan(DB.length)}</b> 筆(${DB.length.toLocaleString()})<br>
       ⛩️ 景點 <b>${wan(c.spot)}</b>|🍜 美食 <b>${wan(c.food)}</b><br>
       🏨 住宿 <b>${wan(c.hotel)}</b>|🛍️ 購物 <b>${wan(c.shop)}</b><br>
-      <span style="font-size:12.5px;color:#8A8272">分區檔:已載入 ${loaded} / 全日本 ${total} 格。點選城市會自動載入該區;或一鍵全載:</span>
+      <span style="font-size:12.5px;color:#8A8272">分區檔:已載入 <b style="color:${loaded<total?"var(--shu)":"var(--matcha)"}">${loaded}</b> / 全日本 ${total} 格${loaded<total?"(背景載入中,數字會持續增加)":"(✅ 已全數載入)"}。</span>
     </div>
     <button onclick="loadAllJapan()" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:14px;font-size:15.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">🗾 載入全日本資料庫(約 40MB,建議 Wi-Fi)</button>
     <div style="margin-top:8px;font-size:11.5px;color:#A39B87;text-align:center">資料每週自動更新,發現新版會自動汰換,無需手動</div>
@@ -3982,9 +3982,18 @@ function dbStatInfo(){
   $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
 }
 async function loadAllJapanSilent(){
-  if(!window._OSMIDX)return;
-  const keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3);
-  if(!keys.length){idbSet("_full",{ts:Date.now()});updateDbStat();return} // 已全載
+  if(!window._OSMIDX||!window._OSMIDX.length){
+    // index 還沒載到 → 重抓一次再啟動
+    try{const r=await fetch("data/osm/index.json",{cache:"no-cache"});if(r.ok)window._OSMIDX=await r.json()}catch(e){}
+    if(!window._OSMIDX||!window._OSMIDX.length){setTimeout(loadAllJapanSilent,1500);return}
+  }
+  let keys=window._OSMIDX.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3);
+  if(!keys.length){
+    // 可能是 OSMFAIL 卡住 → 清失敗計數再試一次(排除因逾時被跳過的格)
+    const failed=window._OSMIDX.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)>=3);
+    if(failed.length){failed.forEach(k=>OSMFAIL[k]=0);keys=failed}
+    else{idbSet("_full",{ts:Date.now()});updateDbStat();return} // 真的全載了
+  }
   let done=0;
   for(let i=0;i<keys.length;i+=8){ // 批次 8 格(本機快取秒回,網路則逐批下載)
     const batch=keys.slice(i,i+8);
