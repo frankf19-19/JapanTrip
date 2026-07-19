@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r110</span>
+    <span class="build">build r111</span>
   </div>
 </header>
 
@@ -711,7 +711,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r110
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r111
 </footer>
 
 <nav class="bottom">
@@ -2293,6 +2293,24 @@ S.homeCat="all";
     const idx=await r.json();
     window._OSMIDX=idx;
     toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔");
+    // ★ 資料庫版本偵測:管線重跑後自動汰換本機快取(否則 7 天內都吃舊資料)
+    try{
+      const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
+      if(mr.ok){
+        const meta=await mr.json();
+        const v=String(meta.built||meta.generated||"");
+        const prev=await idbGet("_meta");
+        if(v&&(!prev||prev.v!==v)){
+          if(prev){ // 有舊版 → 清本機分區檔,保留「要全日本」旗標
+            const full=await idbGet("_full");
+            try{const db=await idbOpen();if(db)await new Promise(res=>{const q=db.transaction("cells","readwrite").objectStore("cells").clear();q.onsuccess=res;q.onerror=res})}catch(e){}
+            if(full)idbSet("_full",full);
+            toast("🔄 偵測到資料庫新版本,自動更新本機資料…");
+          }
+          idbSet("_meta",{v});
+        }
+      }
+    }catch(e){}
     const full=await idbGet("_full");
     if(full){updateDbStat("💾 從本機還原全日本資料…");setTimeout(loadAllJapanSilent,300)}
     else setTimeout(preloadMetros,800); // 背景預載大都市圈
