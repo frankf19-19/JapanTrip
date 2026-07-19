@@ -119,7 +119,7 @@ def richness(t):
     """標籤豐富度:截取上限時優先保留資訊多的"""
     score = 0
     for k in ("cuisine", "opening_hours", "website", "wikipedia", "stars",
-              "name:zh", "name:en", "addr:city", "contact:website"):
+              "name:zh", "name:en", "int_name", "addr:city", "contact:website"):
         if t.get(k):
             score += 1
     return score
@@ -161,6 +161,10 @@ def main():
             ja = t.get("name:ja") or (t.get("name") if t.get("name") != name else "")
             if ja and ja != name:
                 e["j"] = ja[:60]
+            # 英文名(OSM name:en / int_name),供中英對照
+            en = t.get("name:en") or t.get("int_name")
+            if en and en != name and en != ja:
+                e["en"] = en[:60]
             if cat == "spot" or cat == "shop":
                 if tags:
                     e["t"] = tags
