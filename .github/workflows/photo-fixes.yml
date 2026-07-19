@@ -1,0 +1,58 @@
+name: 每日彙整照片修正
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 每天 UTC 18:00(台灣02:00)執行
+  workflow_dispatch: {}      # 也可手動觸發
+permissions:
+  contents: write
+  issues: write
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 彙整 photo-fix 標籤的 Issue 進 photo_fixes.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'data/photo_fixes.json';
+            let fixes = {};
+            try { fixes = JSON.parse(fs.readFileSync(path,'utf8')); } catch(e) {}
+            // 抓所有 open 的 photo-fix Issue
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'photo-fix', per_page: 100
+            });
+            let applied = 0;
+            for (const iss of issues) {
+              const body = iss.body || '';
+              const keyM = body.match(/key:\s*(.+)/);
+              if (!keyM) continue;
+              const key = keyM[1].trim();
+              // 解析被標記錯誤的照片 url(- 開頭的行)
+              const rejectUrls = [...body.matchAll(/^- (https?:\/\/\S+)/gm)].map(m=>m[1]);
+              // 解析正確照片(【正確照片】區塊後的 http 行)
+              const useM = body.split(/正確照片/)[1] || '';
+              const useUrls = [...useM.matchAll(/(https?:\/\/\S+)/g)].map(m=>m[1]);
+              if (!fixes[key]) fixes[key] = {};
+              if (rejectUrls.length) fixes[key].reject = [...new Set([...(fixes[key].reject||[]), ...rejectUrls])];
+              if (useUrls.length)    fixes[key].use    = [...new Set([...(fixes[key].use||[]),    ...useUrls])];
+              applied++;
+              // 處理完關閉 Issue 並留言
+              await github.rest.issues.createComment({owner:context.repo.owner,repo:context.repo.repo,issue_number:iss.number,body:'✅ 已彙整進 photo_fixes.json,將於下次部署生效。感謝回報!'});
+              await github.rest.issues.update({owner:context.repo.owner,repo:context.repo.repo,issue_number:iss.number,state:'closed'});
+            }
+            if (applied) {
+              fs.writeFileSync(path, JSON.stringify(fixes,null,2));
+              console.log(`彙整 ${applied} 筆回報`);
+            } else {
+              console.log('沒有新的 photo-fix Issue');
+            }
+      - name: 提交變更
+        run: |
+          git config user.name "wayu-bot"
+          git config user.email "bot@wayu"
+          git add data/photo_fixes.json
+          git diff --staged --quiet || git commit -m "chore: 每日彙整照片修正回報"
+          git push
