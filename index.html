@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r118</span>
+    <span class="build">build r119</span>
   </div>
 </header>
 
@@ -703,6 +703,15 @@ button{transition:transform .15s ease}
 <!-- ═══ 地圖頁 ═══ -->
 <section class="pane" id="pane-map">
   <h2 class="sec">行程地圖 <small>MAP</small></h2>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <div style="position:relative;flex:1;min-width:220px">
+      <input id="mapQ" placeholder="🔍 搜尋地址、車站、景點、店名…定位到地圖" autocomplete="off"
+        style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;font-size:14.5px;font-family:var(--font-b);color:var(--ink);outline:none;background:#fff"
+        oninput="mapSug()" onkeydown="if(event.key==='Enter')mapGo()">
+      <div id="mapSugBox" style="position:absolute;top:100%;left:0;right:0;z-index:500;background:#fff;border:1px solid var(--line);border-radius:0 0 12px 12px;box-shadow:var(--shadow);max-height:280px;overflow:auto;display:none"></div>
+    </div>
+    <button onclick="mapGo()" style="border:none;background:var(--shu);color:#fff;border-radius:12px;padding:11px 18px;font-size:14.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">搜尋定位</button>
+  </div>
   <div id="map"></div>
   <div class="maplegend" id="mapLegend"></div>
 </section>
@@ -712,7 +721,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r118
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r119
 </footer>
 
 <nav class="bottom">
@@ -3659,6 +3668,55 @@ function ensurePtCloud(){
   setTimeout(()=>{try{buildGidx()}catch(e){}},600);
   return PTC;
 }
+/* ═══ 地圖頁搜尋定位 ═══ */
+let _MAPT=0;
+function mapSug(){clearTimeout(_MAPT);_MAPT=setTimeout(mapSugRun,180)}
+function mapSugRun(){
+  const el=$("mapQ");if(!el)return;
+  const q=el.value.trim();const box=$("mapSugBox");
+  if(q.length<1){box.style.display="none";return}
+  if(!NIDX||NIDX_N!==DB.length)buildNIdx();
+  const qn=zin(q),pre=[],inc=[];
+  for(const it of NIDX){
+    if(it.la==null)continue;
+    if(it.k.startsWith(qn)){pre.push(it);if(pre.length>=8)break}
+    else if(inc.length<8&&it.k.includes(qn))inc.push(it);
+  }
+  const out=pre.concat(inc).slice(0,8);
+  window._MAPSUG=out;
+  let html=out.map((it,i)=>`<div onclick="mapPickSug(${i})" style="padding:9px 13px;cursor:pointer;border-bottom:1px solid #F0EBDD;font-size:14px;display:flex;gap:8px;align-items:center"><span>${it.ic}</span><b>${it.label.split(",")[0]}</b><small style="color:#A39B87">${it.sub}</small></div>`).join("");
+  // 附「用地址搜尋」選項(Nominatim)
+  html+=`<div onclick="mapGeocode()" style="padding:10px 13px;cursor:pointer;font-size:13.5px;color:var(--ai);font-weight:700;background:#FBF9F3">🌐 用「${q}」搜尋地址/地標(Nominatim)</div>`;
+  box.innerHTML=html;box.style.display="block";
+}
+function mapFlyTo(la,lo,zoom){
+  if(!MAP)return;
+  MAP._cloudViewSet=true; // 阻止點雲重設視角覆蓋
+  MAP.setView([la,lo],zoom||15);
+  L.popup().setLatLng([la,lo]).setContent('📍 已定位到此').openOn(MAP);
+  $("mapSugBox").style.display="none";
+}
+function mapPickSug(i){
+  const it=(window._MAPSUG||[])[i];if(!it)return;
+  $("mapQ").value=it.label.split(",")[0];
+  mapFlyTo(it.la,it.lo,15);
+}
+async function mapGeocode(){
+  const q=($("mapQ").value||"").trim();if(!q)return;
+  $("mapSugBox").style.display="none";
+  toast("🌐 搜尋地址中…");
+  try{
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=zh-TW&countrycodes=jp&q="+encodeURIComponent(q));
+    const d=await r.json();
+    if(d[0]){mapFlyTo(+d[0].lat,+d[0].lon,15);toast("📍 已定位:"+(d[0].display_name||"").split(",").slice(0,3).join(""))}
+    else toast("找不到這個地址,換個關鍵字試試");
+  }catch(e){toast("地址搜尋暫時無回應,稍後再試")}
+}
+function mapGo(){
+  // Enter/按鈕:優先用第一個站內建議,否則地址搜尋
+  const out=window._MAPSUG||[];
+  if(out.length)mapPickSug(0); else mapGeocode();
+}
 const MAP_OFF=new Set(); // 地圖上被隱藏的分類
 function mapToggleCat(c){
   MAP_OFF.has(c)?MAP_OFF.delete(c):MAP_OFF.add(c);
@@ -3667,9 +3725,19 @@ function mapToggleCat(c){
 function renderCloudLegend(){
   const CATL=[["spot","⛩️ 景點(圓)","#28497C"],["food","🍜 美食(三角)","#B98A2F"],["shop","🛍️ 購物(方)","#C43B41"],["hotel","🏨 住宿(菱)","#5E7B4F"]];
   const chips=CATL.map(([c,n,col])=>`<span onclick="mapToggleCat('${c}')" style="cursor:pointer;user-select:none;${MAP_OFF.has(c)?"opacity:.35;text-decoration:line-through":""}" title="點我${MAP_OFF.has(c)?"顯示":"隱藏"}"><i style="background:${col}"></i>${n}</span>`).join("");
+  let subRow="";
+  if(!MAP_OFF.has("shop")){
+    S.mapShopSub=S.mapShopSub||new Set();
+    const subs=["超商","藥妝","激安雜貨","服飾","電器","動漫電玩","二手古著","市場老街"];
+    subRow=`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-size:11.5px;color:#8A8272">🛍️ 購物細選:</span>`
+      +`<label onclick="S.mapShopSub.clear();renderCloudLegend();drawPtCloud()" style="cursor:pointer;font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);${S.mapShopSub.size===0?"background:var(--ai);color:#fff":""}">全部</label>`
+      +subs.map(t=>`<label onclick="S.mapShopSub.has('${t}')?S.mapShopSub.delete('${t}'):S.mapShopSub.add('${t}');renderCloudLegend();drawPtCloud()" style="cursor:pointer;font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);${S.mapShopSub.has(t)?"background:var(--shu);color:#fff":""}">${t}</label>`).join("")
+      +`</div>`;
+  }
   $("mapLegend").innerHTML=chips
-    +`<span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆${MAP_OFF.size?"(已篩選)":"全數顯示"}</span>`
-    +`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點分類圓點可篩選・點標記看詳情</span>`;
+    +`<span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆${MAP_OFF.size||(S.mapShopSub&&S.mapShopSub.size)?"(已篩選)":"全數顯示"}</span>`
+    +`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點分類可篩選・點標記看詳情</span>`
+    +subRow;
 }
 function drawPtCloud(){
   if(!PTC||S.iti){if(PTC)PTC.getContext("2d").clearRect(0,0,PTC.width,PTC.height);return}
@@ -3686,6 +3754,7 @@ function drawPtCloud(){
     const p=DB[i];
     if(!p||!Number.isFinite(p.la)||p.la<s0||p.la>n0||p.lo<w||p.lo>e)continue;
     if(MAP_OFF.has(p.c))continue;
+    if(p.c==="shop"&&S.mapShopSub&&S.mapShopSub.size&&!(p.t||[]).some(t=>S.mapShopSub.has(t)))continue; // 購物子分類
     vis.push(p);
     if(vis.length>20000)break; // 保險上限
   }
@@ -3766,6 +3835,7 @@ function ptCloudClick(ev){
     for(const i of arr){
       const p=DB[i];
       if(MAP_OFF.has(p.c))continue;
+      if(p.c==="shop"&&S.mapShopSub&&S.mapShopSub.size&&!(p.t||[]).some(t=>S.mapShopSub.has(t)))continue; // 購物子分類
       // 精準像素距離
       const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
       const dx=pt.x-cp.x,dy=pt.y-cp.y,d=dx*dx+dy*dy;
@@ -3935,7 +4005,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r118"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r119"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
