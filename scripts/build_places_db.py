@@ -69,11 +69,28 @@ def classify(t):
     am = t.get("amenity", "")
     tm = t.get("tourism", "")
     if am in FOOD_AMENITY or am == "biergarten":
-        return "food", [], 50
+        # 從 OSM cuisine 標籤給具體料理標籤
+        cui=(t.get("cuisine") or "").lower()
+        food_tags=[]
+        _cmap=[("ramen","拉麵"),("sushi","壽司"),("japanese","日式料理"),("chinese","中式料理"),
+               ("italian","義式料理"),("french","法式料理"),("korean","韓式料理"),("indian","印度料理"),
+               ("thai","泰式料理"),("cafe","咖啡輕食"),("coffee_shop","咖啡輕食"),("burger","漢堡速食"),
+               ("pizza","披薩"),("yakiniku","燒肉"),("bbq","燒肉"),("seafood","海鮮"),("noodle","麵食"),
+               ("curry","咖哩"),("bakery","烘焙"),("dessert","甜點"),("steak","牛排"),("udon","烏龍麵"),
+               ("soba","蕎麥麵"),("tempura","天婦羅"),("eel","鰻魚"),("izakaya","居酒屋")]
+        for k,v in _cmap:
+            if k in cui:food_tags.append(v);break
+        if am=="cafe" and not food_tags:food_tags.append("咖啡輕食")
+        if am=="fast_food" and not food_tags:food_tags.append("速食")
+        if am=="bar" or am=="pub":food_tags.append("酒吧居酒屋")
+        return "food", food_tags, 50
     if tm in HOTEL_TOURISM:
         return "hotel", [], 0
-    if t.get("shop") in SHOP_KEEP or am == "marketplace":
-        return "shop", (["市場老街"] if am == "marketplace" else []), 90
+    if am == "marketplace":
+        return "shop", ["市場老街"], 90
+    if t.get("shop") in SHOP_KEEP:
+        _sk={"mall":"購物中心","department_store":"百貨公司","supermarket":"超市"}
+        return "shop", [_sk.get(t["shop"],"購物")], 90
     if t.get("shop") in SHOP_MORE:
         tag, stay = SHOP_MORE[t["shop"]]
         return "shop", [tag], stay
