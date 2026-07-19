@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r111</span>
+    <span class="build">build r113</span>
   </div>
 </header>
 
@@ -711,7 +711,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r111
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r113
 </footer>
 
 <nav class="bottom">
@@ -2293,24 +2293,8 @@ S.homeCat="all";
     const idx=await r.json();
     window._OSMIDX=idx;
     toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔");
-    // ★ 資料庫版本偵測:管線重跑後自動汰換本機快取(否則 7 天內都吃舊資料)
-    try{
-      const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
-      if(mr.ok){
-        const meta=await mr.json();
-        const v=String(meta.built||meta.generated||"");
-        const prev=await idbGet("_meta");
-        if(v&&(!prev||prev.v!==v)){
-          if(prev){ // 有舊版 → 清本機分區檔,保留「要全日本」旗標
-            const full=await idbGet("_full");
-            try{const db=await idbOpen();if(db)await new Promise(res=>{const q=db.transaction("cells","readwrite").objectStore("cells").clear();q.onsuccess=res;q.onerror=res})}catch(e){}
-            if(full)idbSet("_full",full);
-            toast("🔄 偵測到資料庫新版本,自動更新本機資料…");
-          }
-          idbSet("_meta",{v});
-        }
-      }
-    }catch(e){}
+    // ★ 版本偵測(先於任何載入):管線重跑後自動汰換本機快取
+    await checkDbVersion();
     const full=await idbGet("_full");
     if(full){updateDbStat("💾 從本機還原全日本資料…");setTimeout(loadAllJapanSilent,300)}
     else setTimeout(preloadMetros,800); // 背景預載大都市圈
@@ -3932,6 +3916,29 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
+const APP_BUILD="r113"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+async function checkDbVersion(){
+  try{
+    const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
+    if(!mr.ok)return false;
+    const meta=await mr.json();
+    const v=String(meta.built||meta.generated||"")+"|"+APP_BUILD; // 資料版 + 程式版
+    if(!v)return false;
+    const prev=await idbGet("_meta");
+    if(prev&&prev.v===v)return false; // 資料與程式都沒變才跳過
+    if(prev){ // 有舊版 → 清本機所有分區檔(保留全日本旗標),再繼續由 preload/silent 重載新版
+      const full=await idbGet("_full");
+      try{const db=await idbOpen();if(db)await new Promise(res=>{const q=db.transaction("cells","readwrite").objectStore("cells").clear();q.onsuccess=res;q.onerror=res})}catch(e){}
+      OSMCELLS.clear(); // 記憶體標記也清,強制重新抓
+      // 記憶體內既有 OSM 資料一併清掉(保留精選+Wikidata),避免混舊
+      for(let i=DB.length-1;i>=0;i--)if(DB[i].a==="OSM庫")DB.splice(i,1);
+      if(full)await idbSet("_full",full);
+      toast("🔄 資料庫已更新到最新版,正在自動載入…");
+    }
+    await idbSet("_meta",{v});
+    return !!prev;
+  }catch(e){return false}
+}
 function updateDbStat(txt){
   const el=$("dbStat");if(!el)return;
   el.textContent=txt||("📊 全庫 "+wan(DB.length)+" 筆");
@@ -3951,6 +3958,7 @@ function dbStatInfo(){
       <span style="font-size:12.5px;color:#8A8272">分區檔:已載入 ${loaded} / 全日本 ${total} 格。點選城市會自動載入該區;或一鍵全載:</span>
     </div>
     <button onclick="loadAllJapan()" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:14px;font-size:15.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">🗾 載入全日本資料庫(約 40MB,建議 Wi-Fi)</button>
+    <div style="margin-top:8px;font-size:11.5px;color:#A39B87;text-align:center">資料每週自動更新,發現新版會自動汰換,無需手動</div>
     <button onclick="closeDetail()" style="margin-top:10px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
   $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
 }
@@ -3967,6 +3975,18 @@ async function loadAllJapanSilent(){
   updateDbStat();renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
   toast("💾 全日本資料已就緒("+wan(DB.length)+" 筆)");
+}
+async function forceRefreshDB(){
+  closeDetail();
+  try{const db=await idbOpen();if(db)await new Promise(res=>{const q=db.transaction("cells","readwrite").objectStore("cells").clear();q.onsuccess=res;q.onerror=res})}catch(e){}
+  OSMCELLS.clear();
+  // 移除舊 DB 中 OSM 來源的資料,保留精選+Wikidata
+  for(let i=DB.length-1;i>=0;i--)if(DB[i].a==="OSM庫")DB.splice(i,1);
+  await idbSet("_meta",{v:"force"}); // 下次自檢會再比對
+  updateDbStat();renderHomePicks();
+  toast("🔄 已清除本機快取,重新載入最新資料…");
+  const full=await idbGet("_full");
+  if(full)loadAllJapanSilent(); else preloadMetros();
 }
 async function loadAllJapan(){
   closeDetail();
