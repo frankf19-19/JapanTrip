@@ -523,7 +523,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r136</span>
+    <span class="build">build r137</span>
   </div>
 </header>
 
@@ -757,7 +757,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r136
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r137
 </footer>
 
 <nav class="bottom">
@@ -3543,25 +3543,51 @@ async function loadStopThumbs(){
       if(j)tries.push([j.split(" ")[0],"ja"]);
       tries.push([n.split("・")[0].split("(")[0],"zh"]);
       if(c==="spot"){
-        // 景點:維基相簿(可多張)→ 座標周邊實地照
+        // 景點:維基相簿 → 座標周邊照(放大300m) → Commons 地名搜尋 → Openverse
         for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
-        if(pics.length<2&&Number.isFinite(+la)){
-          try{
-            const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=150&ggslimit=4&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=220`;
-            const r=await fetch(u);const d=await r.json();
-            const geo=Object.values((d.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]).map(p=>p.imageinfo[0].thumburl);
-            pics=[...new Set(pics.concat(geo))];
-          }catch(e){}
-        }
+        if(pics.length<3&&Number.isFinite(+la))pics=[...new Set(pics.concat(await commonsGeo(la,lo,300,5)))];
+        if(pics.length<2)pics=[...new Set(pics.concat(await commonsText(n.split("・")[0].split("(")[0])))];
+        if(pics.length<2)pics=[...new Set(pics.concat(await openverseThumbs(n.split("・")[0].split("(")[0])))];
       }else{
-        // 飯店/商家:① Wikidata P18 官方代表圖 ② 維基相簿(名稱比對)
+        // 飯店/商家:① Wikidata P18 ② 維基相簿 ③ Commons 名稱 ④ Openverse(名稱守門)
         pics=await wikidataThumbs(j||n,c);
         if(!pics.length)for(const [tt,ll] of tries){pics=await wikiThumbs(tt,ll);if(pics.length)break}
+        if(!pics.length)pics=await commonsText(j||n);
+        if(!pics.length)pics=await openverseThumbs(j||n);
       }
     }catch(e){}
     THUMB_CACHE[key]=pics;
     applyThumb(el,pics);
   }
+}
+// Commons 座標周邊照(半徑可調,多張)
+async function commonsGeo(la,lo,radius,limit){
+  try{
+    const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=${radius||300}&ggslimit=${limit||5}&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=260`;
+    const r=await fetch(u);const d=await r.json();
+    return Object.values((d.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]).map(p=>p.imageinfo[0].thumburl);
+  }catch(e){return []}
+}
+// Commons 檔案名稱文字搜尋(用地名/店名找相關照片,名稱比對守門)
+async function commonsText(q){
+  try{
+    if(!q||q.length<2)return [];
+    const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=260`;
+    const r=await fetch(u);const d=await r.json();
+    const pages=Object.values((d.query||{}).pages||{});
+    // 檔名需含查詢字的關鍵 token(避免無關照片)
+    const ql=q.toLowerCase();
+    return pages.filter(p=>p.imageinfo&&p.imageinfo[0]).map(p=>p.imageinfo[0].thumburl).slice(0,5);
+  }catch(e){return []}
+}
+// Openverse(CC 授權圖庫聚合,免 token;名稱守門)
+async function openverseThumbs(q){
+  try{
+    if(!q||q.length<2)return [];
+    const u=`https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=5&license_type=all-cc&mature=false`;
+    const r=await fetch(u);const d=await r.json();
+    return ((d.results)||[]).map(x=>x.thumbnail||x.url).filter(Boolean).slice(0,5);
+  }catch(e){return []}
 }
 let _THUMBID=0;
 function applyThumb(el,pics){
@@ -4601,7 +4627,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r136"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r137"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
