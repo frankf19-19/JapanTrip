@@ -240,8 +240,13 @@ h2.sec small{font-size:12px;color:#8A8272;font-family:var(--font-b);font-weight:
 .stopThumb.loading{height:180px;border-radius:14px;background:#EDE8DC;position:relative}
 .stopThumb.loading::after{content:"📷 載入照片…";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:.4}
 .stopThumb.none{height:180px;border-radius:14px;background:#EDE8DC;position:relative;border:1px solid var(--line)}
-.stopThumb.none::after{content:"🏞️ 此地暫無公開照片";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;opacity:.45;text-align:center;padding:0 10px}
+.stopThumb.none{display:block}
 .stopThumb .thumbCount{font-size:11.5px;color:#8A8272;margin-top:4px;text-align:center}
+.stopThumb .thumbFoot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:4px;font-size:11px;color:#8A8272}
+.stopThumb .thumbBad{border:none;background:none;color:#A39B87;font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--font-b);padding:0;white-space:nowrap}
+.stopThumb .thumbBad:hover{color:var(--shu)}
+.stopThumb.none .noneInner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12.5px;opacity:.6;text-align:center;padding:0 10px}
+.stopThumb.none .noneInner .thumbBad{opacity:1;color:var(--ai)}
 @media(min-width:1400px){.stopThumb{width:320px}.stopThumb img{width:320px;height:214px}.stopThumb.loading,.stopThumb.none{height:214px}}
 @media(max-width:700px){.stopThumb{width:200px}.stopThumb img{width:200px;height:140px}.stopThumb.loading,.stopThumb.none{height:140px}.thumbNav{width:32px;height:32px;font-size:20px}}
 .stop .info h4{font-size:15px;font-weight:700;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;line-height:1.45}
@@ -523,7 +528,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r137</span>
+    <span class="build">build r140</span>
   </div>
 </header>
 
@@ -757,7 +762,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r137
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r140
 </footer>
 
 <nav class="bottom">
@@ -2382,6 +2387,7 @@ S.homeCat="all";
     toast("🗾 OSM 分區庫連線正常:"+idx.length+" 個分區檔");
     // ★ 版本偵測(先於任何載入):管線重跑後自動汰換本機快取
     await checkDbVersion();
+    await loadPhotoFixes();
     // 一律:先快速載都市圈,再自動接續載滿全日本(不論本機有無旗標)
     setTimeout(loadAllJapanSilent,600);
   }catch(e){toast("⚠️ OSM 分區庫連線逾時,稍後點城市會再嘗試")}
@@ -3528,15 +3534,27 @@ function addFestivalSpot(di,sp){
   toast("🎉 已把「"+sp.n.split("(")[0]+"」排入 DAY "+(di+1)+"(可再拖動調整時段)");
 }
 const THUMB_CACHE={};
-async function loadStopThumbs(){
-  const nodes=document.querySelectorAll(".stopThumb:not([data-done])");
-  for(const el of nodes){
-    el.dataset.done="1"; el.classList.add("loading");
-    let meta;try{meta=JSON.parse(decodeURIComponent(el.dataset.thumb))}catch(e){el.classList.remove("loading");el.classList.add("none");continue}
+const THUMB_REJECT={};
+const PHOTO_OVERRIDE={};
+let PHOTO_REPORTS=JSON.parse(localStorage.getItem("wayu_photo_reports")||"{}");
+async function loadPhotoFixes(){
+  try{
+    const r=await fetch("data/photo_fixes.json",{cache:"no-cache"});
+    if(r.ok){
+      const fx=await r.json();
+      for(const k in fx){
+        if(fx[k].reject){THUMB_REJECT[k]=THUMB_REJECT[k]||new Set();fx[k].reject.forEach(u=>THUMB_REJECT[k].add(u))}
+        if(fx[k].use&&fx[k].use.length)PHOTO_OVERRIDE[k]=fx[k].use;
+      }
+    }
+  }catch(e){}
+  for(const k in PHOTO_REPORTS){
+    THUMB_REJECT[k]=THUMB_REJECT[k]||new Set();
+    (PHOTO_REPORTS[k].reject||[]).forEach(u=>THUMB_REJECT[k].add(u));
+  }
+}
+async function fetchThumbsFor(meta,exclude){
     const [j,n,c,la,lo]=meta;
-    el.dataset.name=n;
-    const key=n+"@"+la;
-    if(THUMB_CACHE[key]!==undefined){applyThumb(el,THUMB_CACHE[key]);continue}
     let pics=[];
     try{
       const tries=[];
@@ -3556,9 +3574,72 @@ async function loadStopThumbs(){
         if(!pics.length)pics=await openverseThumbs(j||n);
       }
     }catch(e){}
+    pics=[...new Set(pics)];
+    if(exclude&&exclude.size)pics=pics.filter(u=>!exclude.has(u));
+    const _k=n+"@"+la;
+    if(PHOTO_OVERRIDE[_k]&&PHOTO_OVERRIDE[_k].length)pics=[...new Set(PHOTO_OVERRIDE[_k].concat(pics))];
+    return pics;
+}
+async function loadStopThumbs(){
+  const nodes=document.querySelectorAll(".stopThumb:not([data-done])");
+  for(const el of nodes){
+    el.dataset.done="1"; el.classList.add("loading");
+    let meta;try{meta=JSON.parse(decodeURIComponent(el.dataset.thumb))}catch(e){el.classList.remove("loading");el.classList.add("none");continue}
+    const [j,n,c,la,lo]=meta;
+    el.dataset.name=n;
+    const key=n+"@"+la;
+    if(THUMB_CACHE[key]!==undefined){applyThumb(el,THUMB_CACHE[key],meta);continue}
+    const pics=await fetchThumbsFor(meta,THUMB_REJECT[key]);
     THUMB_CACHE[key]=pics;
-    applyThumb(el,pics);
+    applyThumb(el,pics,meta);
   }
+}
+// 使用者標記「照片不對」→ 把目前照片加進排除清單,重抓一批新的
+async function refetchThumb(btn){
+  const el=btn.closest(".stopThumb"); if(!el)return;
+  let meta;try{meta=JSON.parse(decodeURIComponent(el.dataset.thumb))}catch(e){return}
+  const [j,n,c,la,lo]=meta;const key=n+"@"+la;
+  THUMB_REJECT[key]=THUMB_REJECT[key]||new Set();
+  const rejected=(THUMB_CACHE[key]||[]);
+  rejected.forEach(u=>THUMB_REJECT[key].add(u));
+  PHOTO_REPORTS[key]=PHOTO_REPORTS[key]||{n:n,la:la,lo:lo,reject:[]};
+  rejected.forEach(u=>{if(!PHOTO_REPORTS[key].reject.includes(u))PHOTO_REPORTS[key].reject.push(u)});
+  PHOTO_REPORTS[key].ts=Date.now();
+  try{localStorage.setItem("wayu_photo_reports",JSON.stringify(PHOTO_REPORTS))}catch(e){}
+  el.classList.remove("none");el.classList.add("loading");el.innerHTML="";
+  const pics=await fetchThumbsFor(meta,THUMB_REJECT[key]);
+  THUMB_CACHE[key]=pics;
+  applyThumb(el,pics,meta,{reported:true,rejected});
+  toast(pics.length?"🔄 已換一批新照片":"這個地點沒有更多公開照片了,可點下方連結看 Google/Tabelog");
+}
+// 一鍵回報給網站(開預填 GitHub Issue)
+function reportPhotoIssue(btn){
+  const el=btn.closest(".stopThumb"); if(!el)return;
+  let meta;try{meta=JSON.parse(decodeURIComponent(el.dataset.thumb))}catch(e){return}
+  const [j,n,c,la,lo]=meta;const key=n+"@"+(+la).toFixed(3);
+  const rej=(PHOTO_REPORTS[key]&&PHOTO_REPORTS[key].reject)||[];
+  const title=encodeURIComponent("照片回報:"+n);
+  const body=encodeURIComponent(
+    "地點:"+n+(j?" ("+j+")":"")+"\n"+
+    "座標:"+la+","+lo+"\n"+
+    "類型:"+({spot:"景點",food:"餐廳",shop:"購物",hotel:"住宿"}[c]||c)+"\n"+
+    "key:"+key+"\n\n"+
+    "【問題】這個地點顯示的照片不正確。\n"+
+    "被標記為錯誤的照片:\n"+(rej.length?rej.map(u=>"- "+u).join("\n"):"(換一批後產生)")+"\n\n"+
+    "【正確照片】(可選填,貼上正確照片網址):\n\n"+
+    "---\n由旅日和「照片不對」功能自動產生"
+  );
+  const url="https://github.com/frankf19-19/JapanTrip/issues/new?title="+title+"&body="+body+"&labels=photo-fix";
+  window.open(url,"_blank");
+  toast("📮 已開啟回報頁,送出後管理者會盡快修正(感謝!)");
+}
+function exportPhotoReports(){
+  const cnt=Object.keys(PHOTO_REPORTS).length;
+  if(!cnt){toast("目前沒有照片回報記錄");return}
+  const blob=new Blob([JSON.stringify(PHOTO_REPORTS,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="photo_reports_"+new Date().toISOString().slice(0,10)+".json";a.click();
+  toast("📤 已匯出 "+cnt+" 筆照片回報");
 }
 // Commons 座標周邊照(半徑可調,多張)
 async function commonsGeo(la,lo,radius,limit){
@@ -3590,8 +3671,10 @@ async function openverseThumbs(q){
   }catch(e){return []}
 }
 let _THUMBID=0;
-function applyThumb(el,pics){
+function applyThumb(el,pics,meta,opts){
   el.classList.remove("loading");
+  opts=opts||{};
+  const reportBtn=opts.reported?`<button class="thumbBad" onclick="reportPhotoIssue(this)" title="回報給網站,幫助所有使用者" style="color:var(--shu);font-weight:700">📮 還是不對?回報給網站</button>`:"";
   if(pics&&pics.length){
     const nm=el.dataset.name||"";
     const rid="tr"+(_THUMBID++);
@@ -3601,8 +3684,12 @@ function applyThumb(el,pics){
       ${multi?`<button class="thumbNav prev" onclick="thumbScroll('${rid}',-1)" aria-label="上一張">‹</button>`:""}
       <div class="thumbRow" id="${rid}">${imgs}</div>
       ${multi?`<button class="thumbNav next" onclick="thumbScroll('${rid}',1)" aria-label="下一張">›</button>`:""}
-    </div>${multi?`<div class="thumbCount">${Math.min(pics.length,8)} 張・◀▶ 或滑動看更多</div>`:""}`;
-  }else el.classList.add("none");
+    </div>
+    <div class="thumbFoot">${multi?`<span>${Math.min(pics.length,8)} 張</span>`:"<span></span>"}<button class="thumbBad" onclick="refetchThumb(this)" title="這些照片不是這個地點?換一批">📷 照片不對?換一批</button></div>${reportBtn?`<div style="text-align:right;margin-top:2px">${reportBtn}</div>`:""}`;
+  }else{
+    el.classList.add("none");
+    el.innerHTML=`<div class="noneInner">🏞️ 此地暫無公開照片<button class="thumbBad" style="margin-top:6px" onclick="refetchThumb(this)">🔄 再找一次</button>${opts.reported?`<button class="thumbBad" style="margin-top:4px;color:var(--shu)" onclick="reportPhotoIssue(this)">📮 回報給網站</button>`:""}</div>`;
+  }
 }
 function thumbScroll(id,dir){
   const row=document.getElementById(id);if(!row)return;
@@ -4627,7 +4714,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r137"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r140"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -4676,6 +4763,7 @@ function dbStatInfo(){
     </div>
     <button onclick="loadAllJapan()" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:14px;font-size:15.5px;font-weight:700;font-family:var(--font-b);cursor:pointer">🗾 載入全日本資料庫(約 40MB,建議 Wi-Fi)</button>
     <div style="margin-top:8px;font-size:11.5px;color:#A39B87;text-align:center">資料每週自動更新,發現新版會自動汰換,無需手動</div>
+    <button onclick="exportPhotoReports()" style="margin-top:8px;width:100%;border:1px solid var(--line);background:#fff;color:#8A8272;border-radius:10px;padding:9px;font-size:12px;font-family:var(--font-b);cursor:pointer">📤 匯出照片回報(管理者用)</button>
     <button onclick="closeDetail()" style="margin-top:10px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
   $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
 }
