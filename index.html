@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r120</span>
+    <span class="build">build r121</span>
   </div>
 </header>
 
@@ -721,7 +721,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r120
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r121
 </footer>
 
 <nav class="bottom">
@@ -3725,19 +3725,25 @@ function mapToggleCat(c){
 function renderCloudLegend(){
   const CATL=[["spot","⛩️ 景點(圓)","#28497C"],["food","🍜 美食(三角)","#B98A2F"],["shop","🛍️ 購物(方)","#C43B41"],["hotel","🏨 住宿(菱)","#5E7B4F"]];
   const chips=CATL.map(([c,n,col])=>`<span onclick="mapToggleCat('${c}')" style="cursor:pointer;user-select:none;${MAP_OFF.has(c)?"opacity:.35;text-decoration:line-through":""}" title="點我${MAP_OFF.has(c)?"顯示":"隱藏"}"><i style="background:${col}"></i>${n}</span>`).join("");
-  let subRow="";
-  if(!MAP_OFF.has("shop")){
-    S.mapShopSub=S.mapShopSub||new Set();
-    const subs=["超商","藥妝","激安雜貨","服飾","電器","動漫電玩","二手古著","市場老街"];
-    subRow=`<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-size:11.5px;color:#8A8272">🛍️ 購物細選:</span>`
-      +`<label onclick="S.mapShopSub.clear();renderCloudLegend();drawPtCloud()" style="cursor:pointer;font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);${S.mapShopSub.size===0?"background:var(--ai);color:#fff":""}">全部</label>`
-      +subs.map(t=>`<label onclick="S.mapShopSub.has('${t}')?S.mapShopSub.delete('${t}'):S.mapShopSub.add('${t}');renderCloudLegend();drawPtCloud()" style="cursor:pointer;font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);${S.mapShopSub.has(t)?"background:var(--shu);color:#fff":""}">${t}</label>`).join("")
-      +`</div>`;
-  }
+  // 各分類細選列(該類顯示中才出現)
+  S.mapSpotSub=S.mapSpotSub||new Set();S.mapFoodSub=S.mapFoodSub||new Set();
+  S.mapShopSub=S.mapShopSub||new Set();S.mapHotelSub=S.mapHotelSub||new Set();
+  const subChip=(setName,t,on,color)=>`<label onclick="S.${setName}.has('${t}')?S.${setName}.delete('${t}'):S.${setName}.add('${t}');renderCloudLegend();drawPtCloud()" style="cursor:pointer;font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);${on?`background:${color};color:#fff`:""}">${t}</label>`;
+  const subRowOf=(cat,emoji,label,setName,subs,color)=>{
+    if(MAP_OFF.has(cat))return "";
+    const st=S[setName];
+    return `<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><span style="font-size:11.5px;color:#8A8272">${emoji} ${label}:</span>`
+      +`<label onclick="S.${setName}.clear();renderCloudLegend();drawPtCloud()" style="cursor:pointer;font-size:11.5px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);${st.size===0?"background:var(--ai);color:#fff":""}">全部</label>`
+      +subs.map(t=>subChip(setName,t,st.has(t),color)).join("")+`</div>`;
+  };
+  const anySub=(S.mapSpotSub.size||S.mapFoodSub.size||S.mapShopSub.size||S.mapHotelSub.size);
   $("mapLegend").innerHTML=chips
-    +`<span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆${MAP_OFF.size||(S.mapShopSub&&S.mapShopSub.size)?"(已篩選)":"全數顯示"}</span>`
+    +`<span style="color:var(--shu);font-weight:700">全庫 ${wan(DB.length)} 筆${MAP_OFF.size||anySub?"(已篩選)":"全數顯示"}</span>`
     +`<span><i style="background:#20303F"></i>中心點</span><span style="color:#A39B87">・點分類可篩選・點標記看詳情</span>`
-    +subRow;
+    +subRowOf("spot","⛩️","景點細選","mapSpotSub",["神社寺廟","歷史古蹟","自然風景","博物館藝術","主題樂園","夜景展望","溫泉","市場老街","親子同樂","動漫電玩"],"var(--ai)")
+    +subRowOf("food","🍜","美食細選","mapFoodSub",["拉麵","蕎麥烏龍","壽司","海鮮","燒肉牛排","串燒串炸","天婦羅","豬排","丼飯","咖哩","鍋物","甜點冰品","咖啡茶飲","居酒屋","日式定食"],"#B98A2F")
+    +subRowOf("shop","🛍️","購物細選","mapShopSub",["超商","藥妝","激安雜貨","服飾","電器","動漫電玩","二手古著","市場老街"],"var(--shu)")
+    +subRowOf("hotel","🏨","住宿細選","mapHotelSub",["青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"],"#5E7B4F");
 }
 function drawPtCloud(){
   if(!PTC||S.iti){if(PTC)PTC.getContext("2d").clearRect(0,0,PTC.width,PTC.height);return}
@@ -3754,7 +3760,10 @@ function drawPtCloud(){
     const p=DB[i];
     if(!p||!Number.isFinite(p.la)||p.la<s0||p.la>n0||p.lo<w||p.lo>e)continue;
     if(MAP_OFF.has(p.c))continue;
-    if(p.c==="shop"&&S.mapShopSub&&S.mapShopSub.size&&!(p.t||[]).some(t=>S.mapShopSub.has(t)))continue; // 購物子分類
+    if(p.c==="shop"&&S.mapShopSub&&S.mapShopSub.size&&!(p.t||[]).some(t=>S.mapShopSub.has(t)))continue;
+    if(p.c==="spot"&&S.mapSpotSub&&S.mapSpotSub.size&&!(p.t||[]).some(t=>S.mapSpotSub.has(t)))continue;
+    if(p.c==="food"&&S.mapFoodSub&&S.mapFoodSub.size){if(p._cui===undefined)p._cui=foodCui(p);if(!S.mapFoodSub.has(p._cui))continue}
+    if(p.c==="hotel"&&S.mapHotelSub&&S.mapHotelSub.size){if(p._ht===undefined)p._ht=hotelTier(p);if(!S.mapHotelSub.has(p._ht))continue}
     vis.push(p);
     if(vis.length>20000)break; // 保險上限
   }
@@ -3835,7 +3844,10 @@ function ptCloudClick(ev){
     for(const i of arr){
       const p=DB[i];
       if(MAP_OFF.has(p.c))continue;
-      if(p.c==="shop"&&S.mapShopSub&&S.mapShopSub.size&&!(p.t||[]).some(t=>S.mapShopSub.has(t)))continue; // 購物子分類
+      if(p.c==="shop"&&S.mapShopSub&&S.mapShopSub.size&&!(p.t||[]).some(t=>S.mapShopSub.has(t)))continue;
+      if(p.c==="spot"&&S.mapSpotSub&&S.mapSpotSub.size&&!(p.t||[]).some(t=>S.mapSpotSub.has(t)))continue;
+      if(p.c==="food"&&S.mapFoodSub&&S.mapFoodSub.size){if(p._cui===undefined)p._cui=foodCui(p);if(!S.mapFoodSub.has(p._cui))continue}
+      if(p.c==="hotel"&&S.mapHotelSub&&S.mapHotelSub.size){if(p._ht===undefined)p._ht=hotelTier(p);if(!S.mapHotelSub.has(p._ht))continue}
       // 精準像素距離
       const pt=MAP.latLngToContainerPoint([p.la,p.lo]);
       const dx=pt.x-cp.x,dy=pt.y-cp.y,d=dx*dx+dy*dy;
@@ -3942,11 +3954,15 @@ async function idbSet(k,v){
 }
 const IDB_FRESH=7*24*3600*1000; // 本機快取 7 天內視為新鮮(資料庫每週日更新)
 async function loadCellKeys(keys,quiet){
-  const names=new Set(DB.map(x=>x.n));
+  // 去重鍵=名稱+座標(3位小數≈110m):同名連鎖分店(7-11/全家/藥妝…)各自保留
+  const keyOf=x=>x.n+"@"+(+x.la).toFixed(3)+","+(+x.lo).toFixed(3);
+  const names=new Set(DB.map(keyOf));
   let add=0,ok=0,miss=0,fail=0;
   const mergeList=list=>{let n=0;list.forEach(e=>{
-    if(!e||!e.n||names.has(e.n))return;
-    names.add(e.n);
+    if(!e||!e.n||!Number.isFinite(+e.la))return;
+    const kk=keyOf(e);
+    if(names.has(kk))return;
+    names.add(kk);
     const isSpot=e.c==="spot",isShop=e.c==="shop";
     DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:(isSpot||isShop)?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
       cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,wt:e.wt,
@@ -4005,7 +4021,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r120"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r121"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
