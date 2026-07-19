@@ -38,12 +38,12 @@ jobs:
       - name: 篩選 POI(本地處理,零限流)
         run: |
           osmium tags-filter japan.osm.pbf \
-            nwr/amenity=restaurant,cafe,fast_food,bar,pub,food_court,ice_cream,place_of_worship,marketplace,public_bath \
+            nwr/amenity=restaurant,cafe,fast_food,bar,pub,food_court,ice_cream,place_of_worship,marketplace,public_bath,karaoke_box \
             nwr/tourism=attraction,viewpoint,museum,gallery,artwork,theme_park,zoo,aquarium,hotel,hostel,guest_house,apartment,motel \
             nwr/historic \
-            nwr/shop=mall,department_store,supermarket,bakery,confectionery,sweets,gift,souvenir,tea,sake,anime,toys \
+            nwr/shop=mall,department_store,supermarket,bakery,confectionery,sweets,gift,souvenir,tea,sake,anime,toys,convenience,chemist,cosmetics,clothes,shoes,electronics,variety_store,second_hand \
             nwr/craft=sake_brewery,brewery,winery,distillery \
-            nwr/leisure=park,garden,spa \
+            nwr/leisure=park,garden,spa,amusement_arcade \
             nwr/man_made=tower \
             nwr/natural=peak,waterfall,hot_spring,beach \
             -o pois.osm.pbf --overwrite
