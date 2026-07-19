@@ -496,7 +496,7 @@ button{transition:transform .15s ease}
       <button id="nt-map" onclick="showPane('map')">地圖</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r122</span>
+    <span class="build">build r124</span>
   </div>
 </header>
 
@@ -722,7 +722,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r122
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r124
 </footer>
 
 <nav class="bottom">
@@ -2065,8 +2065,9 @@ function afterLocate(msg){
 const TIER_COLORS={"青旅民宿":"#7A8B99","平價":"#5E7B4F","中檔":"#28497C","高檔":"#8A6A1E","奢華":"#7C4E8E","溫泉旅館":"#C43B41"};
 function prMax(pr){const m=(pr||"").replace(/,/g,"").match(/\d{3,6}/g);return m?Math.max(...m.map(Number)):null}
 function hotelTier(s){
-  if(s.ht==="hostel"||s.ht==="guest_house"||s.ht==="apartment")return "青旅民宿";
-  if(s.ht==="motel")return "平價";
+  if(s.ht==="hostel"||s.ht==="guest_house"||s.ht==="apartment"||s.ht==="camp_site"||s.ht==="caravan_site"||s.ht==="alpine_hut"||s.ht==="wilderness_hut")return "青旅民宿";
+  if(s.ht==="motel"||s.ht==="love_hotel")return "平價";
+  if(s.ht==="chalet")return "中檔";
   const nm=s.n+(s.j||"");
   if((s.t||[]).includes("溫泉")||/温泉|溫泉|旅館|の宿|山荘|山莊/.test(nm))return "溫泉旅館";
   if(/虹夕諾雅|星のや|リッツ|ritz|four seasons|四季|aman|アマン|halekulani|ブルガリ|bvlgari/i.test(nm))return "奢華";
@@ -4039,7 +4040,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r122"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r124"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
