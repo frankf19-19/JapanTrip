@@ -533,7 +533,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r143</span>
+    <span class="build">build r144</span>
   </div>
 </header>
 
@@ -767,7 +767,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r143
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r144
 </footer>
 
 <nav class="bottom">
@@ -4804,7 +4804,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r143"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r144"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -4868,13 +4868,17 @@ async function loadAllJapanSilent(){
   const rest=window._OSMIDX.filter(k=>!METRO_CELLS.includes(k));
   const all=[...metro,...rest];
   const total=all.length;
-  toast("🗾 開始載入全日本 "+total+" 格…");
+  // 手機:小批次(3格)+每批讓出主線程,降低記憶體峰值、避免分頁被系統回收
+  const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(window.innerWidth||999)<=760;
+  const STEP=isMobile?3:6;
+  toast("🗾 開始載入全日本 "+total+" 格"+(isMobile?"(手機省記憶體模式)":"")+"…");
   window._LOADSTATE="載入中";
-  for(let i=0;i<all.length;i+=6){
-    const batch=all.slice(i,i+6).filter(k=>!OSMCELLS.has(k));
+  for(let i=0;i<all.length;i+=STEP){
+    const batch=all.slice(i,i+STEP).filter(k=>!OSMCELLS.has(k));
     if(batch.length){batch.forEach(k=>{if(OSMFAIL[k])OSMFAIL[k]=0}); await loadCellKeys(batch);}
     updateDbStat("🗾 載入全日本 "+OSMCELLS.size+"/"+total+" 格 ・"+wan(DB.length)+" 筆");
-    if((i/6)%5===0){renderHomePicks();if($("pane-explore").classList.contains("on"))renderExplore()}
+    if((i/STEP)%5===0){renderHomePicks();if($("pane-explore").classList.contains("on"))renderExplore()}
+    if(isMobile)await new Promise(r=>setTimeout(r,30)); // 讓出主線程給瀏覽器喘息
   }
   const miss=all.filter(k=>!OSMCELLS.has(k));
   window._LOADSTATE="補載 "+miss.length+" 格";
@@ -4924,8 +4928,6 @@ async function loadAllJapan(){
 // 大都市圈背景預載:逐格載入,左下角即時顯示進度
 const METRO_CELLS=["r35_139","r34_135","r35_136","r43_141","r33_130","r34_132","r38_140","r26_127","r36_136","r34_133","r31_130","r35_138"];
 async function preloadMetros(){
-  const con=navigator.connection||{};
-  if(con.saveData||/^(slow-2g|2g)$/.test(con.effectiveType||"")){updateDbStat();return}
   const keys=METRO_CELLS.filter(k=>!OSMCELLS.has(k)&&(OSMFAIL[k]||0)<3&&(!window._OSMIDX||window._OSMIDX.includes(k)));
   if(!keys.length){updateDbStat();return}
   let done=0,addSum=0;
@@ -4939,11 +4941,12 @@ async function preloadMetros(){
   renderHomePicks();
   if($("pane-explore").classList.contains("on"))renderExplore();
   if(addSum)toast("🌆 主要都市圈就緒 "+wan(DB.length)+" 筆,持續在背景載入全日本…");
-  // ★ 無論都市圈是新載或已在快取,都自動接續把全日本 115 格載滿(背景靜默)
-  //   僅省流量/2G 停在都市圈
+  // 接續載滿全日本;僅極慢網路(2G)才停在都市圈(避免超久)
   const con2=navigator.connection||{};
-  if(!(con2.saveData||/^(slow-2g|2g)$/.test(con2.effectiveType||""))){
+  if(!/^(slow-2g|2g)$/.test(con2.effectiveType||"")){
     setTimeout(loadAllJapanSilent,1200);
+  }else{
+    updateDbStat("🌆 都市圈就緒(網路較慢,點左下可載全日本)");
   }
 }
 // 定位後自動載入該區
