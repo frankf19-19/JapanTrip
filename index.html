@@ -533,7 +533,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r144</span>
+    <span class="build">build r145</span>
   </div>
 </header>
 
@@ -574,6 +574,8 @@ button{transition:transform .15s ease}
   <div class="plannercard">
     <div class="f-label">🎯 喜好類型(可複選,排行程時優先安排)<span class="jp">KONOMI</span></div>
     <div class="chips shu" id="prefChips"></div>
+    <div class="f-label" style="margin-top:10px">🚫 避開類型(可複選,行程不排入這些)<span class="jp">SAKERU</span></div>
+    <div class="chips" id="avoidChips"></div>
 
     <div class="rowflex" style="margin-top:6px">
       <div>
@@ -767,7 +769,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r144
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r145
 </footer>
 
 <nav class="bottom">
@@ -1469,6 +1471,7 @@ function init(){
   rebuildAirportOpts();
   $("monChips").innerHTML=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<label class="${m===S.month?'on':''}" onclick="setMonth(${m},this)">${m}月</label>`).join("");
   $("prefChips").innerHTML=PREFS.map(p=>`<label onclick="togglePref(this,'${p}')">${p}</label>`).join("");
+  $("avoidChips").innerHTML=PREFS.map(p=>`<label onclick="toggleAvoid(this,'${p}')">${p}</label>`).join("");
   // 航班時間下拉:05:00–23:30 每 30 分一格,點選即完成(不用打字)
   ["fInT","fOutT"].forEach(id=>{
     const el=$(id); if(!el)return;
@@ -1510,7 +1513,11 @@ function pickCity(i,btn){
   if(btn)btn.classList.add("on");
   renderCenter(); renderHomePicks(); toast("📍 已設定中心:"+S.center.n);
 }
-function togglePref(el,p){el.classList.toggle("on");el.classList.contains("on")?S.prefs.add(p):S.prefs.delete(p)}
+function togglePref(el,p){el.classList.toggle("on");el.classList.contains("on")?S.prefs.add(p):S.prefs.delete(p);
+  // 喜好與避開互斥:選了喜好就從避開移除
+  if(S.avoidT&&S.avoidT.has(p)){S.avoidT.delete(p);document.querySelectorAll("#avoidChips label").forEach(l=>{if(l.textContent===p)l.classList.remove("on")})}}
+function toggleAvoid(el,p){S.avoidT=S.avoidT||new Set();el.classList.toggle("on");el.classList.contains("on")?S.avoidT.add(p):S.avoidT.delete(p);
+  if(S.prefs.has(p)){S.prefs.delete(p);document.querySelectorAll("#prefChips label").forEach(l=>{if(l.textContent===p)l.classList.remove("on")})}}
 // 連接制:各點的「N 天」含交界日(前一地最後一天=下一地第一天)
 // 引擎內部用「獨立天」= 指定天數 - 1(最後一點不減);總天數=獨立天合計
 const inclToExcl=(incl,i,n)=>Math.max(1,incl-(i<n-1?1:0));
@@ -2908,7 +2915,7 @@ function regenAllDays(){
       const ctr=d.center||it.center;
       if(ctr){
         const oc=S.center;S.center={...ctr};
-        const near=DB.filter(s=>s.c==="spot"&&dKm(s)<=(it.rad||25)).sort((a,b)=>dKm(a)-dKm(b)).slice(0,S.pace||3);
+        const near=DB.filter(s=>s.c==="spot"&&dKm(s)<=(it.rad||25)&&!(S.avoidT&&S.avoidT.size&&(s.t||[]).some(t=>S.avoidT.has(t)))).sort((a,b)=>dKm(a)-dKm(b)).slice(0,S.pace||3);
         d.list=near.map(x=>({...x}));
         S.center=oc;
       }
@@ -3137,6 +3144,40 @@ function addStopToDay(di,name){
   d.list.splice(best,0,s);
   S.sug=null; rebuildDay(di); renderIti(); toast("✅ 已加入 DAY "+(di+1)+":"+s.n);
 }
+function openSpotSwap(di,curName){
+  const cur=findByName(curName); if(!cur||!S.iti)return;
+  // 收集全行程已用名稱(避免推薦重複)
+  const used=new Set();
+  S.iti.days.forEach(d=>(d.list||[]).forEach(x=>used.add(x.n)));
+  // 候選:同分類、附近(以該點為中心15km)、優先同標籤、避開類型過濾
+  const cand=DB.filter(s=>s.c===cur.c&&s.n!==cur.n&&!used.has(s.n)
+      &&dist(cur.la,cur.lo,s.la,s.lo)<=15
+      &&!(S.avoidT&&S.avoidT.size&&(s.t||[]).some(t=>S.avoidT.has(t))))
+    .map(s=>({s,d:dist(cur.la,cur.lo,s.la,s.lo),
+      sameTag:(s.t||[]).some(t=>(cur.t||[]).includes(t))?1:0}))
+    .sort((a,b)=>(b.sameTag-a.sameTag)||(b.s.p||0)-(a.s.p||0)||(a.d-b.d))
+    .slice(0,10);
+  if(!cand.length){toast("附近沒有其他可推薦的同類地點");return}
+  window._SWAP={di,curName};
+  $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:18px">🔄 換掉「${cur.n}」</h3>
+    <p style="font-size:12.5px;color:#8A8272;margin:4px 0 10px">附近推薦(同類優先・知名度排序),點「選這個」直接替換:</p>
+    ${cand.map((x,k)=>`<div class="hp-row" onclick="openDetail('${esc(x.s.n)}')" style="background:#fff">
+      <div style="flex:1"><b>${x.s.n}</b>${x.sameTag?' <span class="tag" style="background:var(--ai);color:#fff;font-size:10px">同類</span>':""}
+      <div style="font-size:11.5px;color:#8A8272">${(x.s.t||[]).slice(0,2).join("・")}${x.s.rt?" ・★"+x.s.rt.toFixed(1):""} ・距 ${x.d.toFixed(1)}km</div></div>
+      <button onclick="event.stopPropagation();doSpotSwap(${k})" style="border:1.5px solid var(--shu);background:#fff;color:var(--shu);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;font-family:var(--font-b);cursor:pointer;flex-shrink:0">選這個</button></div>`).join("")}
+    <button onclick="closeDetail()" style="margin-top:10px;width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:14px;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  window._SWAPCAND=cand;
+  $("dMask").classList.add("on");document.body.style.overflow="hidden";
+}
+function doSpotSwap(k){
+  const sw=window._SWAP,cand=window._SWAPCAND; if(!sw||!cand||!cand[k])return;
+  const d=S.iti.days[sw.di]; if(!d)return;
+  const idx=d.list.findIndex(x=>x.n===sw.curName); if(idx<0)return;
+  d.list[idx]={...cand[k].s};
+  rebuildDay(sw.di);
+  closeDetail();renderIti();
+  toast("🔄 已換成「"+cand[k].s.n+"」");
+}
 function addStopNextDay(di,name){
   if(!S.iti)return;
   const ni=di+1;
@@ -3157,7 +3198,8 @@ function addToIti(name){
   showPane("iti");
 }
 async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
-  let pool=DB.filter(s=>!usedGlobal.has(s.n)&&s.c!=="hotel"&&dKm(s)<=rad&&(s.c==="spot"||(S.prefs.size&&(s.t||[]).some(t=>S.prefs.has(t)))));
+  let pool=DB.filter(s=>!usedGlobal.has(s.n)&&s.c!=="hotel"&&dKm(s)<=rad&&(s.c==="spot"||(S.prefs.size&&(s.t||[]).some(t=>S.prefs.has(t))))
+    &&!(S.avoidT&&S.avoidT.size&&(s.t||[]).some(t=>S.avoidT.has(t)))); // 避開類型
   let foods=DB.concat(S.osm).filter(s=>s.c==="food"&&dKm(s)<=rad);
   let hotels=DB.filter(s=>s.c==="hotel"&&dKm(s)<=rad).sort((a,b)=>dKm(a)-dKm(b));
   if(pool.length<nDays*S.pace+6 && Date.now()<GEN_BUDGET){
@@ -3590,25 +3632,21 @@ async function fetchThumbsFor(meta,exclude){
       const tries=[];
       if(j)tries.push([j.split(" ")[0],"ja"]);
       tries.push([n.split("・")[0].split("(")[0],"zh"]);
-      // ★ 座標優先:像 Google Maps 一樣,先抓「就在這個點上」的實地照
-      //   分層由近到遠(50m→150m→400m),近的最可能是這個地點本身
-      if(Number.isFinite(+la)){
-        pics=pics.concat(await commonsGeoRanked(la,lo));
-      }
-      // 名稱來源當補充(景點的維基條目照、飯店的官方圖),排在座標照之後
-      if(pics.length<4){
-        if(c==="spot"){
-          for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
-        }else{
-          const wd=await wikidataThumbs(j||n,c);if(wd.length)pics=pics.concat(wd);
-          if(pics.length<2)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
-        }
-      }
-      // 仍然很少 → 最後才用名稱文字搜尋(最不精準,墊底)
-      if(pics.length<2){
-        const q=(j||n).split("・")[0].split("(")[0];
-        pics=pics.concat(await commonsText(q));
-        if(pics.length<1)pics=pics.concat(await openverseThumbs(q));
+      // ★ 精準策略(r145):商家(餐廳/購物)絕不用座標抓(400m內常是別家/街景/菜單),
+      //   只用「名稱驗證」來源;景點才用座標且縮小到120m(名稱來源優先)
+      if(c==="spot"){
+        // 景點:維基條目照(名稱驗證)優先 → 座標120m(夠近才可能是本體)
+        for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
+        if(pics.length<3&&Number.isFinite(+la))pics=[...new Set(pics.concat(await commonsGeoRanked(la,lo,120)))];
+      }else if(c==="hotel"){
+        // 飯店:P18 官方圖 → 維基 → 座標60m(飯店建築照常有精準geotag)
+        pics=await wikidataThumbs(j||n,c);
+        if(!pics.length)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
+        if(!pics.length&&Number.isFinite(+la))pics=await commonsGeoRanked(la,lo,60);
+      }else{
+        // 餐廳/購物:僅名稱驗證(P18/維基);寧缺勿錯,沒有就顯示無照片+Google連結
+        pics=await wikidataThumbs(j||n,c);
+        if(!pics.length)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
       }
     }catch(e){}
     pics=[...new Set(pics)];
@@ -3679,10 +3717,9 @@ function exportPhotoReports(){
   toast("📤 已匯出 "+cnt+" 筆照片回報");
 }
 // 座標分層周邊照:由近到遠(50→150→400m),近的排前(最可能是該地點本身)
-async function commonsGeoRanked(la,lo){
+async function commonsGeoRanked(la,lo,radius){
   try{
-    // 一次抓 400m 內、依距離排序的照片(Commons geosearch 回傳含距離)
-    const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=400&ggslimit=12&ggsnamespace=6&prop=imageinfo|coordinates&iiprop=url&iiurlwidth=300`;
+    const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=${radius||150}&ggslimit=10&ggsnamespace=6&prop=imageinfo|coordinates&iiprop=url&iiurlwidth=300`;
     const r=await fetch(u);const d=await r.json();
     const pages=Object.values((d.query||{}).pages||{}).filter(p=>p.imageinfo&&p.imageinfo[0]);
     // 依 Commons 回傳的距離(index 順序已是近→遠)取縮圖
@@ -3870,7 +3907,7 @@ function renderIti(){
       h+=`<div class="stop ${st.meal?"meal":""}">
         <div class="time">${hhmm(st.t)}</div><div class="dot"></div>
         <div class="stopThumb" data-thumb="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.c,s.la,s.lo]))}" onclick="openDetail('${esc(s.n)}')" title="點看更多照片"></div>
-        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${[s.j&&s.j!==s.n?s.j:"",s.en?("· "+s.en):""].filter(Boolean).join(" ")}<span class="liTrans" data-tn="${encodeURIComponent(s.j||s.n)}" data-has="${(s.en||/[\u4e00-\u9fff]/.test(s.n)&&!/[\u3040-\u30ff]/.test(s.n))?1:0}"></span></div>
+        <div class="info"><h4 style="${S.visited.has(s.n)?"opacity:.55":""}"><label style="cursor:pointer;margin-right:4px" title="打勾標記已去過"><input type="checkbox" ${S.visited.has(s.n)?"checked":""} onchange="toggleVisited('${esc(s.n)}')" style="accent-color:var(--matcha);width:15px;height:15px;vertical-align:-2px"></label>${st.meal?(st.dinner?"🌙 晚餐・":st.snack?"🍡 午後小吃・":"🍜 午餐・"):""}<span class="nm" onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹" style="${S.visited.has(s.n)?"text-decoration:line-through":""}">${s.n}</span>${S.visited.has(s.n)?' <span style="color:var(--matcha);font-size:12px;font-weight:900">✔ 去過</span>':""}${NOTES[s.n]&&NOTES[s.n].stars?` <span style="color:var(--kin);font-size:12px">我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}${st.meal?`<button class="rmv" style="border-color:var(--kin);color:#8A6A1E" onclick="openFoodPicker(${i},'${st.dinner?"dinner":st.snack?"snack":"lunch"}','${esc(s.n)}')">🔄 換/移除</button>`:`<button class="rmv" style="border-color:var(--ai);color:var(--ai)" onclick="openSpotSwap(${i},'${esc(s.n)}')">🔄 換</button><button class="rmv" onclick="removeStop(${i},'${esc(s.n)}',0)">✕ 移除</button>`}</h4><div class="ja">${[s.j&&s.j!==s.n?s.j:"",s.en?("· "+s.en):""].filter(Boolean).join(" ")}<span class="liTrans" data-tn="${encodeURIComponent(s.j||s.n)}" data-has="${(s.en||/[\u4e00-\u9fff]/.test(s.n)&&!/[\u3040-\u30ff]/.test(s.n))?1:0}"></span></div>
         <div class="mrow">${stopTypeTags(s)}${s.s?`<span class="tag">停留約 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+"h":s.s+"分"}</span>`:""}${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)}</span>`:""}</div>
         <p>${s.d||""}</p>
         ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${s.la},${s.lo}" target="_blank" rel="noopener">${s.ad}</a></div>`:""}
@@ -4804,7 +4841,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r144"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r145"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
