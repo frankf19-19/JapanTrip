@@ -14,10 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700;900&family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <meta name="description" content="輸入地點、選擇喜好與天數,自動生成日本旅遊行程。住宿、景點、購物、美食一站搞定。">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
   --washi:#F6F3EB;        /* 和紙底 */
@@ -533,7 +530,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r145</span>
+    <span class="build">build r146</span>
   </div>
 </header>
 
@@ -706,7 +703,7 @@ button{transition:transform .15s ease}
       <option value="pop">人氣推薦</option>
       <option value="stay">停留時間短→長</option>
     </select>
-    <input type="text" id="kw" placeholder="關鍵字搜尋…" oninput="renderExplore()" style="flex:1;min-width:140px">
+    <input type="text" id="kw" placeholder="關鍵字搜尋…" oninput="kwInput()" style="flex:1;min-width:140px">
     <button class="add" style="border:1.5px solid var(--shu);color:var(--shu);border-radius:8px;background:#fff;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer" onclick="overpassSearch()">⚡ 即時搜尋更多(OSM)</button>
   </div>
   <div class="grid" id="exploreGrid"></div>
@@ -769,7 +766,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r145
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r146
 </footer>
 
 <nav class="bottom">
@@ -807,6 +804,7 @@ button{transition:transform .15s ease}
 <div id="dPanel"></div>
 
 <div id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* ═══════════════ 精選資料庫 ═══════════════
    c: spot景點 / food美食 / shop購物 / hotel住宿
@@ -1302,7 +1300,30 @@ const DB=[
 {n:"白鬚瀑布(美瑛)",j:"白ひげの滝",la:43.4880,lo:142.6280,c:"spot",t:["自然風景"],ad:"北海道美瑛町白金",pr:"免費",rt:4.2,a:"美瑛",d:"鈷藍河上的潛流瀑布,青池同路順遊,冬季點燈。",s:40,p:3},
 {n:"中目黑 目黑川",j:"目黒川",la:35.6440,lo:139.6990,c:"spot",t:["自然風景","美食巡禮"],ad:"目黒区中目黒",pr:"免費",rt:4.3,a:"東京",d:"櫻花季最強河道,兩岸咖啡雜貨小店密度極高。",s:90,p:4},
 {n:"保津川遊船(龜岡→嵐山)",j:"保津川下り",la:35.0160,lo:135.5790,c:"spot",t:["自然風景","親子同樂"],ad:"京都府亀岡市保津町下中島2",pr:"¥4,500",rt:4.3,a:"京都近郊",d:"兩小時激流泛舟直達嵐山,船夫竹竿神技。",s:150,p:4},
-{n:"中之島公園・大阪府立圖書館",j:"中之島公園",la:34.6930,lo:135.5040,c:"spot",t:["自然風景","博物館藝術"],ad:"大阪市北区中之島1",pr:"免費",rt:4.2,a:"大阪",d:"河中島玫瑰園與明治建築群,都會綠洲。",s:75,p:3}
+{n:"中之島公園・大阪府立圖書館",j:"中之島公園",la:34.6930,lo:135.5040,c:"spot",t:["自然風景","博物館藝術"],ad:"大阪市北区中之島1",pr:"免費",rt:4.2,a:"大阪",d:"河中島玫瑰園與明治建築群,都會綠洲。",s:75,p:3},
+/* ── r146 新增精選 ── */
+{n:"三溪園",j:"三溪園",la:35.4166,lo:139.6572,c:"spot",t:["自然風景","歷史古蹟"],ad:"横浜市中区本牧三之谷58-1",pr:"¥900",rt:4.4,w:"https://www.sankeien.or.jp",a:"橫濱",d:"移築京都鎌倉古建築的日式名園,三重塔映池,梅櫻楓皆美。",s:120,p:4},
+{n:"川越冰川神社",j:"川越氷川神社",la:35.9319,lo:139.4890,c:"spot",t:["神社寺廟"],ad:"埼玉県川越市宮下町2-11-3",pr:"免費",rt:4.4,w:"https://www.kawagoehikawa.jp",a:"埼玉",d:"結緣神社,夏季兩千顆江戶風鈴迴廊,釣鯛魚籤超人氣。",s:60,p:4},
+{n:"菓子屋橫丁(川越)",j:"菓子屋横丁",la:35.9268,lo:139.4805,c:"spot",t:["市場老街","美食巡禮","親子同樂"],ad:"埼玉県川越市元町2丁目",pr:"零食 ¥100–500",rt:4.2,a:"埼玉",d:"石疊小巷懷舊零食舖,長蕃薯條與地瓜冰,小江戶散步必經。",s:45,p:4},
+{n:"報國寺(竹林)",j:"報国寺",la:35.3206,lo:139.5698,c:"spot",t:["神社寺廟","自然風景"],ad:"神奈川県鎌倉市浄明寺2-7-4",pr:"¥400(抹茶另計 ¥600)",rt:4.4,w:"https://houkokuji.or.jp",a:"東京近郊",d:"兩千根孟宗竹林中喝抹茶,鎌倉最幽靜的寺院。",s:60,p:4},
+{n:"嵯峨野觀光小火車",j:"嵯峨野トロッコ列車",la:35.0186,lo:135.6809,c:"spot",t:["自然風景","親子同樂"],ad:"京都市右京区嵯峨天龍寺車道町",pr:"單程 ¥880",rt:4.4,w:"https://www.sagano-kanko.co.jp",a:"京都",d:"復古小火車沿保津峽行駛 25 分,楓紅季一位難求,建議預先劃位。",s:90,p:4},
+{n:"難波八阪神社",j:"難波八阪神社",la:34.6605,lo:135.4966,c:"spot",t:["神社寺廟"],ad:"大阪市浪速区元町2-9-19",pr:"免費",rt:4.3,a:"大阪",d:"12m 巨大獅子頭舞台一口吞噩運,難波站步行 6 分的打卡名社。",s:40,p:4},
+{n:"勝尾寺",j:"勝尾寺",la:34.8540,lo:135.4930,c:"spot",t:["神社寺廟","自然風景"],ad:"大阪府箕面市粟生間谷2914-1",pr:"¥500",rt:4.4,w:"https://katsuo-ji-temple.or.jp",a:"大阪近郊",d:"滿山「勝運達摩」的祈勝寺院,秋楓與新綠皆是名所。",s:90,p:3},
+{n:"興福寺(五重塔)",j:"興福寺",la:34.6830,lo:135.8318,c:"spot",t:["神社寺廟","歷史古蹟","博物館藝術"],ad:"奈良市登大路町48",pr:"境內免費(國寶館 ¥700)",rt:4.4,w:"https://www.kohfukuji.com",a:"奈良",d:"世界遺產五重塔,國寶館阿修羅像是奈良必看。",s:75,p:4},
+{n:"奈良町(ならまち)",j:"ならまち",la:34.6790,lo:135.8295,c:"spot",t:["市場老街","歷史古蹟"],ad:"奈良市中院町周辺",pr:"免費散步",rt:4.2,a:"奈良",d:"江戶町家格子窗老街,身代猿吊飾、町家咖啡與雜貨。",s:90,p:3},
+{n:"神戶動物王國",j:"神戸どうぶつ王国",la:34.6565,lo:135.2277,c:"spot",t:["親子同樂"],ad:"神戸市中央区港島南町7-1-9",pr:"¥2,200",rt:4.4,w:"https://www.kobe-oukoku.com",a:"神戶",d:"零距離互動型動物園,水豚、鯨頭鸛明星動物,全室內雨天照玩。",s:180,p:4},
+{n:"妙立寺(忍者寺)",j:"妙立寺",la:36.5557,lo:136.6473,c:"spot",t:["神社寺廟","歷史古蹟"],ad:"金沢市野町1-2-12",pr:"¥1,200(需預約)",rt:4.4,w:"https://www.myouryuji.or.jp",a:"金澤",d:"機關暗門陷阱樓梯遍布的「忍者寺」,導覽制參觀需電話預約。",s:60,p:3},
+{n:"長町武家屋敷跡",j:"長町武家屋敷跡",la:36.5622,lo:136.6503,c:"spot",t:["歷史古蹟"],ad:"金沢市長町",pr:"免費散步(野村家 ¥550)",rt:4.3,a:"金澤",d:"土牆石疊的加賀藩武士居所街區,野村家庭園獲米其林二星。",s:75,p:4},
+{n:"雲場池(輕井澤)",j:"雲場池",la:36.3524,lo:138.6290,c:"spot",t:["自然風景"],ad:"長野県北佐久郡軽井沢町",pr:"免費",rt:4.3,a:"輕井澤",d:"「天鵝湖」靜謐倒影,一圈 20 分鐘,紅葉季金黃如畫。",s:45,p:4},
+{n:"三保松原",j:"三保の松原",la:34.9910,lo:138.5240,c:"spot",t:["自然風景","歷史古蹟"],ad:"静岡市清水区三保",pr:"免費",rt:4.3,a:"靜岡",d:"世界遺產富士山構成資產,松原海濱正對富士山,羽衣傳說之地。",s:75,p:4},
+{n:"岡山城",j:"岡山城",la:34.6648,lo:133.9360,c:"spot",t:["歷史古蹟"],ad:"岡山市北区丸の内2-3-1",pr:"¥400",rt:4.2,w:"https://okayama-castle.jp",a:"岡山",d:"漆黑「烏城」天守與後樂園隔川相望,2022 年整修後展示全面更新。",s:75,p:3},
+{n:"縮景園",j:"縮景園",la:34.4013,lo:132.4674,c:"spot",t:["自然風景","歷史古蹟"],ad:"広島市中区上幟町2-11",pr:"¥260",rt:4.3,a:"廣島",d:"廣島藩主大名庭園,跨虹橋與四季花木,市中心的靜謐綠洲。",s:60,p:3},
+{n:"糸島 櫻井二見浦",j:"桜井二見ヶ浦",la:33.6600,lo:130.1760,c:"spot",t:["自然風景"],ad:"福岡県糸島市志摩桜井",pr:"免費",rt:4.3,a:"福岡近郊",d:"海中白鳥居與夫婦岩,糸島兜風海岸線,夕陽百選。",s:60,p:4},
+{n:"池袋太陽城 Sunshine City",j:"サンシャインシティ",la:35.7295,lo:139.7190,c:"spot",t:["親子同樂","夜景展望","動漫電玩"],ad:"東京都豊島区東池袋3-1",pr:"展望台 ¥700–1,200・水族館 ¥2,600–2,800",rt:4.2,w:"https://sunshinecity.jp",a:"東京",d:"天空水族館、展望公園與寶可夢中心旗艦店,雨天備案首選。",s:180,p:4},
+{n:"博物館明治村",j:"博物館明治村",la:35.3450,lo:136.9910,c:"spot",t:["歷史古蹟","博物館藝術","親子同樂"],ad:"愛知県犬山市内山1",pr:"¥2,500",rt:4.4,w:"https://www.meijimura.com",a:"名古屋近郊",d:"60 棟明治建築移築的野外博物館,蒸汽火車與帝國飯店大廳。",s:240,p:3},
+{n:"大塚國際美術館",j:"大塚国際美術館",la:34.2400,lo:134.6440,c:"spot",t:["博物館藝術"],ad:"徳島県鳴門市鳴門町土佐泊浦",pr:"¥3,300",rt:4.5,w:"https://o-museum.or.jp",a:"德島",d:"千件西洋名畫陶板原寸重現,西斯汀禮拜堂整室復刻,可看一整天。",s:240,p:4},
+{n:"五色沼(裏磐梯)",j:"五色沼湖沼群",la:37.6446,lo:140.0553,c:"spot",t:["自然風景"],ad:"福島県北塩原村桧原",pr:"免費",rt:4.4,a:"福島",d:"火山礦物染出翡翠鈷藍湖群,探勝路健行約 70 分鐘。",s:120,p:4},
+{n:"淡路島(明石海峽大橋)",j:"淡路島",la:34.4400,lo:134.9130,c:"spot",t:["自然風景","親子同樂"],ad:"兵庫県淡路市",pr:"依設施而異",rt:4.2,a:"神戶",d:"明石海峽大橋跨海即到,HELLO KITTY 樂園、海景咖啡與花田公園。",s:300,p:3}
 ];
 /* ═══════════════ 狀態 ═══════════════ */
 let S={center:null,centers:[],days:3,pace:3,prefs:new Set(),cat:"all",iti:null,osm:[],month:(new Date().getMonth()+1),fav:new Set()};
@@ -1550,7 +1571,9 @@ function setPace(el){S.pace=+el.dataset.v;document.querySelectorAll("#paceChips 
 S.strategy="route";
 function setStrat(el){S.strategy=el.dataset.v;document.querySelectorAll("#stratChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
 function setMonth(m,el){S.month=m;document.querySelectorAll("#monChips label").forEach(b=>b.classList.remove("on"));el.classList.add("on")}
-function esc(s){return s.replace(/'/g,"\\'")}
+function esc(s){return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+// 外部資料(OSM/擴充庫)名稱淨化:去掉會破壞 HTML 的角括號、把雙引號換成全形(名稱本身極少用到)
+function sanN(s){return String(s||"").replace(/[<>]/g,"").replace(/"/g,"＂").trim()}
 function toggleFav(name,btn){
   if(S.fav.has(name)){S.fav.delete(name);btn&&btn.classList.remove("on");toast("已移出最愛")}
   else{S.fav.add(name);btn&&btn.classList.add("on");toast("♥ 已加入最愛")}
@@ -2235,7 +2258,7 @@ function card(s,inIti){
   const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
   return `<div class="spot">
     <div class="band" style="background:${CATC[s.c]}"></div>
-    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
+    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.la]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
       <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">Wikipedia</span>
     </div>
     <div class="bd">
@@ -2373,20 +2396,29 @@ async function fetchWiki(title,lang){
   }catch(e){return null}
 }
 async function loadImg(ph){
+  const meta=JSON.parse(decodeURIComponent(ph.dataset.img||"[]"));
+  const [ja,zh,la]=meta;
+  // ★ r146:管理者照片修正檔(photo_fixes.json)與使用者「照片不對」排除,也套用到列表卡片(以前只有行程縮圖有)
+  const pk=(zh||"")+"@"+la;
+  const rej=(typeof THUMB_REJECT!=="undefined"&&THUMB_REJECT[pk])||null;
+  const ovr=(typeof PHOTO_OVERRIDE!=="undefined"&&PHOTO_OVERRIDE[pk]&&PHOTO_OVERRIDE[pk].length)?PHOTO_OVERRIDE[pk].filter(u=>!rej||!rej.has(u)):null;
+  const show=u=>{const im=ph.querySelector("img");im.onload=()=>im.classList.add("ok");im.src=u};
+  if(ovr&&ovr.length){show(ovr[0]);return}
   if(ph.dataset.direct){ // Wikidata 附帶的 Commons 圖直接載入
-    const im=ph.querySelector("img");im.onload=()=>im.classList.add("ok");im.src=ph.dataset.direct;return;
+    if(!rej||!rej.has(ph.dataset.direct)){show(ph.dataset.direct);return}
   }
   if(ph.dataset.biz){return} // 餐廳/飯店不做維基搜圖(避免亂配),維持替代圖示
-  const [ja,zh]=JSON.parse(decodeURIComponent(ph.dataset.img));
   const key=ja+"|"+zh;
   let url=IMGC.get(key);
   if(url===undefined){
     url=ja?await fetchWiki(ja,"ja"):null;
     if(!url&&ja&&ja.includes(" "))url=await fetchWiki(ja.split(" ")[0],"ja");
-    if(!url)url=await fetchWiki(zh.split("・")[0].split("(")[0],"zh");
+    if(!url&&ja&&/[((]/.test(ja))url=await fetchWiki(ja.split(/[((]/)[0].trim(),"ja"); // 去括號再試
+    if(!url)url=await fetchWiki(zh.split("・")[0].split(/[((]/)[0],"zh");
+    if(!url&&zh.includes("・")){const p2=zh.split("・")[1];if(p2)url=await fetchWiki(p2,"zh")} // 複合名稱第二段(例:淺草寺・雷門)
     IMGC.set(key,url||null);
   }
-  if(url){const im=ph.querySelector("img");im.onload=()=>im.classList.add("ok");im.src=url;}
+  if(url&&(!rej||!rej.has(url)))show(url);
 }
 const IMGOBS=("IntersectionObserver" in window)?new IntersectionObserver(es=>{
   es.forEach(e=>{if(e.isIntersecting){IMGOBS.unobserve(e.target);loadImg(e.target)}});
@@ -2457,29 +2489,34 @@ function goExplore(cat,sub){
 }
 function renderHomePicks(){
   S.homeN=S.homeN||24;
-  const dk=s=>S.center?dKm(s):0;
+  // ★ r146:距離預先算一次存 _d,排序不再重複做 haversine
+  const setD=s=>{s._d=S.center?dist(S.center.la,S.center.lo,s.la,s.lo):0;return s};
   let base,total=0,cap=8;
   if(S.homeCat&&S.homeCat!=="all"){
     // 分類模式:全庫該分類「全部」;有中心=近的優先,無中心=全國
-    base=DB.filter(s=>s.c===S.homeCat);
+    base=DB.filter(s=>s.c===S.homeCat).map(setD);
     if(S.center){
-      const near=base.filter(s=>dKm(s)<=+($("radius")?.value||25));
+      const near=base.filter(s=>s._d<=+($("radius")?.value||25));
       if(near.length>=12)base=near;
     }
     total=base.length;cap=S.homeN;
   }else{
-    base=S.center?DB.filter(s=>dKm(s)<=+($("radius")?.value||25)):DB.filter(s=>s.rt);
+    base=S.center?DB.filter(s=>setD(s)._d<=+($("radius")?.value||25)):DB.filter(s=>s.rt).map(setD);
     total=base.length;cap=8;
   }
   const list=base
-    .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||((b.p||0)-(a.p||0))||(dk(a)-dk(b))).slice(0,cap);
+    .sort((a,b)=>((b.rt?1:0)-(a.rt?1:0))||((b.p||0)-(a.p||0))||(a._d-b._d)).slice(0,cap);
   const moreBtn=(S.homeCat!=="all"&&total>cap)?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.homeN+=24;renderHomePicks()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${Math.min(cap,total).toLocaleString()} / 共 ${total.toLocaleString()})</button></div>`:"";
   $("homePicks").innerHTML=(list.length?list.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>此區精選較少,但沒問題!</b>直接按「生成行程」,系統會自動即時抓取當地景點排程(全日本都可以);也可以到「探索」頁按即時搜尋先逛逛。</div>`)+moreBtn;
   watchImgs();
 }
+let _KWT;function kwInput(){clearTimeout(_KWT);_KWT=setTimeout(()=>{S.expN=60;renderExplore()},180)} // 關鍵字防抖:全庫十萬筆時逐字重濾會卡
 function renderExplore(){
   const kw=($("kw").value||"").trim();
-  let list=S.center?[...DB,...S.osm].filter(s=>dKm(s)<=+$("radius").value):[...DB];
+  // ★ r146:距離只算一次存 _d(以前排序比較器內反覆呼叫 haversine,全日本庫載入後每次輸入都算數十萬次三角函數)
+  let list;
+  if(S.center){const rad=+$("radius").value;list=[];for(const s of DB){const d=dist(S.center.la,S.center.lo,s.la,s.lo);if(d<=rad){s._d=d;list.push(s)}}for(const s of S.osm){const d=dist(S.center.la,S.center.lo,s.la,s.lo);if(d<=rad){s._d=d;list.push(s)}}}
+  else{list=[...DB];for(const s of list)s._d=Infinity}
   if(S.cat!=="all")list=list.filter(s=>s.c===S.cat);
   if(S.cat==="hotel"&&S.hTier.size)list=list.filter(s=>S.hTier.has(hotelTier(s)));
   if(S.cat==="food"){
@@ -2489,7 +2526,7 @@ function renderExplore(){
   if(S.cat==="shop"&&S.shopSub&&S.shopSub.size)list=list.filter(s=>(s.t||[]).some(t=>S.shopSub.has(t)));
   if(kw)list=list.filter(s=>(s.n+(s.j||"")+(s.d||"")+(s.a||"")).includes(kw));
   const m=$("sortSel").value;
-  list.sort((a,b)=>m==="pop"?(((b.rt?1:0)-(a.rt?1:0))||(b.p||0)-(a.p||0)||((b.rt||0)-(a.rt||0))):m==="stay"?(a.s||0)-(b.s||0):dKm(a)-dKm(b));
+  list.sort((a,b)=>m==="pop"?(((b.rt?1:0)-(a.rt?1:0))||(b.p||0)-(a.p||0)||((b.rt||0)-(a.rt||0))):m==="stay"?(a.s||0)-(b.s||0):a._d-b._d);
   S.expN=S.expN||60;
   const shown=list.slice(0,S.expN);
   const expMore=list.length>S.expN?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.expN+=60;renderExplore()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${shown.length.toLocaleString()} / 共 ${list.length.toLocaleString()})</button></div>`:"";
@@ -2530,10 +2567,10 @@ async function fetchOSM(radKm){
   const out=[];
   (j.elements||[]).forEach(e=>{
     const t=e.tags||{}; const la=e.lat??(e.center&&e.center.lat), lo=e.lon??(e.center&&e.center.lon);
-    const n=t["name:zh"]||t["name:zh-Hant"]||t.name;
+    const n=sanN(t["name:zh"]||t["name:zh-Hant"]||t.name);
     if(!la||!n||seen.has(n))return; seen.add(n);
-    // 避免與精選重複(120m 內同類跳過)
-    if(DB.some(x=>dist(x.la,x.lo,la,lo)<0.08&&x.n===n))return;
+    // 避免與精選重複(120m 內同名跳過);先比名稱(便宜)再算距離(r146 效能修正)
+    if(DB.some(x=>x.n===n&&dist(x.la,x.lo,la,lo)<0.08))return;
     let c="spot",tg=[],st=60,ds="";
     if(t.tourism==="hotel"||t.tourism==="hostel"||t.tourism==="guest_house"||t.tourism==="ryokan"){c="hotel";st=0}
     else if(t.amenity==="restaurant"||t.amenity==="cafe"||t.amenity==="fast_food"){c="food";st=50;ds=t.cuisine?("料理:"+t.cuisine.replace(/;/g,"、")+"。"):""}
@@ -4773,16 +4810,24 @@ async function idbSet(k,v){
   try{db.transaction("cells","readwrite").objectStore("cells").put(v,k)}catch(e){}
 }
 const IDB_FRESH=7*24*3600*1000; // 本機快取 7 天內視為新鮮(資料庫每週日更新)
+// 去重鍵=名稱+座標(3位小數≈110m):同名連鎖分店(7-11/全家/藥妝…)各自保留
+const keyOf=x=>x.n+"@"+(+x.la).toFixed(3)+","+(+x.lo).toFixed(3);
+// ★ 常駐去重索引(r146):以前每載一批格就重掃整個 DB 建 Set(全日本載入時 O(N²),十萬筆會卡頓數秒),
+//   改成只建一次、增量維護;DB 長度不符(外部有增刪)才重建
+let DBKEYS=null,DBKEYS_N=-1;
+function dbKeySet(){
+  if(!DBKEYS||DBKEYS_N!==DB.length){DBKEYS=new Set(DB.map(keyOf));DBKEYS_N=DB.length}
+  return DBKEYS;
+}
 async function loadCellKeys(keys,quiet){
-  // 去重鍵=名稱+座標(3位小數≈110m):同名連鎖分店(7-11/全家/藥妝…)各自保留
-  const keyOf=x=>x.n+"@"+(+x.la).toFixed(3)+","+(+x.lo).toFixed(3);
-  const names=new Set(DB.map(keyOf));
+  const names=dbKeySet();
   let add=0,ok=0,miss=0,fail=0;
   const mergeList=list=>{let n=0;list.forEach(e=>{
     if(!e||!e.n||!Number.isFinite(+e.la))return;
+    e.n=sanN(e.n);if(!e.n)return;
     const kk=keyOf(e);
     if(names.has(kk))return;
-    names.add(kk);
+    names.add(kk);DBKEYS_N++;
     const isSpot=e.c==="spot",isShop=e.c==="shop";
     DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c,t:(isSpot||isShop)?(e.t||[]):[],a:"OSM庫",ad:e.ad||"",w:e.w,
       cu:e.cu,oh:e.oh,st:e.st,ht:e.ht,wt:e.wt,
@@ -4841,7 +4886,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r145"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r146"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
@@ -5000,11 +5045,18 @@ loadArea();
     if(!r.ok)return; // 尚未建置擴充庫也完全不影響網站
     const ex=await r.json();
     const names=new Set(DB.map(x=>x.n));
+    // ★ r146:座標去重改用格網索引(0.0012 度格),原本每筆擴充都全庫掃描,萬筆×萬筆會卡住主線程
+    const GRID=0.0012,gk=(la,lo)=>Math.round(la/GRID)+","+Math.round(lo/GRID);
+    const grid=new Set();DB.forEach(x=>grid.add(gk(x.la,x.lo)));
+    const nearDup=(la,lo)=>{const gy=Math.round(la/GRID),gx=Math.round(lo/GRID);
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(grid.has((gy+dy)+","+(gx+dx)))return true;return false};
     let add=0;
     ex.forEach(e=>{
-      if(!e||!e.n||!e.la||names.has(e.n))return;
-      if(DB.some(x=>Math.abs(x.la-e.la)<0.0012&&Math.abs(x.lo-e.lo)<0.0012))return; // 與精選重複跳過
-      names.add(e.n);
+      if(!e||!e.n||!e.la)return;
+      e.n=sanN(e.n);
+      if(!e.n||names.has(e.n))return;
+      if(nearDup(e.la,e.lo))return; // 與精選重複跳過
+      names.add(e.n);grid.add(gk(e.la,e.lo));
       DB.push({n:e.n,j:e.j||"",la:e.la,lo:e.lo,c:e.c||"spot",t:e.t||[],a:"擴充庫",
         ad:e.ad||"",d:"來自 Wikidata 全國擴充資料庫;票價與時間請點「營業時間」即時查詢或搜尋官網。",
         s:e.s||60,p:3,im:e.im,wt:e.wt});
