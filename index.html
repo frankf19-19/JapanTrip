@@ -532,7 +532,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r146</span>
+    <span class="build">build r147</span>
   </div>
 </header>
 
@@ -768,7 +768,7 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r146
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r147
 </footer>
 
 <nav class="bottom">
@@ -2260,7 +2260,7 @@ function card(s,inIti){
   const FB={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
   return `<div class="spot">
     <div class="band" style="background:${CATC[s.c]}"></div>
-    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.la]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
+    <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.la,s.c,s.lo]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
       <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">Wikipedia</span>
     </div>
     <div class="bd">
@@ -2389,23 +2389,88 @@ async function dLive(zh,ja,la,lo){
   }catch(e){out.innerHTML="查詢逾時,請稍後再試。"}
 }
 /* ═══ Wikipedia 免費圖片載入(懶載入+快取)═══ */
+/* ★ r147 照片管線升級:
+   1) fetchWiki 批次化 — 介面不變,內部把 120ms 內的查詢合併成一次 API 呼叫(上限 50 標題),
+      卡片照片載入速度大增、也不易被 Wikipedia 限流
+   2) IMGC 持久化 — 查圖結果(含查無)存 localStorage 7 天,回訪不重查、照片秒現 */
 const IMGC=new Map();
-async function fetchWiki(title,lang){
-  const u=`https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=520&titles=${encodeURIComponent(title)}`;
-  try{const r=await fetch(u);const j=await r.json();
-    const pg=Object.values(j.query.pages)[0];
-    return pg&&pg.thumbnail?pg.thumbnail.source:null;
-  }catch(e){return null}
+try{const _s=JSON.parse(localStorage.getItem("imgc_v1")||"null");
+  if(_s&&Date.now()-_s.t<7*864e5)Object.entries(_s.m).forEach(([k,v])=>IMGC.set(k,v));
+}catch(e){}
+let _IMGSV;function saveIMGC(){clearTimeout(_IMGSV);_IMGSV=setTimeout(()=>{try{
+  const m={};let n=0;for(const [k,v] of IMGC){m[k]=v;if(++n>=3000)break}
+  localStorage.setItem("imgc_v1",JSON.stringify({t:Date.now(),m}));
+}catch(e){}},800)}
+const _WQ={},_WT={};
+function fetchWiki(title,lang){
+  title=String(title||"").replace(/\|/g,"").trim();
+  if(!title)return Promise.resolve(null);
+  return new Promise(res=>{
+    const q=_WQ[lang]||(_WQ[lang]=new Map());
+    if(!q.has(title))q.set(title,[]);
+    q.get(title).push(res);
+    if(q.size>=50){clearTimeout(_WT[lang]);_flushWiki(lang)}
+    else{clearTimeout(_WT[lang]);_WT[lang]=setTimeout(()=>_flushWiki(lang),120)}
+  });
+}
+async function _flushWiki(lang){
+  const q=_WQ[lang];if(!q||!q.size)return;
+  _WQ[lang]=null;
+  const titles=[...q.keys()];
+  const out={};
+  try{
+    const u=`https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=520&titles=${encodeURIComponent(titles.join("|"))}`;
+    const r=await fetch(u);const j=await r.json();
+    // 回溯 normalized/redirects,把最終頁面的圖對應回原查詢標題
+    const back={};// finalTitle -> [原標題...]
+    const addBack=(from,to)=>{(back[to]=back[to]||[]).push(from)};
+    (j.query&&j.query.normalized||[]).forEach(x=>addBack(x.from,x.to));
+    (j.query&&j.query.redirects||[]).forEach(x=>{
+      const srcs=back[x.from]?back[x.from].slice():[x.from];
+      srcs.forEach(s=>addBack(s,x.to));
+    });
+    Object.values(j.query&&j.query.pages||{}).forEach(pg=>{
+      if(!pg||!pg.thumbnail)return;
+      const url=pg.thumbnail.source;
+      out[pg.title]=url;
+      (back[pg.title]||[]).forEach(orig=>out[orig]=url);
+    });
+  }catch(e){}
+  q.forEach((resolvers,title)=>{const url=out[title]||null;resolvers.forEach(fn=>fn(url))});
+}
+// ★ r147:預建圖庫 data/photos.json(由 scripts/build_photos.py 離線產生) — 精選景點照片零 API 呼叫、載入即現
+let PHOTOJ={};
+(async()=>{try{const r=await fetch("data/photos.json",{cache:"no-cache"});if(r.ok)PHOTOJ=await r.json()}catch(e){}})();
+// ★ r147:Commons 座標搜圖備援(僅 spot):150m 內、檔名須含名稱關鍵字才採用,避免抓到隔壁街景
+async function commonsGeo(la,lo,ja,zh){
+  try{
+    const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=geosearch&ggscoord=${la}|${lo}&ggsradius=150&ggslimit=20&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=520`;
+    const r=await fetch(u);const j=await r.json();
+    const pages=Object.values((j.query&&j.query.pages)||{});
+    const toks=[...new Set([...(String(ja)).split(/[\s・(())]/),...(String(zh)).split(/[\s・(())]/)])].filter(t=>t.length>=2);
+    for(const pg of pages){
+      const t=pg.title||"";
+      if(!/\.(jpe?g|png|webp)$/i.test(t))continue;
+      if(toks.some(k=>t.includes(k))){
+        const ii=pg.imageinfo&&pg.imageinfo[0];
+        if(ii)return ii.thumburl||ii.url;
+      }
+    }
+  }catch(e){}
+  return null;
 }
 async function loadImg(ph){
   const meta=JSON.parse(decodeURIComponent(ph.dataset.img||"[]"));
-  const [ja,zh,la]=meta;
-  // ★ r146:管理者照片修正檔(photo_fixes.json)與使用者「照片不對」排除,也套用到列表卡片(以前只有行程縮圖有)
+  const [ja,zh,la,cat,lo]=meta;
+  // 管理者照片修正檔(photo_fixes.json)與使用者「照片不對」排除,也套用到列表卡片
   const pk=(zh||"")+"@"+la;
   const rej=(typeof THUMB_REJECT!=="undefined"&&THUMB_REJECT[pk])||null;
   const ovr=(typeof PHOTO_OVERRIDE!=="undefined"&&PHOTO_OVERRIDE[pk]&&PHOTO_OVERRIDE[pk].length)?PHOTO_OVERRIDE[pk].filter(u=>!rej||!rej.has(u)):null;
   const show=u=>{const im=ph.querySelector("img");im.onload=()=>im.classList.add("ok");im.src=u};
   if(ovr&&ovr.length){show(ovr[0]);return}
+  // 預建圖庫優先(名稱鍵),零 API 呼叫
+  const pj=PHOTOJ[zh];
+  if(pj&&(!rej||!rej.has(pj))){show(pj);return}
   if(ph.dataset.direct){ // Wikidata 附帶的 Commons 圖直接載入
     if(!rej||!rej.has(ph.dataset.direct)){show(ph.dataset.direct);return}
   }
@@ -2418,7 +2483,8 @@ async function loadImg(ph){
     if(!url&&ja&&/[((]/.test(ja))url=await fetchWiki(ja.split(/[((]/)[0].trim(),"ja"); // 去括號再試
     if(!url)url=await fetchWiki(zh.split("・")[0].split(/[((]/)[0],"zh");
     if(!url&&zh.includes("・")){const p2=zh.split("・")[1];if(p2)url=await fetchWiki(p2,"zh")} // 複合名稱第二段(例:淺草寺・雷門)
-    IMGC.set(key,url||null);
+    if(!url&&cat==="spot"&&Number.isFinite(+la)&&Number.isFinite(+lo))url=await commonsGeo(la,lo,ja,zh); // 最後備援:座標搜 Commons
+    IMGC.set(key,url||null);saveIMGC();
   }
   if(url&&(!rej||!rej.has(url)))show(url);
 }
@@ -4888,7 +4954,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r146"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r147"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
