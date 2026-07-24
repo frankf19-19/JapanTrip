@@ -1,0 +1,30 @@
+name: 更新精選照片庫 (photos.json)
+
+on:
+  workflow_dispatch: {}        # 可手動觸發
+  schedule:
+    - cron: "0 18 1 * *"       # 每月 1 日 18:00 UTC (台灣時間 2 日凌晨 2 點)
+
+permissions:
+  contents: write
+
+jobs:
+  build-photos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 產生 data/photos.json
+        run: python scripts/build_photos.py
+
+      - name: Commit 變更
+        run: |
+          git config user.name "photo-bot"
+          git config user.email "actions@github.com"
+          git add data/photos.json
+          git diff --cached --quiet || git commit -m "chore: 更新精選照片庫 photos.json"
+          git push
