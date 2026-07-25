@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r151</span>
+    <span class="build">build r152</span>
   </div>
 </header>
 
@@ -705,6 +705,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
   <details style="margin-top:26px;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:0;overflow:hidden">
     <summary style="cursor:pointer;padding:15px 18px;font-family:var(--font-b);font-weight:700;font-size:15.5px;color:var(--ai);list-style:none;display:flex;align-items:center;gap:8px">🧳 日本旅遊實用資訊速查<span style="margin-left:auto;font-size:12px;color:#A39B87;font-weight:400">點開查看</span></summary>
     <div style="padding:4px 18px 16px;font-size:13.5px;line-height:1.85;color:#4A4437">
+      <div style="background:var(--washi,#F6F3EB);border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin:6px 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <b style="color:var(--ai)">💱 匯率速算</b>
+        <input id="fxJpy" type="number" inputmode="numeric" value="1000" oninput="fxCalc()" style="width:90px;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;font-size:14px" aria-label="日圓金額"> 円
+        <span>≈</span><b id="fxTwd" style="color:var(--shu);font-size:16px">—</b> 台幣
+        <span id="fxRate" style="font-size:11px;color:#A39B87;margin-left:auto">匯率載入中…</span>
+      </div>
       <b style="color:var(--shu)">🚨 緊急電話</b>:警察 <b>110</b>・救護/火警 <b>119</b>・日本旅遊諮詢熱線(JNTO,中英韓 24h)<b>050-3816-2787</b><br>
       <b style="color:var(--shu)">💴 免稅</b>:同店同日消費滿 <b>¥5,000</b>(未稅)可免 10% 消費稅,結帳出示護照;機場離境時海關可能查驗未拆封商品<br>
       <b style="color:var(--shu)">🚃 交通 IC 卡</b>:Suica/PASMO/ICOCA 全國通用,可用手機 Apple Pay/Google Pay 直接開卡加值;搭新幹線建議提早劃位<br>
@@ -750,6 +756,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
     <button onclick="window.print()">🖨️ 列印 / 存 PDF</button>
     <button onclick="showPane('map')">🗺️ 在地圖上看</button>
     <button onclick="generate(true)">🎲 重新洗牌</button>
+    <button onclick="exportICS()">📅 匯入手機日曆</button>
     <button style="border-color:var(--ai);color:var(--ai)" onclick="shareIti()">🔗 分享連結</button>
     <button style="border-color:var(--shu);color:var(--shu)" onclick="saveIti()">♥ 存入最愛</button>
   </div>
@@ -799,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r151
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r152
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -1698,6 +1705,83 @@ function renderFav(){
   $("favGrid").innerHTML=favs.length?favs.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>還沒有收藏地點</b>在任何卡片按「♥」即可收藏。</div>`;
   watchImgs();
 }
+/* ═══ 匯率速算 JPY→TWD (r152):open.er-api.com 免金鑰,快取 12 小時 ═══ */
+let FXRATE=null;
+async function fxInit(){
+  try{
+    const c=JSON.parse(localStorage.getItem("fx_jpytwd")||"null");
+    if(c&&Date.now()-c.t<12*3600e3){FXRATE=c.r}
+    else{
+      const r=await fetch("https://open.er-api.com/v6/latest/JPY");
+      const j=await r.json();
+      if(j&&j.rates&&j.rates.TWD){FXRATE=j.rates.TWD;localStorage.setItem("fx_jpytwd",JSON.stringify({t:Date.now(),r:FXRATE}))}
+    }
+  }catch(e){}
+  const el=$("fxRate");
+  if(el)el.textContent=FXRATE?("1円 ≈ "+FXRATE.toFixed(4)+" 台幣"):"離線,暫無法取得匯率";
+  fxCalc();
+}
+function fxCalc(){
+  const o=$("fxTwd");if(!o)return;
+  const v=parseFloat(($("fxJpy")||{}).value);
+  o.textContent=(FXRATE&&v>=0)?("NT$ "+Math.round(v*FXRATE).toLocaleString()):"—";
+}
+setTimeout(fxInit,1200); // 延後載入,不搶首屏資源
+
+/* ═══ 匯出行事曆 .ics (r152) ═══
+   每個停留點=一個含時間的日曆事件(JST→UTC),附 Google 導航連結;住宿=入住提醒。
+   匯入 Google/Apple 日曆後,旅途中手機自動照行程通知。 */
+function exportICS(){
+  if(!S.iti||!S.iti.days.length){toast("請先生成行程");return}
+  let base=S.iti.dateIn;
+  if(!base){
+    const j=jstNow();base=j.getFullYear()+"-"+String(j.getMonth()+1).padStart(2,"0")+"-"+String(j.getDate()).padStart(2,"0");
+    toast("行程未設日期,以今天為 DAY 1 匯出(可在行程頁設定日期後重新匯出)");
+  }
+  const icsEsc=t=>String(t||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");
+  const fmtUTC=d=>d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,"0")+String(d.getUTCDate()).padStart(2,"0")+"T"+String(d.getUTCHours()).padStart(2,"0")+String(d.getUTCMinutes()).padStart(2,"0")+"00Z";
+  const jstUTC=(dateStr,min)=>{const [Y,M,D]=dateStr.split("-").map(Number);return new Date(Date.UTC(Y,M-1,D,Math.floor(min/60)-9,min%60))}; // JST=UTC+9
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TABIBIYORI//旅日和//ZH","CALSCALE:GREGORIAN","METHOD:PUBLISH","X-WR-CALNAME:旅日和 "+icsEsc(S.iti.center.n.split(",")[0])+" "+S.iti.days.length+"日遊"];
+  const now=fmtUTC(new Date());
+  const IC={spot:"⛩️",food:"🍜",shop:"🛍️",hotel:"🏨"};
+  S.iti.days.forEach((d,i)=>{
+    const date=d.date||addD(base,i);
+    (d.stops||[]).forEach((st,k)=>{
+      if(st.type!=="stop"&&st.type!=="food")return;
+      const s=st.s;if(!s||!Number.isFinite(+st.t))return;
+      const dur=Math.max(20,+s.s||60);
+      const gm="https://www.google.com/maps/search/?api=1&query="+s.la+","+s.lo;
+      L.push("BEGIN:VEVENT",
+        "UID:tabi-"+i+"-"+k+"-"+now+"@tabibiyori",
+        "DTSTAMP:"+now,
+        "DTSTART:"+fmtUTC(jstUTC(date,st.t)),
+        "DTEND:"+fmtUTC(jstUTC(date,st.t+dur)),
+        "SUMMARY:"+icsEsc((IC[s.c]||"📍")+" "+s.n),
+        "LOCATION:"+icsEsc(s.ad||(s.la+","+s.lo)),
+        "DESCRIPTION:"+icsEsc("DAY "+(i+1)+(s.j?"|"+s.j:"")+"\n導航:"+gm+(s.pr?"\n"+s.pr:"")),
+        "END:VEVENT");
+    });
+    if(d.hotel){
+      L.push("BEGIN:VEVENT",
+        "UID:tabi-hotel-"+i+"-"+now+"@tabibiyori",
+        "DTSTAMP:"+now,
+        "DTSTART:"+fmtUTC(jstUTC(date,15*60)),
+        "DTEND:"+fmtUTC(jstUTC(date,16*60)),
+        "SUMMARY:"+icsEsc("🏨 入住 "+d.hotel.n),
+        "LOCATION:"+icsEsc(d.hotel.ad||(d.hotel.la+","+d.hotel.lo)),
+        "DESCRIPTION:"+icsEsc("導航:https://www.google.com/maps/search/?api=1&query="+d.hotel.la+","+d.hotel.lo),
+        "END:VEVENT");
+    }
+  });
+  L.push("END:VCALENDAR");
+  const blob=new Blob([L.join("\r\n")],{type:"text/calendar;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="旅日和_"+S.iti.center.n.split(",")[0]+"_"+S.iti.days.length+"日遊.ics";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  toast("📅 已下載 .ics!開啟即可匯入 Google/Apple 日曆");
+}
 function saveIti(){
   if(!S.iti){toast("請先生成行程");return}
   const dft=S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊";
@@ -2279,8 +2363,19 @@ function afterLocate(msg){
 /* ═══ 飯店/餐廳分級引擎 ═══ */
 const TIER_COLORS={"青旅民宿":"#7A8B99","平價":"#5E7B4F","中檔":"#28497C","高檔":"#8A6A1E","奢華":"#7C4E8E","溫泉旅館":"#C43B41"};
 function prMax(pr){const m=(pr||"").replace(/,/g,"").match(/\d{3,6}/g);return m?Math.max(...m.map(Number)):null}
-// ★ r151:Agoda 深度連結 — 帶飯店名/城市+入住退房日期直達查價頁
-function agodaUrl(q,ci,co){let u="https://www.agoda.com/zh-tw/search?q="+encodeURIComponent(q)+"&rooms=1&adults=2";if(ci)u+="&checkIn="+ci;if(co)u+="&checkOut="+co;return u}
+// ★ r152:Agoda 深度連結修正 — Agoda 的 SPA 吃 checkIn+los(晚數),不吃 checkOut
+function nightsBetween(ci,co){try{const a=new Date(ci),b=new Date(co);const n=Math.round((b-a)/864e5);return n>0?n:1}catch(e){return 1}}
+function agodaUrl(q,ci,co){
+  let u="https://www.agoda.com/zh-tw/search?q="+encodeURIComponent(q)+"&textSearch="+encodeURIComponent(q)+"&rooms=1&adults=2";
+  if(ci){u+="&checkIn="+ci+"&los="+(co?nightsBetween(ci,co):1)}
+  return u;
+}
+// Booking.com 帶日期(參數為公開文件,穩定):行程頁備援
+function bookingUrl(q,ci,co){
+  let u="https://www.booking.com/searchresults.zh-tw.html?ss="+encodeURIComponent(q)+"&group_adults=2&no_rooms=1";
+  if(ci)u+="&checkin="+ci; if(co)u+="&checkout="+co;
+  return u;
+}
 function hotelTier(s){
   if(s.ht==="hostel"||s.ht==="guest_house"||s.ht==="apartment"||s.ht==="camp_site"||s.ht==="caravan_site"||s.ht==="alpine_hut"||s.ht==="wilderness_hut")return "青旅民宿";
   if(s.ht==="motel"||s.ht==="love_hotel")return "平價";
@@ -4248,7 +4343,8 @@ function renderHotelBlock(d,i){
       ${ht.ad?`<div class="inforow"><span class="ic">🏠</span><a href="https://www.google.com/maps/search/?api=1&query=${ht.la},${ht.lo}" target="_blank" rel="noopener">${ht.ad}</a></div>`:""}
       ${ht.pr?`<div class="inforow"><span class="ic">💴</span><span>${ht.pr}</span></div>`:""}
       <div class="hs-acts">
-        <a href="${agodaUrl(ht.j||ht.n,d.date||null,d.date?addD(d.date,(ni&&ni.total)||1):null)}" target="_blank" rel="noopener" style="border:1.5px solid #D4111E;background:#fff;color:#D4111E;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:700;font-family:var(--font-b);text-decoration:none">💰 Agoda 查價</a>
+        <a href="${agodaUrl(ht.j||ht.n,d.date||null,d.date?addD(d.date,(ni&&ni.total)||1):null)}" target="_blank" rel="noopener" style="border:1.5px solid #D4111E;background:#fff;color:#D4111E;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:700;font-family:var(--font-b);text-decoration:none">💰 Agoda</a>
+        <a href="${bookingUrl(ht.j||ht.n,d.date||null,d.date?addD(d.date,(ni&&ni.total)||1):null)}" target="_blank" rel="noopener" style="border:1.5px solid #003580;background:#fff;color:#003580;border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:700;font-family:var(--font-b);text-decoration:none">🛏️ Booking</a>
         <button onclick="editNights(${i})">🛏️ 連住幾晚</button>
         <button onclick="changeHotel(${i})">🔄 換其他推薦</button>
         <button onclick="removeHotel(${i})">✕ 移除</button>
@@ -5210,7 +5306,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r151"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r152"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
