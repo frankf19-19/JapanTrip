@@ -526,6 +526,9 @@ button{transition:transform .15s ease}
   section.pane{display:none}
   #pane-iti{display:block!important}
 }
+
+/* ═ a11y (r150):鍵盤操作可見焦點 ═ */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2.5px solid var(--ai);outline-offset:2px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -536,7 +539,7 @@ button{transition:transform .15s ease}
       <div class="mon">和</div>
       <div><b>旅日和</b><small>TABIBIYORI・適合旅行的好日子</small></div>
     </div>
-    <nav class="top">
+    <nav class="top" aria-label="主要導覽">
       <button id="nt-home" class="on" onclick="showPane('home')">規劃行程</button>
       <button id="nt-explore" onclick="showPane('explore')">探索景點</button>
       <button id="nt-iti" onclick="showPane('iti')">我的行程</button>
@@ -544,7 +547,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r149</span>
+    <span class="build">build r150</span>
   </div>
 </header>
 
@@ -747,6 +750,7 @@ button{transition:transform .15s ease}
     <button onclick="window.print()">🖨️ 列印 / 存 PDF</button>
     <button onclick="showPane('map')">🗺️ 在地圖上看</button>
     <button onclick="generate(true)">🎲 重新洗牌</button>
+    <button style="border-color:var(--ai);color:var(--ai)" onclick="shareIti()">🔗 分享連結</button>
     <button style="border-color:var(--shu);color:var(--shu)" onclick="saveIti()">♥ 存入最愛</button>
   </div>
   <div id="wxBox"></div>
@@ -795,10 +799,10 @@ button{transition:transform .15s ease}
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 433 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r149
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r150
 </footer>
 
-<nav class="bottom">
+<nav class="bottom" aria-label="主要導覽(行動版)">
   <button id="nb-home" class="on" onclick="showPane('home')"><span class="ic">⛩️</span>規劃</button>
   <button id="nb-explore" onclick="showPane('explore')"><span class="ic">🧭</span>探索</button>
   <button id="nb-iti" onclick="showPane('iti')"><span class="ic">📋</span>行程</button>
@@ -824,9 +828,9 @@ button{transition:transform .15s ease}
 <div id="dbStat" onclick="dbStatInfo()" title="點我看分類統計"></div>
 <div id="lbOverlay" onclick="if(event.target===this)closeLB()">
   <button class="lb-x" onclick="closeLB()">✕</button>
-  <button class="lb-nav lb-prev" onclick="event.stopPropagation();openLB(LB.i-1)">‹</button>
+  <button class="lb-nav lb-prev" aria-label="上一張照片" onclick="event.stopPropagation();openLB(LB.i-1)">‹</button>
   <img id="lbImg" alt="照片">
-  <button class="lb-nav lb-next" onclick="event.stopPropagation();openLB(LB.i+1)">›</button>
+  <button class="lb-nav lb-next" aria-label="下一張照片" onclick="event.stopPropagation();openLB(LB.i+1)">›</button>
   <div id="lbCnt"></div>
 </div>
 <div id="dOverlay" onclick="closeDetail()"></div>
@@ -4963,7 +4967,71 @@ function renderMap(){
   }
 }
 
+/* ═══ 行程分享連結 (r150) ═══
+   把行程壓縮(deflate)+base64url 編碼進網址 hash;收到連結的人開啟即載入同一份行程。
+   舊瀏覽器無 CompressionStream → 退回未壓縮 JSON(連結較長但可用)。 */
+const _b64u=b=>{let s="";for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+const _unb64u=t=>{t=t.replace(/-/g,"+").replace(/_/g,"/");while(t.length%4)t+="=";return Uint8Array.from(atob(t),c=>c.charCodeAt(0))};
+async function _deflate(str){
+  if(typeof CompressionStream==="undefined")return null;
+  try{const st=new Blob([str]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+    return new Uint8Array(await new Response(st).arrayBuffer());
+  }catch(e){return null}
+}
+async function _inflate(bytes){
+  const st=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return await new Response(st).text();
+}
+async function shareIti(){
+  if(!S.iti||!S.iti.days.length){toast("請先生成行程再分享");return}
+  const pack={v:1,c:[S.iti.center.n,+S.iti.center.la.toFixed(5),+S.iti.center.lo.toFixed(5)],
+    m:S.iti.month||S.month||0,r:S.iti.rad||25,di:S.iti.dateIn||0,dout:S.iti.dateOut||0,wm:S.iti.wantMeal?1:0,
+    d:S.iti.days.map(dd=>({
+      s:dd.list.map(x=>[x.n,+(+x.la).toFixed(5),+(+x.lo).toFixed(5),x.c,x.s||60,x.j||""]),
+      h:dd.hotel?[dd.hotel.n,+(+dd.hotel.la).toFixed(5),+(+dd.hotel.lo).toFixed(5)]:0,
+      ln:dd.lastNight?1:0}))};
+  const json=JSON.stringify(pack);
+  const defl=await _deflate(json);
+  const code=defl?("z"+_b64u(defl)):("j"+_b64u(new TextEncoder().encode(json)));
+  const url=location.origin+location.pathname+"#iti="+code;
+  if(url.length>7500){toast("⚠️ 行程太長,分享連結超過長度上限;可拆成兩份行程分享");return}
+  try{if(navigator.share){await navigator.share({title:"旅日和 行程分享",text:S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊",url});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(url);toast("🔗 分享連結已複製!傳給朋友即可開啟同一份行程")}
+  catch(e){prompt("複製這個連結分享給朋友:",url)}
+}
+async function loadSharedIti(){
+  const m=(location.hash||"").match(/#iti=([zj])([A-Za-z0-9\-_]+)/);
+  if(!m)return false;
+  try{
+    const bytes=_unb64u(m[2]);
+    const json=m[1]==="z"?await _inflate(bytes):new TextDecoder().decode(bytes);
+    const p=JSON.parse(json);
+    if(p.v!==1||!Array.isArray(p.d)||!Array.isArray(p.c))return false;
+    S.center={n:sanN(p.c[0]),la:+p.c[1],lo:+p.c[2]};
+    if(p.m)S.month=p.m;
+    const rev=a=>{ // [n,la,lo,c,stay,j]
+      if(!a||!a[0]||!Number.isFinite(+a[1]))return null;
+      let f=findByName(sanN(a[0]));
+      if(!f){f={n:sanN(a[0]),j:sanN(a[5]||""),la:+a[1],lo:+a[2],c:["spot","food","shop","hotel"].includes(a[3])?a[3]:"spot",t:[],a:"分享",ad:"",pr:"",s:Math.min(600,Math.max(15,+a[4]||60)),p:3};DB.push(f);DBKEYS_N=-1}
+      return f;
+    };
+    S.iti={days:p.d.slice(0,30).map(dd=>({
+        list:(dd.s||[]).slice(0,40).map(rev).filter(Boolean),stops:[],areas:"",
+        hotel:dd.h?rev([dd.h[0],dd.h[1],dd.h[2],"hotel",0,""]):null,lastNight:!!dd.ln})),
+      hotel:null,hotels:null,multi:false,center:{...S.center},month:p.m||S.month,rad:p.r||25,
+      wantMeal:p.wm!==0,exclF:new Set(),dateIn:p.di||null,dateOut:p.dout||null};
+    S.iti.days=S.iti.days.filter(d=>d.list.length);
+    if(!S.iti.days.length)return false;
+    if(S.iti.dateIn)S.iti.days.forEach((d,i)=>{d.date=addD(S.iti.dateIn,i)});
+    S.iti.days.forEach((d,di)=>rebuildDay(di));
+    history.replaceState(null,"",location.pathname+location.search); // 清掉 hash,避免重整重複載入
+    renderCenter();renderIti();showPane("iti");
+    toast("📬 已載入分享的行程("+S.iti.days.length+" 天)!可自由編輯,不影響對方的版本");
+    return true;
+  }catch(e){window._shareErr=e&&(e.message||String(e));return false}
+}
 init();
+loadSharedIti();
 
 /* ═══ OSM 餐廳/飯店分區庫載入(data/osm/r{lat}_{lon}.json)═══ */
 const OSMCELLS=new Set(); let OSMDB_ON=null; const OSMFAIL={};
@@ -5077,7 +5145,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r149"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r150"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
