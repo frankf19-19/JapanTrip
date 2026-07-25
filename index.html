@@ -16,6 +16,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700;900&family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <meta name="description" content="輸入地點、選擇喜好與天數,自動生成日本旅遊行程。住宿、景點、購物、美食一站搞定。">
+<link rel="canonical" href="https://frankf19-19.github.io/JapanTrip/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="旅日和 TABIBIYORI｜日本旅遊行程規劃">
+<meta property="og:description" content="輸入一個地點,安排一趟剛剛好的日本旅行。景點美食住宿一站搞定、智慧排程、離線可用。">
+<meta property="og:url" content="https://frankf19-19.github.io/JapanTrip/">
+<meta property="og:image" content="https://frankf19-19.github.io/JapanTrip/icons/icon-512.png">
+<meta property="og:locale" content="zh_TW">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="旅日和 TABIBIYORI｜日本旅遊行程規劃">
+<meta name="twitter:description" content="輸入一個地點,安排一趟剛剛好的日本旅行。">
+<meta name="twitter:image" content="https://frankf19-19.github.io/JapanTrip/icons/icon-512.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"旅日和 TABIBIYORI","alternateName":"日本旅遊行程規劃","url":"https://frankf19-19.github.io/JapanTrip/","applicationCategory":"TravelApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD"},"inLanguage":"zh-Hant","description":"輸入地點、選擇喜好與天數,自動生成日本旅遊行程。景點、美食、住宿、購物一站搞定。"}</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
@@ -532,7 +544,7 @@ button{transition:transform .15s ease}
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r147</span>
+    <span class="build">build r149</span>
   </div>
 </header>
 
@@ -685,6 +697,21 @@ button{transition:transform .15s ease}
   </div>
   <div id="shopQuick" style="display:none;gap:6px;flex-wrap:wrap;margin:-4px 0 12px"></div>
   <div class="grid" id="homePicks"></div>
+
+  <!-- ═══ 日本旅遊實用資訊速查(r149) ═══ -->
+  <details style="margin-top:26px;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:0;overflow:hidden">
+    <summary style="cursor:pointer;padding:15px 18px;font-family:var(--font-b);font-weight:700;font-size:15.5px;color:var(--ai);list-style:none;display:flex;align-items:center;gap:8px">🧳 日本旅遊實用資訊速查<span style="margin-left:auto;font-size:12px;color:#A39B87;font-weight:400">點開查看</span></summary>
+    <div style="padding:4px 18px 16px;font-size:13.5px;line-height:1.85;color:#4A4437">
+      <b style="color:var(--shu)">🚨 緊急電話</b>:警察 <b>110</b>・救護/火警 <b>119</b>・日本旅遊諮詢熱線(JNTO,中英韓 24h)<b>050-3816-2787</b><br>
+      <b style="color:var(--shu)">💴 免稅</b>:同店同日消費滿 <b>¥5,000</b>(未稅)可免 10% 消費稅,結帳出示護照;機場離境時海關可能查驗未拆封商品<br>
+      <b style="color:var(--shu)">🚃 交通 IC 卡</b>:Suica/PASMO/ICOCA 全國通用,可用手機 Apple Pay/Google Pay 直接開卡加值;搭新幹線建議提早劃位<br>
+      <b style="color:var(--shu)">🔌 電壓插座</b>:100V・A 型雙平腳(和台灣同型免轉接頭,但電壓略低)<br>
+      <b style="color:var(--shu)">📶 網路</b>:eSIM/SIM 卡或 WiFi 分享器建議出發前買好;超商與車站多有免費 WiFi<br>
+      <b style="color:var(--shu)">💰 付款</b>:大城市刷卡與 PayPay 普及,但小店、神社、部分拉麵店<b>只收現金</b>,建議隨身備 ¥10,000 左右;7-11 ATM 可用台灣金融卡跨國提款<br>
+      <b style="color:var(--shu)">🗑️ 垃圾</b>:街頭垃圾桶極少,自備小袋帶回飯店或超商丟;飲料罐可丟販賣機旁回收筒<br>
+      <b style="color:var(--shu)">🤝 禮儀</b>:電車內勿講電話、手扶梯關東靠左關西靠右、不用給小費、溫泉刺青者請先確認可否入浴
+    </div>
+  </details>
 </section>
 
 <!-- ═══ 探索頁 ═══ -->
@@ -767,8 +794,8 @@ button{transition:transform .15s ease}
 
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
-  精選 411 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r147
+  精選 433 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r149
 </footer>
 
 <nav class="bottom">
@@ -1614,7 +1641,9 @@ function saveIti(){
   const dft=S.iti.center.n.split(",")[0]+" "+S.iti.days.length+"日遊";
   const name=prompt("為這份行程取個名字:",dft); if(name===null)return;
   const itis=store.get("wayu_itis")||[];
-  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,di:S.iti.dateIn||null,dout:S.iti.dateOut||null,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),c:d.center||null,ht:d.hotel?d.hotel.n:null,ln:!!d.lastNight,pf:d.pins||null,sk:d.skipMeal||null}))});
+  // ★ r149:存「完整快照」而非只存名稱 — OSM 店家/景點載入時資料庫還沒就緒,只存名稱會默默消失
+  const snap=x=>({n:x.n,la:x.la,lo:x.lo,c:x.c,s:x.s,j:x.j||"",a:x.a||"",t:x.t||[],ad:x.ad||"",pr:x.pr||"",oh:x.oh,cu:x.cu,st:x.st,w:x.w});
+  itis.unshift({name:name||dft,ts:Date.now(),center:S.iti.center.n,centerLa:S.iti.center.la,centerLo:S.iti.center.lo,month:S.iti.month||S.month,rad:S.iti.rad,di:S.iti.dateIn||null,dout:S.iti.dateOut||null,wantMeal:S.iti.wantMeal,multi:!!S.iti.multi,exclF:[...(S.iti.exclF||[])],days:S.iti.days.map(d=>({ns:d.list.map(x=>x.n),sn:d.list.map(snap),c:d.center||null,ht:d.hotel?d.hotel.n:null,hs:d.hotel?snap(d.hotel):null,ln:!!d.lastNight,pf:d.pins||null,sk:d.skipMeal||null}))});
   store.set("wayu_itis",itis.slice(0,20));
   toast("♥ 行程已儲存到「最愛」");
 }
@@ -1622,9 +1651,22 @@ function delIti(i){const itis=store.get("wayu_itis")||[];itis.splice(i,1);store.
 function loadIti(i){
   const it=(store.get("wayu_itis")||[])[i]; if(!it)return;
   S.center={n:it.center,la:it.centerLa,lo:it.centerLo}; S.month=it.month||S.month;
+  // ★ r149:優先用存檔快照重建(舊版存檔只有名稱 → 照舊查名);快照查無此人就補回 DB
+  const revive=sn=>{
+    if(!sn||!sn.n)return null;
+    let f=findByName(sn.n);
+    if(!f&&Number.isFinite(+sn.la)){
+      f={n:sn.n,j:sn.j||"",la:+sn.la,lo:+sn.lo,c:sn.c||"spot",t:sn.t||[],a:sn.a||"存檔",ad:sn.ad||"",pr:sn.pr||"",oh:sn.oh,cu:sn.cu,st:sn.st,w:sn.w,s:sn.s||60,p:3};
+      DB.push(f);DBKEYS_N=-1; // 使去重索引下次重建
+    }
+    return f;
+  };
   S.iti={days:it.days.map(dd=>{
-      const ns=Array.isArray(dd)?dd:dd.ns, c=Array.isArray(dd)?null:dd.c;
-      return {list:ns.map(findByName).filter(Boolean),stops:[],areas:"",center:c||undefined,hotel:(dd.ht?findByName(dd.ht):null),lastNight:!!dd.ln,pins:dd.pf||undefined,skipMeal:dd.sk||undefined};
+      const isOld=Array.isArray(dd);
+      const ns=isOld?dd:dd.ns, c=isOld?null:dd.c, sn=(!isOld&&dd.sn)||null;
+      const list=sn?sn.map(revive).filter(Boolean):ns.map(findByName).filter(Boolean);
+      const hotel=(!isOld&&dd.hs)?revive(dd.hs):(dd.ht?findByName(dd.ht):null);
+      return {list,stops:[],areas:"",center:c||undefined,hotel,lastNight:!!dd.ln,pins:dd.pf||undefined,skipMeal:dd.sk||undefined};
     }),hotel:null,hotels:null,multi:!!it.multi,center:{...S.center},month:it.month,rad:it.rad||25,wantMeal:it.wantMeal!==false,exclF:new Set(it.exclF||[]),dateIn:it.di||null,dateOut:it.dout||null};
   S.iti.days=S.iti.days.filter(d=>d.list.length);
   if(S.iti.dateIn)S.iti.days.forEach((d,i)=>{d.date=addD(S.iti.dateIn,i)});
@@ -1792,7 +1834,7 @@ function ohWeek(oh){
           tok=tok.trim();const r=tok.split("-");
           if(r.length===2&&OHDAYS[r[0]]!=null&&OHDAYS[r[1]]!=null){
             for(let d=OHDAYS[r[0]];;d=(d+1)%7){wk[d]=off?"off":"open";if(d===OHDAYS[r[1]])break}
-          }else if(OHDAYS[tok]!=null)wk[tok?OHDAYS[tok]:0]=off?"off":"open";
+          }else if(OHDAYS[tok]!=null)wk[OHDAYS[tok]]=off?"off":"open";
         });
       });
       if(any&&wk.some(v=>v==="open")){ // OSM 慣例:有列日別營業規則時,未列出的日=公休
@@ -2314,7 +2356,8 @@ function parseOH(oh){
         else days.push(p);});}
       if(!days.includes(ab))return;
       matched=true;
-      if(off){open=false;return}
+      open=false; // OSM 語意:同一天後面的規則覆蓋前面的(r149)
+      if(off)return;
       const times=rule.match(/\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/g);
       if(!times){open=true;return}
       times.forEach(tr=>{const [a,b]=tr.split("-").map(x=>{const [hh,mm]=x.trim().split(":").map(Number);return hh*60+mm});
@@ -2459,6 +2502,66 @@ async function commonsGeo(la,lo,ja,zh){
   }catch(e){}
   return null;
 }
+// ★ r148:連鎖品牌圖庫 — 名稱含品牌關鍵字 → 對應日文維基條目(店面/品牌圖),分類鎖定避免誤配
+//   (例:「松屋」只在美食類生效,不會把百貨「松屋銀座」配成牛丼店)
+const BRANDS=[
+ {k:["セブン","7-Eleven","7-11","小七"],t:"セブン-イレブン",c:"shop"},
+ {k:["ファミリーマート","FamilyMart","全家"],t:"ファミリーマート",c:"shop"},
+ {k:["ローソン","Lawson","羅森"],t:"ローソン",c:"shop"},
+ {k:["ドン・キホーテ","ドンキ","唐吉訶德"],t:"ドン・キホーテ (企業)",c:"shop"},
+ {k:["ビックカメラ"],t:"ビックカメラ",c:"shop"},
+ {k:["ヨドバシ"],t:"ヨドバシカメラ",c:"shop"},
+ {k:["マツモトキヨシ","マツキヨ","松本清"],t:"マツモトキヨシ",c:"shop"},
+ {k:["ユニクロ","UNIQLO"],t:"ユニクロ",c:"shop"},
+ {k:["無印良品","MUJI"],t:"無印良品",c:"shop"},
+ {k:["一蘭"],t:"一蘭",c:"food"},
+ {k:["一風堂"],t:"一風堂",c:"food"},
+ {k:["スシロー","壽司郎"],t:"スシロー",c:"food"},
+ {k:["くら寿司","藏壽司","くら壽司"],t:"くら寿司",c:"food"},
+ {k:["はま寿司"],t:"はま寿司",c:"food"},
+ {k:["丸亀製麺","丸龜製麵"],t:"丸亀製麺",c:"food"},
+ {k:["すき家"],t:"すき家",c:"food"},
+ {k:["吉野家"],t:"吉野家",c:"food"},
+ {k:["松屋"],t:"松屋フーズ",c:"food"},
+ {k:["なか卯"],t:"なか卯",c:"food"},
+ {k:["サイゼリヤ","薩莉亞"],t:"サイゼリヤ",c:"food"},
+ {k:["ガスト"],t:"ガスト (レストランチェーン)",c:"food"},
+ {k:["ミスタードーナツ","ミスド"],t:"ミスタードーナツ",c:"food"},
+ {k:["モスバーガー","摩斯"],t:"モスバーガー",c:"food"},
+ {k:["マクドナルド","McDonald","麥當勞"],t:"マクドナルド",c:"food"},
+ {k:["ケンタッキー","KFC","肯德基"],t:"ケンタッキーフライドチキン",c:"food"},
+ {k:["スターバックス","Starbucks","星巴克"],t:"スターバックス",c:"food"},
+ {k:["ドトール"],t:"ドトールコーヒー",c:"food"},
+ {k:["コメダ"],t:"コメダ",c:"food"},
+ {k:["CoCo壱","ココイチ","壱番屋"],t:"壱番屋",c:"food"},
+ {k:["大戸屋"],t:"大戸屋",c:"food"},
+ {k:["びっくりドンキー"],t:"びっくりドンキー",c:"food"},
+ {k:["リンガーハット"],t:"リンガーハット",c:"food"},
+ {k:["天下一品"],t:"天下一品",c:"food"},
+ {k:["かに道楽","蟹道樂"],t:"かに道楽",c:"food"},
+ {k:["鳥貴族"],t:"鳥貴族",c:"food"},
+ {k:["串カツ田中"],t:"串カツ田中",c:"food"},
+ {k:["銀だこ"],t:"築地銀だこ",c:"food"},
+ {k:["ペッパーランチ"],t:"ペッパーランチ",c:"food"},
+ {k:["やよい軒"],t:"やよい軒",c:"food"},
+ {k:["富士そば"],t:"名代富士そば",c:"food"},
+ {k:["幸楽苑"],t:"幸楽苑",c:"food"},
+ {k:["世界の山ちゃん"],t:"世界の山ちゃん",c:"food"},
+ {k:["矢場とん"],t:"矢場とん",c:"food"},
+ {k:["東横イン","東橫INN","東横INN"],t:"東横イン",c:"hotel"},
+ {k:["アパホテル","APA"],t:"アパホテル",c:"hotel"},
+ {k:["スーパーホテル"],t:"スーパーホテル",c:"hotel"},
+ {k:["ドーミーイン","Dormy"],t:"ドーミーイン",c:"hotel"},
+ {k:["リッチモンドホテル"],t:"リッチモンドホテル",c:"hotel"}
+];
+function brandOf(name,cat){
+  if(!name)return null;
+  for(const b of BRANDS){
+    if(b.c!==cat&&b.c!=="any")continue;
+    if(b.k.some(k=>name.includes(k)))return b.t;
+  }
+  return null;
+}
 async function loadImg(ph){
   const meta=JSON.parse(decodeURIComponent(ph.dataset.img||"[]"));
   const [ja,zh,la,cat,lo]=meta;
@@ -2474,7 +2577,26 @@ async function loadImg(ph){
   if(ph.dataset.direct){ // Wikidata 附帶的 Commons 圖直接載入
     if(!rej||!rej.has(ph.dataset.direct)){show(ph.dataset.direct);return}
   }
-  if(ph.dataset.biz){return} // 餐廳/飯店不做維基搜圖(避免亂配),維持替代圖示
+  if(ph.dataset.biz){
+    // ★ r148:餐廳/飯店照片 — 只用「精確比對」來源,絕不座標亂抓:
+    //   1) 精選條目的日文標題(人工核對過) 2) 連鎖品牌庫 3) 飯店名稱精確查詢(名稱須含飯店詞)
+    const bkey=ja+"|"+zh+"|biz";
+    let u=IMGC.get(bkey);
+    if(u===undefined){
+      u=ja?await fetchWiki(ja,"ja"):null; // 精選 biz 才有 j,標題=該店條目,安全
+      if(!u){const bt=brandOf(zh,cat)||brandOf(ja,cat);if(bt)u=await fetchWiki(bt,"ja")}
+      if(!u&&cat==="hotel"){
+        const t=(ja||zh||"");
+        if(t.length>=5&&/ホテル|旅館|温泉|リゾート|イン|飯店|hotel/i.test(t)){
+          u=await fetchWiki(t,"ja");
+          if(!u&&zh&&zh!==t)u=await fetchWiki(zh,"zh");
+        }
+      }
+      IMGC.set(bkey,u||null);saveIMGC();
+    }
+    if(u&&(!rej||!rej.has(u)))show(u);
+    return;
+  }
   const key=ja+"|"+zh;
   let url=IMGC.get(key);
   if(url===undefined){
@@ -3356,7 +3478,6 @@ async function buildCenterDays(nDays,rad,wantMeal,reshuffle,usedGlobal,usedF){
       dayList.push(nx);
     }
     cands.push(...deferred); // 大點還回候選池,之後的日子可當「單獨一日」的主角
-    const localF=foodsPool; // makeStops 內會用 dKm(依當前 S.center)
     const stops=makeStops(dayList,usedF,wantMeal,rad);
     const areas=[...new Set(dayList.map(x=>x.a))].join("・");
     days.push({stops,areas,list:dayList,center:{...S.center}});
@@ -3573,7 +3694,6 @@ async function generate(reshuffle){
       sum-=alloc.pop();route.pop();
     }
     if(sum>S.days){alloc[0]=S.days;sum=S.days} // 只剩一點仍超過→壓到總天數
-    if(route.length<((S.iti&&0)||0)) {}
   }
   if(route.length<alloc.length)alloc=alloc.slice(0,route.length);
   try{await loadArea()}catch(e){}
@@ -3744,19 +3864,22 @@ async function fetchThumbsFor(meta,exclude){
         for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
         if(pics.length<3&&Number.isFinite(+la))pics=[...new Set(pics.concat(await commonsGeoRanked(la,lo,120)))];
       }else if(c==="hotel"){
-        // 飯店:P18 官方圖 → 維基 → 座標60m(飯店建築照常有精準geotag)
+        // 飯店:P18 官方圖 → 維基 → 座標60m(飯店建築照常有精準geotag) → r148 連鎖品牌庫
         pics=await wikidataThumbs(j||n,c);
         if(!pics.length)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
         if(!pics.length&&Number.isFinite(+la))pics=await commonsGeoRanked(la,lo,60);
+        if(!pics.length){const bt=brandOf(n,c)||brandOf(j,c);if(bt)pics=await wikiThumbs(bt,"ja")}
       }else{
-        // 餐廳/購物:僅名稱驗證(P18/維基);寧缺勿錯,沒有就顯示無照片+Google連結
+        // 餐廳/購物:僅名稱驗證(P18/維基);寧缺勿錯 → r148 再加連鎖品牌庫(店面/品牌圖)
         pics=await wikidataThumbs(j||n,c);
         if(!pics.length)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
+        if(!pics.length){const bt=brandOf(n,c)||brandOf(j,c);if(bt)pics=await wikiThumbs(bt,"ja")}
       }
     }catch(e){}
     pics=[...new Set(pics)];
     if(exclude&&exclude.size)pics=pics.filter(u=>!exclude.has(u));
     const _k=n+"@"+la;
+    if(PHOTOJ[n])pics=[...new Set([PHOTOJ[n],...pics])]; // 預建圖庫(r148)
     if(PHOTO_OVERRIDE[_k]&&PHOTO_OVERRIDE[_k].length)pics=[...new Set(PHOTO_OVERRIDE[_k].concat(pics))];
     return pics;
 }
@@ -4954,7 +5077,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r147"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r149"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
