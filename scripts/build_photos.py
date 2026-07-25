@@ -86,8 +86,10 @@ def commons_geo(la, lo, ja, zh):
 
 def main():
     refresh = "--refresh" in sys.argv
-    entries = [e for e in parse_db() if e["c"] in ("spot", "shop")]
-    print(f"精選條目(spot/shop): {len(entries)}")
+    all_e = parse_db()
+    entries = [e for e in all_e if e["c"] in ("spot", "shop")]
+    biz = [e for e in all_e if e["c"] in ("food", "hotel") and e["j"]]
+    print(f"精選條目(spot/shop): {len(entries)} | biz(food/hotel 有日文標題): {len(biz)}")
     old = {}
     if OUT.exists() and not refresh:
         old = json.loads(OUT.read_text(encoding="utf-8"))
@@ -121,10 +123,19 @@ def main():
         if url: photos[e["n"]] = url
         time.sleep(0.4)
 
+    # 第 5 層:住宿/餐廳 — 只用「精確日文標題」比對(人工核對過的 j),絕不座標搜圖
+    biz_todo = [e for e in biz if e["n"] not in photos]
+    print(f"biz 精確標題解析: {len(biz_todo)}")
+    biz_map = wiki_batch([e["j"] for e in biz_todo], "ja")
+    for e in biz_todo:
+        if e["j"] in biz_map: photos[e["n"]] = biz_map[e["j"]]
+
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps(photos, ensure_ascii=False, indent=1), encoding="utf-8")
     hit = sum(1 for e in entries if e["n"] in photos)
-    print(f"完成 → {OUT}  覆蓋率 {hit}/{len(entries)} ({hit*100//max(len(entries),1)}%)")
+    bhit = sum(1 for e in biz if e["n"] in photos)
+    print(f"完成 → {OUT}  景點覆蓋 {hit}/{len(entries)} ({hit*100//max(len(entries),1)}%)"
+          f" | 住宿餐廳 {bhit}/{len(biz)}")
 
 if __name__ == "__main__":
     main()
