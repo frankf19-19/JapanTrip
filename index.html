@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r160</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r161</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r160
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r161
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2466,6 +2466,39 @@ async function autoImportRakuten(la,lo,cb){
   try{localStorage.setItem(sk,JSON.stringify({t:Date.now(),h:all}))}catch(e){}
   const n=mergeRktEntries(all);
   if(n&&cb)cb(n);
+}
+/* ★ r161 一鍵自我診斷:點頁首版本號執行,把楽天 API 連線真相全部顯示在畫面上 */
+async function runDiag(){
+  const w=window.open("","_blank","width=520,height=640");
+  const log=t=>{if(w&&w.document)w.document.body.innerHTML+="<div style='font:13px/1.7 monospace;white-space:pre-wrap'>"+t+"</div>"};
+  if(w){w.document.title="旅日和 自我診斷";w.document.body.style.cssText="background:#111;color:#9FE29F;padding:14px"}
+  log("═══ 旅日和 自我診斷 "+APP_BUILD+" ═══");
+  log("金鑰: APP_ID="+(RAKUTEN_APP_ID?"已設("+RAKUTEN_APP_ID.slice(0,8)+"…)":"❌未設")+" | ACCESS_KEY="+(RAKUTEN_ACCESS_KEY?"已設":"❌未設"));
+  log("網域: "+location.origin+"(楽天白名單須含此網域)");
+  log("── 楽天 API 即時測試(東京車站 2km)──");
+  try{localStorage.removeItem("rkt2_35.681_139.767_2")}catch(e){}
+  const t0=Date.now();
+  const p=await rakutenFetchPage(35.6812,139.7671,2,1);
+  if(p&&p.list){
+    log("✅ 連線成功("+(Date.now()-t0)+"ms) 端點#"+(localStorage.getItem("rkt_ep")||0));
+    log("   本頁 "+p.list.length+" 間 / 總頁數 "+p.pageCount);
+    log("   例:"+(p.list[0]?p.list[0].nm+" ¥"+p.list[0].min:"—"));
+    log("   房間照:"+(p.list[0]&&p.list[0].room?"✅有":"❌無"));
+  }else{
+    log("❌ 連線失敗:"+(window._rktErr||"無回應/逾時"));
+    log("   (三個候選端點皆試過;請截圖此畫面回報)");
+  }
+  log("── 日光 Ritz-Carlton 配對測試 ──");
+  const rh=await rakutenHotels(36.7397,139.4870,2);
+  if(rh){
+    log("附近楽天飯店 "+rh.length+" 間:");
+    rh.slice(0,5).forEach(h=>log("   ・"+h.nm));
+    const m=rakutenMatch(rh,{n:"The Ritz-Carlton, Nikko",j:"ザ・リッツ・カールトン日光",la:36.7397,lo:139.4870});
+    log(m?("✅ 配對成功 → "+m.nm+" ¥"+m.min+" 房間照:"+(m.room?"有":"無")):"❌ 配對失敗(名單見上)");
+  }else log("❌ 此區查詢失敗:"+(window._rktErr||""));
+  log("── 其他 ──");
+  log("photos.json: "+(Object.keys(PHOTOJ||{}).length)+" 筆 | SW:"+(navigator.serviceWorker&&navigator.serviceWorker.controller?"啟用":"未接管"));
+  log("═══ 診斷完成:請整張截圖回報 ═══");
 }
 // 行程生成後:背景依序同步每個過夜城市(尊重楽天流量禮儀,城市間隔 500ms)
 async function autoImportForIti(){
@@ -4817,6 +4850,7 @@ function openDetail(name,fromPop){
       ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
       ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
       ${s.oh?(()=>{const st2=parseOH(s.oh);return `<div class="inforow"><span class="ic">🕐</span><span>${s.oh} ${st2==="open"?'<b class="opennow">● 現在營業中</b>':st2==="closed"?'<b class="closednow">● 現在休息中</b>':""}</span></div>`})():""}
+      ${s.c==="hotel"?'<div id="dRakuten"></div>':""}
       <div class="d-wiki" id="dWiki"><span class="spin" style="border-color:#D9D2BF;border-top-color:var(--shu)"></span> 正在從 Wikipedia 取得詳細介紹…</div>
       <div style="background:#fff;border:1.5px dashed var(--kin);border-radius:12px;padding:12px 14px;margin:12px 0">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -4842,7 +4876,7 @@ function openDetail(name,fromPop){
         ${s.c==="food"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+(s.j||s.n))}" target="_blank" rel="noopener">🍽️ Tabelog 食記照片</a>`:""}
         ${(s.c==="food"||s.c==="hotel")?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.j||s.n)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 地圖相片</a>`:""}
       </div>
-      ${s.c==="hotel"?hotelBookingBlock(s)+'<div id="dRakuten"></div>':""}
+      ${s.c==="hotel"?hotelBookingBlock(s):""}
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
   $("dPanel").dataset.stars=(NOTES[s.n]&&NOTES[s.n].stars)||0;
@@ -5491,7 +5525,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r160"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r161"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
