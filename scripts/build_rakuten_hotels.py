@@ -20,7 +20,7 @@ APP_ID = "0eb05990-6440-4ca1-ad99-ac627268281c"
 ACCESS_KEY = "pk_NaKQ4f3CMsKt4gPQ3VRbtw5WoSgavcg6k9YbFZOUi45"
 AFF_ID = "56130e5f.a61145fa.56130e60.1928a16a"
 REFERER = "https://frankf19-19.github.io/JapanTrip/"  # 新版楽天 API 檢查來源,須在白名單網域內
-ENDPOINT = "https://openapi.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426"
+ENDPOINT = "https://openapi.rakuten.co.jp/engine/api/Travel/SimpleHotelSearch/20170426"  # 官方文件確認的正確路徑(/engine/api/)
 PAUSE = 1.2   # 每請求間隔(秒) — 楽天免費版每秒 1 次
 MAX_PAGES = 34  # 每點最多 34 頁(=1020 間),等同無上限
 
