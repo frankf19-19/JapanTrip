@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r163</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r164</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r163
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r164
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2457,8 +2457,31 @@ function mergeRktEntries(list){
 /* ★ r158:楽天飯店「全自動」同步 — 不再顯示按鈕。開住宿面板/探索住宿/生成行程時,
    背景自動抓齊該區楽天全部飯店(分頁抓完+24h快取+同中心防重複),完成後靜默刷新畫面。 */
 window._RKT_DONE=window._RKT_DONE||{};
+/* ★ r164:預建楽天靜態庫 — GitHub Actions 每週把 91 區全部飯店抓成 data/rakuten_hotels.json,
+   訪客端載入檔案即可(零 API 呼叫、零限流風險);live API 只在靜態庫沒涵蓋的偏遠區才啟動 */
+let _RKTSTATIC=0;
+async function loadRakutenStatic(){
+  if(_RKTSTATIC)return;_RKTSTATIC=1;
+  try{
+    const r=await fetch("data/rakuten_hotels.json",{cache:"no-cache"});
+    if(!r.ok){_RKTSTATIC=-1;return}
+    const j=await r.json();
+    const n=mergeRktEntries(j.h||[]);
+    _RKTSTATIC=2;
+    console.log("[楽天靜態庫] 載入 "+(j.h||[]).length+" 間(新增 "+n+")");
+    if(S.cat==="hotel")renderExplore();
+  }catch(e){_RKTSTATIC=-1}
+}
+setTimeout(loadRakutenStatic,2500); // 開站 2.5 秒後背景載入,不搶首屏
 async function autoImportRakuten(la,lo,cb){
   if(!RAKUTEN_APP_ID||!Number.isFinite(+la))return;
+  await loadRakutenStatic(); // 先確保靜態庫載過
+  // 靜態庫已涵蓋此區(3km 內 ≥10 間楽天飯店)→ 不必打 live API
+  if(_RKTSTATIC===2){
+    let near=0;
+    for(const x of DB){if(x.rkt&&dist(x.la,x.lo,la,lo)<=3){near++;if(near>=10)break}}
+    if(near>=10){if(cb)cb(0);return}
+  }
   const ck=(+la).toFixed(2)+","+(+lo).toFixed(2);
   if(window._RKT_DONE[ck])return;
   window._RKT_DONE[ck]=1;
@@ -5546,7 +5569,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r163"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r164"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
