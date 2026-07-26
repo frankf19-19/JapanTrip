@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r152</span>
+    <span class="build">build r155</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r152
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r155
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2363,6 +2363,60 @@ function afterLocate(msg){
 /* ═══ 飯店/餐廳分級引擎 ═══ */
 const TIER_COLORS={"青旅民宿":"#7A8B99","平價":"#5E7B4F","中檔":"#28497C","高檔":"#8A6A1E","奢華":"#7C4E8E","溫泉旅館":"#C43B41"};
 function prMax(pr){const m=(pr||"").replace(/,/g,"").match(/\d{3,6}/g);return m?Math.max(...m.map(Number)):null}
+/* ═══ 樂天旅遊 Rakuten Travel API (r154:2026 新版規格) ═══
+   2026/2 樂天 API 大改版:端點改為 openapi.rakuten.co.jp,認證需 applicationId+accessKey 兩個參數,
+   並強制 Referer 檢查(請求來源須在 Rakuten Developers 後台的 Allowed websites 名單內)。
+   ★ 啟用:到 https://webservice.rakuten.co.jp/ 的 Your Apps → 你的應用程式,
+     複製「Application ID」與「Access Key」(點眼睛圖示顯示後複製),分別貼進下面兩個引號。 */
+const RAKUTEN_APP_ID="0eb05990-6440-4ca1-ad99-ac627268281c";
+const RAKUTEN_ACCESS_KEY="pk_NaKQ4f3CMsKt4gPQ3VRbtw5WoSgavcg6k9YbFZOUi45";
+const RAKUTEN_AFF_ID="56130e5f.a61145fa.56130e60.1928a16a"; // 聯盟ID:訂房連結自動帶傭金追蹤
+const RKT_ENDPOINTS=[ // 依序嘗試,自動記住可用的那個
+  "https://openapi.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426",
+  "https://openapi.rakuten.co.jp/services/api/TravelSimpleHotel/Search/20170426",
+  "https://app.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426"
+];
+async function rakutenHotels(la,lo,radKm){
+  if(!RAKUTEN_APP_ID)return null;
+  const key="rkt_"+(+la).toFixed(3)+"_"+(+lo).toFixed(3);
+  try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c&&Date.now()-c.t<86400e3)return c.h}catch(e){}
+  const qs="?applicationId="+encodeURIComponent(RAKUTEN_APP_ID)
+    +(RAKUTEN_ACCESS_KEY?"&accessKey="+encodeURIComponent(RAKUTEN_ACCESS_KEY):"")
+    +(typeof RAKUTEN_AFF_ID!=="undefined"&&RAKUTEN_AFF_ID?"&affiliateId="+encodeURIComponent(RAKUTEN_AFF_ID):"")
+    +"&format=json&datumType=1&hits=30&latitude="+la+"&longitude="+lo+"&searchRadius="+Math.min(3,Math.max(1,radKm||2));
+  const start=+(localStorage.getItem("rkt_ep")||0)||0;
+  for(let k=0;k<RKT_ENDPOINTS.length;k++){
+    const idx=(start+k)%RKT_ENDPOINTS.length;
+    try{
+      const r=await fetch(RKT_ENDPOINTS[idx]+qs);
+      const j=await r.json().catch(()=>null);
+      if(r.ok&&j&&j.hotels){
+        try{localStorage.setItem("rkt_ep",String(idx))}catch(e){}
+        const hs=(j.hotels||[]).map(x=>x.hotel&&x.hotel[0]&&x.hotel[0].hotelBasicInfo).filter(Boolean)
+          .map(h=>({nm:h.hotelName,la:+h.latitude,lo:+h.longitude,img:h.hotelImageUrl,room:h.roomImageUrl,
+            min:h.hotelMinCharge,rev:h.reviewAverage,revN:h.reviewCount,url:h.hotelInformationUrl,tel:h.telephoneNo}));
+        try{localStorage.setItem(key,JSON.stringify({t:Date.now(),h:hs}))}catch(e){}
+        window._rktErr=null;
+        return hs;
+      }
+      window._rktErr=(j&&(j.error_description||j.error))||("HTTP "+r.status);
+      console.warn("[楽天API]",RKT_ENDPOINTS[idx],window._rktErr);
+    }catch(e){window._rktErr=String(e&&e.message||e);console.warn("[楽天API]",e)}
+  }
+  return null;
+}
+function rakutenMatch(list,s){ // 120m 內最近者;或 350m 內且名稱前 3 字相符
+  if(!list||!list.length)return null;
+  const stem=t=>String(t||"").replace(/[\s・()()]/g,"").slice(0,3);
+  const s1=stem(s.j),s2=stem(s.n);
+  let best=null,bd=9e9;
+  list.forEach(h=>{
+    const d=dist(s.la,s.lo,h.la,h.lo);
+    const hit=(s1&&h.nm.includes(s1))||(s2&&h.nm.includes(s2));
+    if((d<0.12||(d<0.35&&hit))&&d<bd){bd=d;best=h}
+  });
+  return best;
+}
 // ★ r152:Agoda 深度連結修正 — Agoda 的 SPA 吃 checkIn+los(晚數),不吃 checkOut
 function nightsBetween(ci,co){try{const a=new Date(ci),b=new Date(co);const n=Math.round((b-a)/864e5);return n>0?n:1}catch(e){return 1}}
 function agodaUrl(q,ci,co){
@@ -4024,8 +4078,11 @@ async function fetchThumbsFor(meta,exclude){
         for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
         if(pics.length<3&&Number.isFinite(+la))pics=[...new Set(pics.concat(await commonsGeoRanked(la,lo,120)))];
       }else if(c==="hotel"){
-        // 飯店:P18 官方圖 → 維基 → 座標60m(飯店建築照常有精準geotag) → r148 連鎖品牌庫
-        pics=await wikidataThumbs(j||n,c);
+        // 飯店:樂天房間照(r153,有 API 金鑰時) → P18 官方圖 → 維基 → 座標60m → 連鎖品牌庫
+        try{const rh=await rakutenHotels(la,lo,1);const mh=rakutenMatch(rh,{la,lo,j,n});
+          if(mh){if(mh.room)pics.push(mh.room);if(mh.img)pics.push(mh.img)}}catch(e){}
+        if(!pics.length)pics=await wikidataThumbs(j||n,c);
+        else pics=pics.concat(await wikidataThumbs(j||n,c));
         if(!pics.length)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
         if(!pics.length&&Number.isFinite(+la))pics=await commonsGeoRanked(la,lo,60);
         if(!pics.length){const bt=brandOf(n,c)||brandOf(j,c);if(bt)pics=await wikiThumbs(bt,"ja")}
@@ -4383,7 +4440,7 @@ function renderHotelPicker(){
   window._HPOOL=list;
   const tierChips=`<div class="chips" style="margin:6px 0 10px"><label class="${tier==="全部"?"on":""}" onclick="hpSet('tier','全部')">全部</label>`+["青旅民宿","平價","中檔","高檔","奢華","溫泉旅館"].map(t=>`<label class="${tier===t?"on":""}" onclick="hpSet('tier','${t}')">${t}</label>`).join("")+`</div>`;
   const rows=list.length?list.map((ht,k)=>{const t=hotelTier(ht);
-    return `<div class="hp-row ${cur&&cur.n===ht.n?"on":""}" onclick="hotelDetail(${di},${k})" title="點我看照片與詳細資料">
+    return `<div class="hp-row ${cur&&cur.n===ht.n?"on":""}" data-hp="${k}" onclick="hotelDetail(${di},${k})" title="點我看照片與詳細資料">
       <div style="flex:1"><b>${ht.n}</b> <span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-size:10px">${t}</span>${ht.st?` <span style="color:var(--kin);font-size:11px">★${ht.st}</span>`:""}
       <div style="font-size:11.5px;color:#8A8272">${ht.pr||""}${ht.ad?" ・"+ht.ad:""}</div></div>
       ${cur&&cur.n===ht.n?'<span style="color:var(--shu);font-size:12px;flex-shrink:0">目前</span>':`<span style="color:var(--ai);font-size:12px;font-weight:700;flex-shrink:0">👁 看詳情</span><button onclick="event.stopPropagation();pickHotel(${di},${k})" style="border:1.5px solid var(--shu);background:#fff;color:var(--shu);border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:700;font-family:var(--font-b);cursor:pointer;flex-shrink:0">選這間</button>`}</div>`;
@@ -4407,8 +4464,46 @@ function renderHotelPicker(){
     <div class="hp-list">${rows}</div>
     ${more}
     <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  setTimeout(()=>rakutenDecoratePicker(di),60); // r153:非同步標注樂天最低價
+}
+async function rakutenDecoratePicker(di){
+  if(!RAKUTEN_APP_ID||!window._HP||window._HP.di!==di)return;
+  const ctr=(S.iti.days[di].center||S.iti.center);if(!ctr)return;
+  const rh=await rakutenHotels(ctr.la,ctr.lo,3);if(!rh)return;
+  const list=window._HPOOL||[];
+  list.forEach((ht,k)=>{
+    const m=rakutenMatch(rh,ht);if(!m||!m.min)return;
+    const row=document.querySelector('.hp-row[data-hp="'+k+'"] > div');
+    if(row&&!row.querySelector(".rkt-min"))row.insertAdjacentHTML("beforeend",
+      '<div class="rkt-min" style="font-size:12px;color:#BF0000;font-weight:800">楽天 ¥'+(+m.min).toLocaleString()+'/晚起'+(m.rev?'<span style="color:var(--kin);font-weight:700"> ★'+m.rev+'</span>':'')+'</div>');
+  });
 }
 function clearPickFor(){window._PICKFOR=null}
+async function rakutenDecorate(s){
+  const box=document.getElementById("dRakuten");if(!box)return;
+  if(!RAKUTEN_APP_ID)return; // 未設定金鑰時安靜跳過
+  const rh=await rakutenHotels(s.la,s.lo,1.5);
+  const box2=document.getElementById("dRakuten");if(!box2)return; // 面板可能已關閉
+  if(rh===null&&window._rktErr){ // 金鑰已設但呼叫失敗 → 顯示原因方便排查
+    box2.innerHTML='<div style="font-size:12px;color:#8A8272;padding:6px 2px">楽天トラベル連線異常:'+String(window._rktErr).slice(0,120)+'(按 F12 看 Console 詳情)</div>';
+    return;
+  }
+  const m=rakutenMatch(rh,s);
+  if(!m){box2.innerHTML="";return}
+  const imgs=[m.room,m.img].filter(Boolean);
+  box2.innerHTML=`<div style="background:#fff;border:1.5px solid #BF0000;border-radius:14px;padding:13px 15px;margin:12px 0">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="background:#BF0000;color:#fff;border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:800">楽天トラベル</span>
+      <b style="font-size:14px;color:var(--ink)">房間照片・即時房價</b>
+      ${m.rev?`<span style="margin-left:auto;color:var(--kin);font-weight:800">★${m.rev}</span><span style="font-size:11px;color:#8A8272">(${(m.revN||0).toLocaleString()}則)</span>`:""}
+    </div>
+    ${imgs.length?`<div style="display:flex;gap:8px;margin-bottom:10px">${imgs.map(u=>`<img src="${u}" alt="房間照片" loading="lazy" style="width:calc(50% - 4px);aspect-ratio:4/3;object-fit:cover;border-radius:10px;cursor:zoom-in" onclick="LB.pics=[${imgs.map(x=>`'${x}'`).join(",")}];openLB(${imgs.indexOf(u)})">`).join("")}</div>`:""}
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      ${m.min?`<div style="font-size:13px;color:#4A4437">最低房價 <b style="color:#BF0000;font-size:18px">¥${(+m.min).toLocaleString()}</b><span style="font-size:11px;color:#8A8272">/晚起</span></div>`:""}
+      <a href="${m.url}" target="_blank" rel="noopener" style="margin-left:auto;background:#BF0000;color:#fff;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)">看空房與全部房型照片</a>
+    </div>
+  </div>`;
+}
 function hotelBookingBlock(s){
   const nm=s.j||s.n;
   // 若這間飯店正好是行程某天的住宿,帶入該天的入住/退房日期
@@ -4425,7 +4520,7 @@ function hotelBookingBlock(s){
     ? `https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(nm)}&checkin=${ci}&checkout=${co}&group_adults=2`
     : `https://www.booking.com/searchresults.zh-tw.html?ss=${encodeURIComponent(nm)}`;
   const ag=agodaUrl(nm,ci,co);
-  const gh=`https://www.google.com/travel/hotels/${encodeURIComponent(nm)}`;
+  const gh=ci?`https://www.google.com/travel/search?q=${encodeURIComponent(nm)}&checkin=${ci}&checkout=${co}`:`https://www.google.com/travel/search?q=${encodeURIComponent(nm)}`;
   return `<div style="background:linear-gradient(135deg,#EAF2FA,#F5F0E4);border:1px solid #DCE6F0;border-radius:14px;padding:13px 15px;margin:12px 0">
     <div style="font-size:14px;font-weight:800;color:var(--ai-deep);margin-bottom:3px">💰 即時查房價・看房型照片・線上訂房</div>
     <div style="font-size:11.5px;color:#8A8272;margin-bottom:10px">連鎖與知名飯店的房價、房型、浴室、評分都在訂房網 ${dayLabel}</div>
@@ -4609,6 +4704,7 @@ function openDetail(name,fromPop){
   const gmap="https://www.google.com/maps/search/?api=1&query="+s.la+","+s.lo;
   const grev="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((s.j||s.n)+" "+(s.ad||""));
   setTimeout(()=>fillTransName(s),50);
+  if(s.c==="hotel")setTimeout(()=>rakutenDecorate(s),80);
   $("dPanel").innerHTML=`
     <div class="d-hero"><div class="fb">${FB[s.c]||"📍"}</div><img id="dImg" alt="${s.n}" title="點我放大" style="cursor:zoom-in" onclick="if(LB.pics.length)openLB(LB.i)"><button class="d-close" onclick="closeDetail()">✕</button></div>
     <div class="d-gal" id="dGal"></div>
@@ -4657,7 +4753,7 @@ function openDetail(name,fromPop){
         ${s.c==="food"?`<a href="https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:tabelog.com "+(s.j||s.n))}" target="_blank" rel="noopener">🍽️ Tabelog 食記照片</a>`:""}
         ${(s.c==="food"||s.c==="hotel")?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.j||s.n)}+${s.la},${s.lo}" target="_blank" rel="noopener">📷 Google 地圖相片</a>`:""}
       </div>
-      ${s.c==="hotel"?hotelBookingBlock(s):""}
+      ${s.c==="hotel"?hotelBookingBlock(s)+'<div id="dRakuten"></div>':""}
       <div id="dLiveOut" style="display:none;font-size:12.5px;margin-top:10px;background:#F6F3EA;border-radius:10px;padding:10px 12px;color:#5C5A50"></div>
     </div>`;
   $("dPanel").dataset.stars=(NOTES[s.n]&&NOTES[s.n].stars)||0;
@@ -5306,7 +5402,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r152"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r155"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
