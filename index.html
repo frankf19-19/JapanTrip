@@ -529,6 +529,19 @@ button{transition:transform .15s ease}
 
 /* ═ a11y (r150):鍵盤操作可見焦點 ═ */
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2.5px solid var(--ai);outline-offset:2px;border-radius:6px}
+
+/* ═══ r166 介面精緻化 ═══ */
+.spot .bd .ja{color:#7A7260} /* 次要文字對比強化 */
+.pricechip{display:inline-flex;align-items:center;background:#FDF3F3;border:1.5px solid #EFC7CB;color:var(--shu);font-weight:800;font-size:12px;padding:2px 8px;border-radius:8px;letter-spacing:.2px}
+.spot .bd h3{line-height:1.42}
+/* 探索頁分類列黏性:捲動時篩選不離手 */
+#pane-explore .subtabs{position:sticky;top:56px;z-index:60;background:linear-gradient(var(--washi) 82%,rgba(246,243,235,0));padding:8px 0 10px;margin-top:-4px}
+@media(min-width:900px){#pane-explore .subtabs{top:66px}}
+/* 回到頂部(左下,避開快速規劃鈕) */
+#toTop{position:fixed;left:14px;bottom:84px;width:44px;height:44px;border-radius:50%;background:var(--ai);color:#fff;border:none;font-size:19px;box-shadow:var(--shadow-lg);cursor:pointer;opacity:0;pointer-events:none;transition:.25s;z-index:900}
+#toTop.show{opacity:.92;pointer-events:auto}
+#toTop:hover{transform:translateY(-2px)}
+@media(min-width:900px){#toTop{bottom:24px}}
 </style>
 </head>
 <body>
@@ -547,7 +560,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r165</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r166</span>
   </div>
 </header>
 
@@ -806,7 +819,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r165
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r166
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -843,6 +856,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <div id="dOverlay" onclick="closeDetail()"></div>
 <div id="dPanel"></div>
 
+<button id="toTop" aria-label="回到頂部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 <div id="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -1672,6 +1686,8 @@ function setMonth(m,el){S.month=m;document.querySelectorAll("#monChips label").f
 function esc(s){return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 // 外部資料(OSM/擴充庫)名稱淨化:去掉會破壞 HTML 的角括號、把雙引號換成全形(名稱本身極少用到)
 function sanN(s){return String(s||"").replace(/[<>]/g,"").replace(/"/g,"＂").trim()}
+// 地址顯示格式化(r166):修 OSM 地址欄位黏在一起的問題,例「TochigiNikko」→「Tochigi・Nikko」
+function fmtAd(a){return String(a||"").replace(/([a-z])([A-Z])/g,"$1・$2").replace(/([぀-ヺ一-鿿])([A-Z])/g,"$1・$2").replace(/([a-zA-Z])([぀-ヺ一-鿿])/g,"$1・$2")}
 function toggleFav(name,btn){
   if(S.fav.has(name)){S.fav.delete(name);btn&&btn.classList.remove("on");toast("已移出最愛")}
   else{S.fav.add(name);btn&&btn.classList.add("on");toast("♥ 已加入最愛")}
@@ -2664,18 +2680,18 @@ function card(s,inIti){
   return `<div class="spot">
     <div class="band" style="background:${CATC[s.c]}"></div>
     <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.la,s.c,s.lo]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
-      <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">Wikipedia</span>
+      <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">${s.rkt?"楽天トラベル":s.im?"Wikimedia":"Wikipedia"}</span>
     </div>
     <div class="bd">
       <h3 onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹">${s.n}</h3><div class="ja">${s.j||""}</div>
       <div class="rate">
-        ${s.rt?`<span class="stars">${"★".repeat(Math.round(s.rt))}${"☆".repeat(5-Math.round(s.rt))}</span><span class="num">${s.rt.toFixed(1)}</span><span style="color:#A39B87;font-size:11px">旅日和推薦</span>`:`<span style="color:#A39B87;font-size:11px">OSM 即時資料</span>`}
+        ${s.rt?`<span class="stars">${"★".repeat(Math.round(s.rt))}${"☆".repeat(5-Math.round(s.rt))}</span><span class="num">${s.rt.toFixed(1)}</span><span style="color:#8F866F;font-size:11px">${s.rkt?"楽天評價":"旅日和推薦"}</span>`:`<span style="color:#8F866F;font-size:11px">OSM 即時資料</span>`}
         <a class="glink" href="${grev}" target="_blank" rel="noopener">Google評價</a>
       </div>
       <div class="meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
         ${Number.isFinite(d)?`<span class="tag dist">📍 ${fmtD(d)}</span>`:""}
-        ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
+        ${s.c==="hotel"?(()=>{const t=hotelTier(s);const pm=(s.pr||"").match(/¥[\d,]+/);return `${pm?`<span class="pricechip">${pm[0]}起/晚</span>`:""}<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
         ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
         ${S.visited.has(s.n)?`<span class="tag" style="background:#E4EEDD;color:#3F5A35;font-weight:900">✔ 去過</span>`:""}
         ${NOTES[s.n]&&NOTES[s.n].stars?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">📝 我的評分 ${"★".repeat(NOTES[s.n].stars)}</span>`:""}
@@ -3140,7 +3156,7 @@ async function fetchOSM(radKm){
     else if(t.tourism==="viewpoint"){tg=["夜景展望","自然風景"];st=40}
     else if(t.tourism==="theme_park"){tg=["主題樂園","親子同樂"];st=300}
     else if(t.tourism==="zoo"||t.tourism==="aquarium"){tg=["親子同樂"];st=120}
-    const adr=[t["addr:province"],t["addr:city"],t["addr:suburb"]||t["addr:quarter"],t["addr:neighbourhood"]].filter(Boolean).join("");
+    const adr=[t["addr:province"],t["addr:city"],t["addr:suburb"]||t["addr:quarter"],t["addr:neighbourhood"]].filter(Boolean).join("・"); // r166:加分隔
     out.push({n,j:t["name:ja"]||(t.name!==n?t.name:""),la,lo,c,t:tg,a:"OSM 即時",ad:adr,
       d:ds+(t["opening_hours"]?("營業:"+t["opening_hours"]):"來自 OpenStreetMap 即時資料,細節請點營業時間或官網確認。"),s:st,p:3,osm:1});
   });
@@ -4884,14 +4900,14 @@ function openDetail(name,fromPop){
       ${(s.c==="hotel"&&window._PICKFOR)?`<button onclick="pickHotelByName('${esc(s.n)}')" style="width:100%;border:none;background:var(--shu);color:#fff;border-radius:12px;padding:13px;font-size:15.5px;font-weight:800;font-family:var(--font-b);cursor:pointer;margin:10px 0 4px">✓ 選這間住 DAY ${window._PICKFOR.di+1}</button>`:""}
       <div class="d-meta">
         <span class="tag cat" style="background:${CATC[s.c]}">${CATN[s.c]}</span>
-        ${s.c==="hotel"?(()=>{const t=hotelTier(s);return `<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
+        ${s.c==="hotel"?(()=>{const t=hotelTier(s);const pm=(s.pr||"").match(/¥[\d,]+/);return `${pm?`<span class="pricechip">${pm[0]}起/晚</span>`:""}<span class="tag" style="background:${TIER_COLORS[t]};color:#fff;font-weight:700">${t}</span>${s.st?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★${s.st} 星級</span>`:""}`})():""}
         ${s.c==="food"?(()=>{const c2=foodCui(s),p2=foodPrice(s);return `<span class="tag" style="background:#EFE4D2;color:#6E5A2E">${c2}</span>${p2?`<span class="tag" style="background:${p2==="高級"?"#7C4E8E":p2==="中檔"?"#28497C":"#5E7B4F"};color:#fff">${p2}</span>`:""}`})():""}
         ${s.rt?`<span class="tag" style="background:#F5EAD2;color:#8A6A1E">★ ${s.rt.toFixed(1)} 旅日和推薦</span>`:""}
         ${Number.isFinite(dKm(s))?`<span class="tag dist">📍 距中心 ${fmtD(dKm(s))}</span>`:""}
         ${(s.t||[]).map(t=>`<span class="tag">${t}</span>`).join("")}
         ${s.s?`<span class="tag">建議停留 ${s.s>=60?(s.s/60).toFixed(s.s%60?1:0)+" 小時":s.s+" 分"}</span>`:""}
       </div>
-      ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${s.ad}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
+      ${s.ad?`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">${fmtAd(s.ad)}(開地圖導航)</a></div>`:`<div class="inforow"><span class="ic">🏠</span><a href="${gmap}" target="_blank" rel="noopener">開啟地圖導航</a></div>`}
       ${s.pr?`<div class="inforow"><span class="ic">💴</span><span>${s.pr}</span></div>`:""}
       ${s.oh?(()=>{const st2=parseOH(s.oh);return `<div class="inforow"><span class="ic">🕐</span><span>${s.oh} ${st2==="open"?'<b class="opennow">● 現在營業中</b>':st2==="closed"?'<b class="closednow">● 現在休息中</b>':""}</span></div>`})():""}
       ${s.c==="hotel"?'<div id="dRakuten"></div>':""}
@@ -5456,6 +5472,15 @@ async function loadSharedIti(){
 }
 init();
 loadSharedIti();
+// r166:回頂部按鈕(捲超過600px才浮現;requestAnimationFrame 節流)
+(()=>{let tick=false;
+  window.addEventListener("scroll",()=>{
+    if(tick)return;tick=true;
+    requestAnimationFrame(()=>{const b=$("toTop");if(b)b.classList.toggle("show",window.scrollY>600);tick=false});
+  },{passive:true});
+})();
+// r166:全域錯誤記錄(方便回報問題)
+window.addEventListener("error",e=>{try{console.warn("[旅日和錯誤]",e.message,e.filename?e.filename.split("/").pop()+":"+e.lineno:"")}catch(_){}});
 
 /* ═══ OSM 餐廳/飯店分區庫載入(data/osm/r{lat}_{lon}.json)═══ */
 const OSMCELLS=new Set(); let OSMDB_ON=null; const OSMFAIL={};
@@ -5569,7 +5594,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r165"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r166"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
