@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r161</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r162</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r161
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r162
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2475,19 +2475,33 @@ async function runDiag(){
   log("═══ 旅日和 自我診斷 "+APP_BUILD+" ═══");
   log("金鑰: APP_ID="+(RAKUTEN_APP_ID?"已設("+RAKUTEN_APP_ID.slice(0,8)+"…)":"❌未設")+" | ACCESS_KEY="+(RAKUTEN_ACCESS_KEY?"已設":"❌未設"));
   log("網域: "+location.origin+"(楽天白名單須含此網域)");
-  log("── 楽天 API 即時測試(東京車站 2km)──");
-  try{localStorage.removeItem("rkt2_35.681_139.767_2")}catch(e){}
-  const t0=Date.now();
-  const p=await rakutenFetchPage(35.6812,139.7671,2,1);
-  if(p&&p.list){
-    log("✅ 連線成功("+(Date.now()-t0)+"ms) 端點#"+(localStorage.getItem("rkt_ep")||0));
-    log("   本頁 "+p.list.length+" 間 / 總頁數 "+p.pageCount);
-    log("   例:"+(p.list[0]?p.list[0].nm+" ¥"+p.list[0].min:"—"));
-    log("   房間照:"+(p.list[0]&&p.list[0].room?"✅有":"❌無"));
-  }else{
-    log("❌ 連線失敗:"+(window._rktErr||"無回應/逾時"));
-    log("   (三個候選端點皆試過;請截圖此畫面回報)");
+  log("── 楽天 API 矩陣實測(東京車站 2km:端點×認證組合逐一測)──");
+  const base="format=json&datumType=1&hits=3&latitude=35.6812&longitude=139.7671&searchRadius=2";
+  const auths=[
+    ["applicationId+accessKey","applicationId="+encodeURIComponent(RAKUTEN_APP_ID)+"&accessKey="+encodeURIComponent(RAKUTEN_ACCESS_KEY)],
+    ["只有 applicationId","applicationId="+encodeURIComponent(RAKUTEN_APP_ID)],
+    ["applicationId+access_key","applicationId="+encodeURIComponent(RAKUTEN_APP_ID)+"&access_key="+encodeURIComponent(RAKUTEN_ACCESS_KEY)],
+    ["accessKey 當 applicationId","applicationId="+encodeURIComponent(RAKUTEN_ACCESS_KEY)]
+  ];
+  let winner=null;
+  for(let ei=0;ei<RKT_ENDPOINTS.length;ei++){
+    for(const [an,aq] of auths){
+      try{
+        const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),6000);
+        const r=await fetch(RKT_ENDPOINTS[ei]+"?"+aq+"&"+base,{signal:ctl.signal});
+        clearTimeout(tm);
+        const j=await r.json().catch(()=>null);
+        if(r.ok&&j&&j.hotels){
+          log("✅ 端點#"+ei+" ["+an+"] 成功!"+(j.hotels.length)+" 間,例:"+(j.hotels[0]&&j.hotels[0].hotel[0].hotelBasicInfo.hotelName||""));
+          if(!winner)winner={ei,an};
+        }else{
+          log("❌ 端點#"+ei+" ["+an+"] → "+((j&&(j.error_description||j.error))||("HTTP "+r.status)).slice(0,60));
+        }
+      }catch(e){log("❌ 端點#"+ei+" ["+an+"] → "+String(e&&e.message||e).slice(0,60))}
+      await new Promise(r2=>setTimeout(r2,400)); // 避免觸發限流
+    }
   }
+  log(winner?("🏆 可用組合:端點#"+winner.ei+" + "+winner.an):"⚠️ 全部組合皆失敗(可能限流或金鑰狀態異常,等 5 分鐘再點一次診斷)");
   log("── 日光 Ritz-Carlton 配對測試 ──");
   const rh=await rakutenHotels(36.7397,139.4870,2);
   if(rh){
@@ -5525,7 +5539,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r161"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r162"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
