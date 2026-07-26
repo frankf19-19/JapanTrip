@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r159</span>
+    <span class="build">build r160</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r159
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r160
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2408,7 +2408,7 @@ async function rakutenFetchPage(la,lo,radKm,page){ // 單頁(30間);回 {list,pa
 }
 async function rakutenHotels(la,lo,radKm){ // 第一頁(30間)+24h快取:詳情頁裝飾用
   if(!RAKUTEN_APP_ID)return null;
-  const key="rkt_"+(+la).toFixed(3)+"_"+(+lo).toFixed(3);
+  const key="rkt2_"+(+la).toFixed(3)+"_"+(+lo).toFixed(3)+"_"+Math.min(3,Math.max(1,radKm||2)); // r160:鍵含半徑,舊快取失效
   try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c&&Date.now()-c.t<86400e3)return c.h}catch(e){}
   const p=await rakutenFetchPage(la,lo,radKm,1);
   if(!p)return null;
@@ -4162,6 +4162,7 @@ async function fetchThumbsFor(meta,exclude){
         else pics=pics.concat(await wikidataThumbs(j||n,c));
         if(!pics.length)for(const [tt,ll] of tries){const w=await wikiThumbs(tt,ll);if(w.length){pics=pics.concat(w);break}}
         if(!pics.length&&Number.isFinite(+la))pics=await commonsGeoRanked(la,lo,60);
+        if(pics.length<2&&Number.isFinite(+la)){const cg=await commonsGeo(la,lo,j,n);if(cg&&!pics.includes(cg))pics.push(cg)} // r160:150m 檔名比對補圖
         if(!pics.length){const bt=brandOf(n,c)||brandOf(j,c);if(bt)pics=await wikiThumbs(bt,"ja")}
       }else{
         // 餐廳/購物:僅名稱驗證(P18/維基);寧缺勿錯 → r148 再加連鎖品牌庫(店面/品牌圖)
@@ -5490,7 +5491,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r159"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r160"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
