@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build">build r157</span>
+    <span class="build">build r159</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r157
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r159
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2450,34 +2450,45 @@ function mergeRktEntries(list){
   if(n){DBKEYS_N=-1;try{if(NIDX&&NIDX.length)NIDX.length=0}catch(e){}} // 索引下次重建
   return n;
 }
-async function importRakutenHotels(di){
-  const btn=document.getElementById("rktImportBtn");
-  const ctr=(S.iti.days[di].center||S.iti.center);if(!ctr){toast("找不到中心點");return}
-  if(btn){btn.disabled=true;btn.textContent="📥 載入中…"}
-  const all=await rakutenAllPages(ctr.la,ctr.lo,3,(got,est)=>{if(btn)btn.textContent="📥 已抓 "+got+" 間…"});
-  if(all===null){toast("楽天連線異常:"+(window._rktErr||"逾時"));if(btn){btn.disabled=false;btn.textContent="📥 載入楽天此區全部飯店"}return}
+/* ★ r158:楽天飯店「全自動」同步 — 不再顯示按鈕。開住宿面板/探索住宿/生成行程時,
+   背景自動抓齊該區楽天全部飯店(分頁抓完+24h快取+同中心防重複),完成後靜默刷新畫面。 */
+window._RKT_DONE=window._RKT_DONE||{};
+async function autoImportRakuten(la,lo,cb){
+  if(!RAKUTEN_APP_ID||!Number.isFinite(+la))return;
+  const ck=(+la).toFixed(2)+","+(+lo).toFixed(2);
+  if(window._RKT_DONE[ck])return;
+  window._RKT_DONE[ck]=1;
+  const sk="rktall_"+ck;
+  try{const c=JSON.parse(localStorage.getItem(sk)||"null");
+    if(c&&Date.now()-c.t<86400e3){const n=mergeRktEntries(c.h);if(n&&cb)cb(n);return}}catch(e){}
+  const all=await rakutenAllPages(la,lo,3);
+  if(all===null){window._RKT_DONE[ck]=0;return} // 失敗允許之後重試
+  try{localStorage.setItem(sk,JSON.stringify({t:Date.now(),h:all}))}catch(e){}
   const n=mergeRktEntries(all);
-  toast("🏯 已載入楽天 "+all.length+" 間(新增 "+n+" 間,含房間照與即時房價)");
-  renderHotelPicker();
+  if(n&&cb)cb(n);
 }
-async function importRakutenExplore(){
-  if(!S.center){toast("請先在首頁選擇地點");return}
-  toast("📥 正在載入楽天此區飯店…");
-  const all=await rakutenAllPages(S.center.la,S.center.lo,3);
-  if(all===null){toast("楽天連線異常:"+(window._rktErr||"逾時"));return}
-  const n=mergeRktEntries(all);
-  toast("🏯 已載入楽天 "+all.length+" 間(新增 "+n+" 間)");
-  renderExplore();
+// 行程生成後:背景依序同步每個過夜城市(尊重楽天流量禮儀,城市間隔 500ms)
+async function autoImportForIti(){
+  if(!S.iti||!RAKUTEN_APP_ID)return;
+  const seen=new Set();
+  for(const d of S.iti.days){
+    const c=d.center||S.iti.center;if(!c)continue;
+    const k=(+c.la).toFixed(2)+","+(+c.lo).toFixed(2);
+    if(seen.has(k))continue;seen.add(k);
+    await autoImportRakuten(c.la,c.lo,null);
+    await new Promise(r=>setTimeout(r,500));
+  }
 }
-function rakutenMatch(list,s){ // 120m 內最近者;或 350m 內且名稱前 3 字相符
+function rakutenMatch(list,s){ // 120m 內最近者;或 600m 內且名稱相符(大型度假村座標常偏)
   if(!list||!list.length)return null;
-  const stem=t=>String(t||"").replace(/[\s・()()]/g,"").slice(0,3);
-  const s1=stem(s.j),s2=stem(s.n);
+  const norm=t=>String(t||"").replace(/[\s・･()()、,\.\-–—]/g,"").toLowerCase();
+  const s1=norm(s.j).slice(0,4),s2=norm(s.n).slice(0,4);
   let best=null,bd=9e9;
   list.forEach(h=>{
     const d=dist(s.la,s.lo,h.la,h.lo);
-    const hit=(s1&&h.nm.includes(s1))||(s2&&h.nm.includes(s2));
-    if((d<0.12||(d<0.35&&hit))&&d<bd){bd=d;best=h}
+    const hn=norm(h.nm); // ★ r159 修正:雙方都正規化再比(以前只處理單邊,「ザ・リッツ」永遠比不中)
+    const hit=(s1&&s1.length>=2&&hn.includes(s1))||(s2&&s2.length>=2&&hn.includes(s2));
+    if((d<0.12||(d<0.6&&hit))&&d<bd){bd=d;best=h}
   });
   return best;
 }
@@ -2997,7 +3008,8 @@ function renderExplore(){
   S.expN=S.expN||60;
   const shown=list.slice(0,S.expN);
   const expMore=list.length>S.expN?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.expN+=60;renderExplore()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${shown.length.toLocaleString()} / 共 ${list.length.toLocaleString()})</button></div>`:"";
-  const agodaBanner=(S.cat==="hotel"&&S.center)?`<div style="grid-column:1/-1;background:linear-gradient(135deg,#FDEEEF,#F5F0E4);border:1.5px solid #EFC7CB;border-radius:14px;padding:12px 15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:200px"><b style="color:#D4111E">想看更多房價與空房?</b><span style="font-size:12.5px;color:#8A8272"> Agoda 收錄此區完整飯店庫存與即時房價</span></div><button onclick="importRakutenExplore()" style="background:#BF0000;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--font-b)">📥 載入楽天全部飯店</button><a href="${agodaUrl(S.center.n.split(",")[0]+" 日本",S.dateIn||null,S.dateOut||null)}" target="_blank" rel="noopener" style="background:#D4111E;color:#fff;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:700;text-decoration:none;font-family:var(--font-b)">🅰️ Agoda 搜尋此區飯店</a></div>`:"";
+  if(S.cat==="hotel"&&S.center)autoImportRakuten(S.center.la,S.center.lo,n=>{if(S.cat==="hotel")renderExplore()}); // r158:自動同步楽天
+  const agodaBanner="";
   $("exploreGrid").innerHTML=agodaBanner+(shown.length?shown.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>沒有符合的結果</b>換個類別或關鍵字,或按「即時搜尋更多」抓取 OpenStreetMap 資料。</div>`)+expMore;
   watchImgs();
 }
@@ -4014,6 +4026,7 @@ async function generate(reshuffle){
   renderIti(); showPane("iti");
   if(days.length<S.days)toast("⚠️ 部分地點景點不足,共排出 "+days.length+" 天,可加大半徑再試");
   else toast("✅ 行程生成完成!"+(multi?route.length+" 個地點・":"")+days.reduce((a,d)=>a+d.list.length,0)+" 個景點");
+  setTimeout(autoImportForIti,1500); // r158:背景同步各過夜城市的楽天飯店
 }
 const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 
@@ -4143,7 +4156,7 @@ async function fetchThumbsFor(meta,exclude){
         if(pics.length<3&&Number.isFinite(+la))pics=[...new Set(pics.concat(await commonsGeoRanked(la,lo,120)))];
       }else if(c==="hotel"){
         // 飯店:樂天房間照(r153,有 API 金鑰時) → P18 官方圖 → 維基 → 座標60m → 連鎖品牌庫
-        try{const rh=await rakutenHotels(la,lo,1);const mh=rakutenMatch(rh,{la,lo,j,n});
+        try{const rh=await rakutenHotels(la,lo,2);const mh=rakutenMatch(rh,{la,lo,j,n});
           if(mh){if(mh.room)pics.push(mh.room);if(mh.img)pics.push(mh.img)}}catch(e){}
         if(!pics.length)pics=await wikidataThumbs(j||n,c);
         else pics=pics.concat(await wikidataThumbs(j||n,c));
@@ -4512,8 +4525,12 @@ function renderHotelPicker(){
   const more=total>n?`<button onclick="window._HP.n+=30;renderHotelPicker()" style="margin-top:10px;width:100%;border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${list.length.toLocaleString()} / 共 ${total.toLocaleString()} 間)</button>`:"";
   const _ctr=(S.iti.days[di].center||S.iti.center||{}).n||"";
   const _ci=S.iti.days[di].date||null,_co=_ci?addD(_ci,1):null;
-  const agodaArea=`<button id="rktImportBtn" onclick="importRakutenHotels(${di})" style="display:block;width:100%;text-align:center;background:#BF0000;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--font-b);margin:10px 0 6px">📥 載入楽天此區全部飯店(含房間照・即時房價,無數量上限)</button>
-  <a href="${agodaUrl(_ctr.split(",")[0]+" 日本",_ci,_co)}" target="_blank" rel="noopener" style="display:block;text-align:center;background:#D4111E;color:#fff;border-radius:10px;padding:11px;font-size:13.5px;font-weight:700;text-decoration:none;font-family:var(--font-b);margin:0 0 4px">🅰️ 或在 Agoda 看「${_ctr.split(",")[0]}」全部飯店${_ci?"(已帶入住日期)":""}</a>`;
+  const _c0=(S.iti.days[di].center||S.iti.center||{});
+  const _syncing=RAKUTEN_APP_ID&&_c0.la&&!window._RKT_DONE[(+_c0.la).toFixed(2)+","+(+_c0.lo).toFixed(2)];
+  const agodaArea=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0 2px">
+    <span style="font-size:11.5px;color:#A39B87">${_syncing?"🏯 楽天飯店同步中…(房間照・即時房價)":""}</span>
+    <a href="${agodaUrl(_ctr.split(",")[0]+" 日本",_ci,_co)}" target="_blank" rel="noopener" style="font-size:12px;color:#8A8272;text-decoration:underline;white-space:nowrap">Agoda 比價 ↗</a>
+  </div>`;
   $("dPanel").innerHTML=`<div class="d-bd"><h3 style="font-size:19px">選擇 DAY ${di+1} 的住宿 <span style="font-size:13px;color:#8A8272;font-weight:400">附近共 ${total.toLocaleString()} 間</span></h3>${agodaArea}
     <div style="background:var(--shu-soft);border:1.5px solid var(--shu);border-radius:12px;padding:10px 12px;margin:10px 0">
       <div style="font-size:13px;font-weight:700;color:var(--shu);margin-bottom:6px">🔍 已經訂好旅館?直接輸入名稱定位</div>
@@ -4530,6 +4547,8 @@ function renderHotelPicker(){
     ${more}
     <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
   setTimeout(()=>rakutenDecoratePicker(di),60); // r153:非同步標注樂天最低價
+  const _ac=(S.iti.days[di].center||S.iti.center);
+  if(_ac)autoImportRakuten(_ac.la,_ac.lo,n=>{if(window._HP&&window._HP.di===di)renderHotelPicker()}); // r158:自動同步
 }
 async function rakutenDecoratePicker(di){
   if(!RAKUTEN_APP_ID||!window._HP||window._HP.di!==di)return;
@@ -5471,7 +5490,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r157"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r159"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
