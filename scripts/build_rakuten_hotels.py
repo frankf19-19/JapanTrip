@@ -24,13 +24,43 @@ ENDPOINT = "https://openapi.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/
 PAUSE = 1.2   # 每請求間隔(秒) — 楽天免費版每秒 1 次
 MAX_PAGES = 34  # 每點最多 34 頁(=1020 間),等同無上限
 
-def api(url):
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "TabibiyoriBot/1.0 (github.com/frankf19-19/JapanTrip)",
-        "Referer": REFERER,
-    })
+HEADERS = None  # 由 preflight 決定可用的標頭組合
+
+def api(url, headers=None):
+    req = urllib.request.Request(url, headers=headers or HEADERS or {})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
+
+def preflight():
+    """開跑前:4 種標頭組合各實測一次,把樂天完整回應印進日誌,選出可用組合"""
+    global HEADERS
+    ua_bot = "TabibiyoriBot/1.0 (github.com/frankf19-19/JapanTrip)"
+    ua_br = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+    variants = [
+        ("Referer+Origin+瀏覽器UA", {"User-Agent": ua_br, "Referer": REFERER, "Origin": "https://frankf19-19.github.io"}),
+        ("Referer+瀏覽器UA",        {"User-Agent": ua_br, "Referer": REFERER}),
+        ("Referer+BotUA",           {"User-Agent": ua_bot, "Referer": REFERER}),
+        ("無 Referer",              {"User-Agent": ua_br}),
+    ]
+    test = (f"{ENDPOINT}?applicationId={urllib.parse.quote(APP_ID)}&accessKey={urllib.parse.quote(ACCESS_KEY)}"
+            f"&format=json&datumType=1&hits=3&latitude=35.6812&longitude=139.7671&searchRadius=2")
+    for name, hd in variants:
+        try:
+            j = api(test, hd)
+            n = len(j.get("hotels", []))
+            if n:
+                print(f"[preflight] ✅ {name} → 成功,抓到 {n} 間,例:{j['hotels'][0]['hotel'][0]['hotelBasicInfo']['hotelName']}")
+                HEADERS = hd
+                return True
+            print(f"[preflight] ⚠️ {name} → 200 但 0 間:{json.dumps(j, ensure_ascii=False)[:300]}")
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "ignore")[:300]
+            print(f"[preflight] ❌ {name} → HTTP {e.code}:{body}")
+        except Exception as e:
+            print(f"[preflight] ❌ {name} → {e}")
+        time.sleep(1.5)
+    print("[preflight] 全部組合失敗 — 請把上面錯誤內容貼給協助者判讀")
+    return False
 
 def parse_centers():
     """從 index.html 精選庫萃取各區域取樣點(大區域多點覆蓋,點間距>2.5km)"""
@@ -62,12 +92,12 @@ def fetch_point(la, lo):
             j = api(ENDPOINT + qs)
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", "ignore")[:200]
-            print(f"  [warn] HTTP {e.code} @({la},{lo}) p{page}: {body}", file=sys.stderr)
+            print(f"  [warn] HTTP {e.code} @({la},{lo}) p{page}: {body}")
             if e.code == 429:
                 time.sleep(10); continue  # 被限流:多等再試同一頁
             break
         except Exception as e:
-            print(f"  [warn] {e}", file=sys.stderr); break
+            print(f"  [warn] {e}"); break
         page_count = int((j.get("pagingInfo") or {}).get("pageCount") or 1)
         for x in j.get("hotels", []):
             h = (x.get("hotel") or [{}])[0].get("hotelBasicInfo") or {}
@@ -85,6 +115,8 @@ def fetch_point(la, lo):
     return out
 
 def main():
+    if not preflight():
+        sys.exit(1)  # 讓 workflow 顯示紅色失敗,錯誤原因已印在上方
     pts = parse_centers()
     print(f"取樣點: {len(pts)}(預估 {len(pts)*PAUSE*3/60:.0f}+ 分鐘)")
     seen, hotels = set(), []
