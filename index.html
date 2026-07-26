@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r164</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r165</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r164
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r165
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2371,9 +2371,9 @@ function prMax(pr){const m=(pr||"").replace(/,/g,"").match(/\d{3,6}/g);return m?
 const RAKUTEN_APP_ID="0eb05990-6440-4ca1-ad99-ac627268281c";
 const RAKUTEN_ACCESS_KEY="pk_NaKQ4f3CMsKt4gPQ3VRbtw5WoSgavcg6k9YbFZOUi45";
 const RAKUTEN_AFF_ID="56130e5f.a61145fa.56130e60.1928a16a"; // 聯盟ID:訂房連結自動帶傭金追蹤
-const RKT_ENDPOINTS=[ // 依序嘗試,自動記住可用的那個
+const RKT_ENDPOINTS=[ // ★ r165:官方文件確認正確路徑是 /engine/api/(舊的 /services/api/ 已 404)
+  "https://openapi.rakuten.co.jp/engine/api/Travel/SimpleHotelSearch/20170426",
   "https://openapi.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426",
-  "https://openapi.rakuten.co.jp/services/api/TravelSimpleHotel/Search/20170426",
   "https://app.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426"
 ];
 /* ★ r163 全域節流閥:樂天免費版限每秒 1 請求;之前 0.35s 間隔連發觸發了暫時封鎖
@@ -5569,7 +5569,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r164"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r165"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
