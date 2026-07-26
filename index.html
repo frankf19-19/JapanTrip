@@ -547,7 +547,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r162</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r163</span>
   </div>
 </header>
 
@@ -806,7 +806,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r162
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r163
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2376,8 +2376,13 @@ const RKT_ENDPOINTS=[ // 依序嘗試,自動記住可用的那個
   "https://openapi.rakuten.co.jp/services/api/TravelSimpleHotel/Search/20170426",
   "https://app.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426"
 ];
+/* ★ r163 全域節流閥:樂天免費版限每秒 1 請求;之前 0.35s 間隔連發觸發了暫時封鎖
+   (封鎖回應不帶 CORS 標頭 → 瀏覽器顯示 Failed to fetch)。現在全站共用一個佇列,嚴格 1.15s/次 */
+let _RKTQ=Promise.resolve();
+function rktThrottle(){const p=_RKTQ.then(()=>new Promise(r=>setTimeout(r,1150)));_RKTQ=p.catch(()=>{});return p}
 async function rakutenFetchPage(la,lo,radKm,page){ // 單頁(30間);回 {list,pageCount} 或 null
   if(!RAKUTEN_APP_ID)return null;
+  await rktThrottle();
   const qs="?applicationId="+encodeURIComponent(RAKUTEN_APP_ID)
     +(RAKUTEN_ACCESS_KEY?"&accessKey="+encodeURIComponent(RAKUTEN_ACCESS_KEY):"")
     +(typeof RAKUTEN_AFF_ID!=="undefined"&&RAKUTEN_AFF_ID?"&affiliateId="+encodeURIComponent(RAKUTEN_AFF_ID):"")
@@ -2425,8 +2430,7 @@ async function rakutenAllPages(la,lo,radKm,onProgress){
     all=all.concat(p.list);pageCount=p.pageCount;
     if(onProgress)onProgress(all.length,pageCount*30);
     page++;
-    if(page<=pageCount)await new Promise(r=>setTimeout(r,350)); // 禮貌限速(樂天免費額度 1req/s)
-  }while(page<=pageCount);
+  }while(page<=pageCount); // 節流由全域佇列控管(1.15s/次)
   return all;
 }
 // 楽天飯店 → 站內資料格式(房間照直接當卡片主圖、附即時房價與評分)
@@ -2498,10 +2502,10 @@ async function runDiag(){
           log("❌ 端點#"+ei+" ["+an+"] → "+((j&&(j.error_description||j.error))||("HTTP "+r.status)).slice(0,60));
         }
       }catch(e){log("❌ 端點#"+ei+" ["+an+"] → "+String(e&&e.message||e).slice(0,60))}
-      await new Promise(r2=>setTimeout(r2,400)); // 避免觸發限流
+      await new Promise(r2=>setTimeout(r2,1200)); // 嚴守每秒1次
     }
   }
-  log(winner?("🏆 可用組合:端點#"+winner.ei+" + "+winner.an):"⚠️ 全部組合皆失敗(可能限流或金鑰狀態異常,等 5 分鐘再點一次診斷)");
+  log(winner?("🏆 可用組合:端點#"+winner.ei+" + "+winner.an):"⚠️ 全部失敗。若多為 Failed to fetch=流量冷卻中(等 30–60 分鐘再點);若為 specify valid applicationId=該端點不支援此金鑰(正常)");
   log("── 日光 Ritz-Carlton 配對測試 ──");
   const rh=await rakutenHotels(36.7397,139.4870,2);
   if(rh){
@@ -2523,7 +2527,6 @@ async function autoImportForIti(){
     const k=(+c.la).toFixed(2)+","+(+c.lo).toFixed(2);
     if(seen.has(k))continue;seen.add(k);
     await autoImportRakuten(c.la,c.lo,null);
-    await new Promise(r=>setTimeout(r,500));
   }
 }
 function rakutenMatch(list,s){ // 120m 內最近者;或 600m 內且名稱相符(大型度假村座標常偏)
@@ -4620,7 +4623,11 @@ async function rakutenDecorate(s){
   const box2=document.getElementById("dRakuten");if(!box2)return; // 面板可能已關閉
   try{
   if(rh===null){ // 金鑰已設但呼叫失敗 → 顯示原因方便排查
-    box2.innerHTML='<div style="font-size:12px;color:#8A8272;padding:6px 2px">楽天トラベル連線異常:'+String(window._rktErr||"逾時或無回應").slice(0,140)+'(按 F12 看 Console 詳情)</div>';
+    const err=String(window._rktErr||"逾時或無回應");
+    const cool=/Failed to fetch|NetworkError|Load failed/i.test(err);
+    box2.innerHTML='<div style="font-size:12px;color:#8A8272;padding:6px 2px">'+(cool
+      ?"🏯 楽天流量冷卻中(先前請求過快觸發保護),約 30–60 分鐘後自動恢復;新版已全面降速,之後不會再發生"
+      :"楽天トラベル連線異常:"+err.slice(0,140))+'</div>';
     return;
   }
   const m=rakutenMatch(rh,s);
@@ -5539,7 +5546,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r162"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r163"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
