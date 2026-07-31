@@ -535,13 +535,42 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 .pricechip{display:inline-flex;align-items:center;background:#FDF3F3;border:1.5px solid #EFC7CB;color:var(--shu);font-weight:800;font-size:12px;padding:2px 8px;border-radius:8px;letter-spacing:.2px}
 .spot .bd h3{line-height:1.42}
 /* 探索頁分類列黏性:捲動時篩選不離手 */
-#pane-explore .subtabs{position:sticky;top:56px;z-index:60;background:linear-gradient(var(--washi) 82%,rgba(246,243,235,0));padding:8px 0 10px;margin-top:-4px}
+#pane-explore .subtabs{position:sticky;top:62px;z-index:60;background:linear-gradient(var(--washi) 82%,rgba(246,243,235,0));padding:8px 0 10px;margin-top:-4px}
 @media(min-width:900px){#pane-explore .subtabs{top:66px}}
 /* 回到頂部(左下,避開快速規劃鈕) */
 #toTop{position:fixed;left:14px;bottom:84px;width:44px;height:44px;border-radius:50%;background:var(--ai);color:#fff;border:none;font-size:19px;box-shadow:var(--shadow-lg);cursor:pointer;opacity:0;pointer-events:none;transition:.25s;z-index:900}
 #toTop.show{opacity:.92;pointer-events:auto}
 #toTop:hover{transform:translateY(-2px)}
 @media(min-width:900px){#toTop{bottom:24px}}
+
+/* ═══ r168 手機介面精緻化 ═══ */
+@media(max-width:700px){
+  /* 1. 晶片列(城市/篩選/月份/等級)改單行橫滑,不再疊成高牆;右緣淡出提示可滑 */
+  .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:3px;-webkit-mask-image:linear-gradient(90deg,#000 91%,transparent);mask-image:linear-gradient(90deg,#000 91%,transparent)}
+  .chips::-webkit-scrollbar{display:none}
+  .chips>*{flex:0 0 auto}
+  /* 2. 行程動作列/住宿按鈕列:單行橫滑 */
+  .iti-actions,.hs-acts{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,#000 93%,transparent);mask-image:linear-gradient(90deg,#000 93%,transparent)}
+  .iti-actions::-webkit-scrollbar,.hs-acts::-webkit-scrollbar{display:none}
+  .iti-actions button{flex:0 0 auto;padding:10px 15px}
+  .hs-acts>*{flex:0 0 auto;white-space:nowrap}
+  /* 3. 卡片標籤最多 3 個(價格徽章不受限),資訊密度剛剛好 */
+  .spot .meta>.tag:nth-child(n+4){display:none}
+  /* 4. 詳情面板:頂部抓握條+更高可視範圍+動作鈕三欄 */
+  #dPanel{max-height:93vh}
+  .d-bd::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:#D8D0BD;margin:0 auto 12px}
+  .d-acts button,.d-acts a{min-width:31%;padding:10px 4px;font-size:12.5px}
+  /* 5. iOS 點輸入框不再自動放大畫面 */
+  input[type=text],input[type=search],input[type=number],select,textarea{font-size:16px!important}
+  /* 6. 首頁精選改橫滑卡列(App 質感),首頁不再直落到底 */
+  #homePicks{display:grid;grid-auto-flow:column;grid-auto-columns:72%;grid-template-columns:unset;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:12px;padding:2px 2px 8px}
+  #homePicks::-webkit-scrollbar{display:none}
+  #homePicks>.spot{scroll-snap-align:start}
+  #homePicks .ph{height:150px}
+  /* 7. 縱向節奏收緊 */
+  h2.sec{margin:14px 0 10px}
+  footer{font-size:10.5px;line-height:1.8}
+}
 </style>
 </head>
 <body>
@@ -560,7 +589,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r166</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r168</span>
   </div>
 </header>
 
@@ -818,8 +847,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
-  精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r166
+  精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・餐廳 Powered by ホットペッパーグルメ Webサービス・飯店資料 © 楽天トラベル・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r168
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2475,6 +2504,59 @@ function mergeRktEntries(list){
 window._RKT_DONE=window._RKT_DONE||{};
 /* ★ r164:預建楽天靜態庫 — GitHub Actions 每週把 91 區全部飯店抓成 data/rakuten_hotels.json,
    訪客端載入檔案即可(零 API 呼叫、零限流風險);live API 只在靜態庫沒涵蓋的偏遠區才啟動 */
+/* ═══ HotPepper 餐廳庫(r167):分區靜態檔按需載入 — 餐廳卡片有真實店照 ═══ */
+let HPIDX=null;const _HPLOADED=new Set();
+function _hpNorm(t){return String(t||"").replace(/[\s・･()()、,\.\-–—]/g,"").toLowerCase()}
+async function loadHPNear(la,lo){
+  if(!Number.isFinite(+la))return 0;
+  try{
+    if(HPIDX===null){
+      const r=await fetch("data/hp/index.json",{cache:"no-cache"});
+      HPIDX=r.ok?(await r.json()).p||[]:[];
+    }
+    if(!HPIDX.length)return 0;
+    const near=HPIDX.filter(p=>!_HPLOADED.has(p.f)&&dist(la,lo,p.la,p.lo)<=25).slice(0,6);
+    let added=0;
+    for(const p of near){
+      _HPLOADED.add(p.f);
+      try{
+        const r=await fetch("data/hp/"+p.f);if(!r.ok)continue;
+        added+=mergeHPEntries(await r.json());
+      }catch(e){}
+    }
+    return added;
+  }catch(e){return 0}
+}
+function mergeHPEntries(list){
+  // 先建附近既有美食索引(名稱正規化 → 條目),150m 內同名 → 只補照片不重複建卡
+  const G=0.0012,gk=(a,b)=>Math.round(a/G)+","+Math.round(b/G);
+  const foodIdx=new Map();
+  DB.forEach(x=>{if(x.c==="food")foodIdx.set(_hpNorm(x.n)+"|"+gk(x.la,x.lo),x)});
+  const occupied=new Set(foodIdx.keys());
+  let n=0;
+  (list||[]).forEach(h=>{
+    if(!h||!h.n||!Number.isFinite(+h.la))return;
+    const nm=sanN(h.n);if(!nm)return;
+    const nk=_hpNorm(nm),gy=Math.round(h.la/G),gx=Math.round(h.lo/G);
+    // 3×3 鄰格找同名既有條目 → 裝飾照片
+    let hit=null;
+    for(let dy=-1;dy<=1&&!hit;dy++)for(let dx=-1;dx<=1&&!hit;dx++){
+      const f=foodIdx.get(nk+"|"+(gy+dy)+","+(gx+dx));if(f)hit=f;
+    }
+    if(hit){
+      if(!hit.im){hit.im=h.im;hit.hp=1;if(!hit.w&&h.u)hit.w=h.u;if(!hit.oh&&h.oh)hit.oh=h.oh}
+      return;
+    }
+    const key=nk+"|"+gy+","+gx;
+    if(occupied.has(key))return;occupied.add(key);
+    DB.push({n:nm,j:"",la:+h.la,lo:+h.lo,c:"food",t:[],a:"HP美食",ad:sanN(h.ad||""),
+      pr:h.b?("預算 "+h.b):"人均請洽店家",cu:h.g||"",oh:h.oh||undefined,w:h.u||undefined,
+      im:h.im,hp:1,d:(h.g?("料理:"+h.g+"。"):"")+"店家照片與資訊來自 HotPepper グルメ。",s:50,p:3});
+    n++;
+  });
+  if(n){DBKEYS_N=-1;try{if(NIDX&&NIDX.length)NIDX.length=0}catch(e){}}
+  return n;
+}
 let _RKTSTATIC=0;
 async function loadRakutenStatic(){
   if(_RKTSTATIC)return;_RKTSTATIC=1;
@@ -2566,7 +2648,9 @@ async function autoImportForIti(){
     const k=(+c.la).toFixed(2)+","+(+c.lo).toFixed(2);
     if(seen.has(k))continue;seen.add(k);
     await autoImportRakuten(c.la,c.lo,null);
+    await loadHPNear(c.la,c.lo); // r167:餐廳照片庫
   }
+  if(S.iti)renderIti(); // 補完照片後重繪
 }
 function rakutenMatch(list,s){ // 120m 內最近者;或 600m 內且名稱相符(大型度假村座標常偏)
   if(!list||!list.length)return null;
@@ -2680,7 +2764,7 @@ function card(s,inIti){
   return `<div class="spot">
     <div class="band" style="background:${CATC[s.c]}"></div>
     <div class="ph" data-img="${encodeURIComponent(JSON.stringify([s.j||"",s.n,s.la,s.c,s.lo]))}"${s.im?` data-direct="${s.im}"`:""}${(s.c==="food"||s.c==="hotel")&&!s.im?' data-biz="1"':""} onclick="openDetail('${esc(s.n)}')">
-      <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">${s.rkt?"楽天トラベル":s.im?"Wikimedia":"Wikipedia"}</span>
+      <div class="fb">${FB[s.c]||"📍"}</div><img alt="${s.n}"><span class="src">${s.hp?"HotPepper":s.rkt?"楽天トラベル":s.im?"Wikimedia":"Wikipedia"}</span>
     </div>
     <div class="bd">
       <h3 onclick="openDetail('${esc(s.n)}')" title="點我看詳細介紹">${s.n}</h3><div class="ja">${s.j||""}</div>
@@ -3098,6 +3182,7 @@ function renderExplore(){
   const shown=list.slice(0,S.expN);
   const expMore=list.length>S.expN?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.expN+=60;renderExplore()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${shown.length.toLocaleString()} / 共 ${list.length.toLocaleString()})</button></div>`:"";
   if(S.cat==="hotel"&&S.center)autoImportRakuten(S.center.la,S.center.lo,n=>{if(S.cat==="hotel")renderExplore()}); // r158:自動同步楽天
+  if((S.cat==="food"||S.cat==="all")&&S.center)loadHPNear(S.center.la,S.center.lo).then(n=>{if(n&&(S.cat==="food"||S.cat==="all"))renderExplore()}); // r167:餐廳照片庫
   const agodaBanner="";
   $("exploreGrid").innerHTML=agodaBanner+(shown.length?shown.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>沒有符合的結果</b>換個類別或關鍵字,或按「即時搜尋更多」抓取 OpenStreetMap 資料。</div>`)+expMore;
   watchImgs();
@@ -5594,7 +5679,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r166"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r168"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
