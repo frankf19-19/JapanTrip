@@ -1,0 +1,28 @@
+name: 更新 HotPepper 餐廳庫 (data/hp)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 19 * * 5"   # 每週六凌晨 3 點(台灣時間)
+
+permissions:
+  contents: write
+
+jobs:
+  build-hp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 抓取 HotPepper 餐廳
+        run: python scripts/build_hotpepper.py
+      - name: Commit 變更
+        run: |
+          git config user.name "hp-bot"
+          git config user.email "actions@github.com"
+          git add data/hp
+          git diff --cached --quiet || git commit -m "chore: 更新 HotPepper 餐廳庫"
+          git push
