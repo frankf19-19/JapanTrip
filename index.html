@@ -571,6 +571,40 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
   h2.sec{margin:14px 0 10px}
   footer{font-size:10.5px;line-height:1.8}
 }
+
+/* ═══ r171 Wanderlog 級精緻化 ═══ */
+/* 1) 停留點編號釘:像 Wanderlog 的地圖編號,一眼對上「第幾站」 */
+.rail{counter-reset:stopn}
+.stop:not(.hotel) .dot{counter-increment:stopn;width:24px;height:24px;border:none!important;background:var(--shu);color:#fff;display:flex;align-items:center;justify-content:center;font:800 12px/1 var(--font-b);box-shadow:0 2px 8px rgba(196,59,65,.38);margin-top:0}
+.stop:not(.hotel) .dot::after{content:counter(stopn)}
+.stop.meal .dot{background:var(--kin);box-shadow:0 2px 8px rgba(176,141,58,.38)}
+.stop.hotel .dot{width:24px;height:24px;border:none!important;background:var(--matcha)!important;box-shadow:0 2px 8px rgba(107,138,89,.38);margin-top:0;display:flex;align-items:center;justify-content:center}
+.stop.hotel .dot::after{content:"宿";color:#fff;font:800 11px/1 var(--font-b)}
+/* 時間軸細線化+對齊新釘中心 */
+.stop::before{width:2px;background:#E8E1CE;left:76px;border-radius:1px}
+@media(max-width:700px){.stop::before{left:62px}.stop:not(.hotel) .dot,.stop.hotel .dot{width:22px;height:22px;font-size:11px}}
+/* 2) 卡片表面:更白、更大圓角、髮絲邊、更柔的陰影 */
+.day-card{border-radius:20px;border-color:#EDE7D7;box-shadow:0 6px 24px rgba(63,58,47,.07)}
+.day-hd{padding:13px 18px}
+.day-hd .dnum{border-radius:999px}
+.rail{padding:20px 18px 12px}
+/* 3) 交通/自由時間列:輕量化,像備註而非主角 */
+.stop .travel{font-size:11.5px;color:#958D79}
+/* 4) 縮圖圓角統一 */
+.stopThumb img{border-radius:14px}
+/* 5) 按鈕語彙統一:小動作鈕一律膠囊 */
+.hs-acts button,.hs-acts a,.iti-actions button{border-radius:999px}
+.d-acts button,.d-acts a{border-radius:12px}
+/* 6) 詳情面板圓角加大 */
+#dPanel{border-radius:22px 22px 0 0}
+@media(min-width:900px){#dPanel{border-radius:22px}}
+
+/* r172 每日筆記 */
+.daynote{margin:6px 16px 14px;border:1.5px dashed #DCD4BF;border-radius:14px;overflow:hidden;background:#FDFBF4}
+.daynote.has{border-style:solid;border-color:#E4D9B8;background:#FDF9EC}
+.daynote .dn-hd{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:13px;font-weight:800;color:#8A6A1E;cursor:pointer;font-family:var(--font-b)}
+.daynote .dn-hint{font-size:11.5px;font-weight:400;color:#B5AD98}
+.daynote textarea{width:100%;border:none;background:transparent;padding:2px 14px 12px;font-size:13.5px;line-height:1.7;color:#4A4437;min-height:64px;resize:vertical;outline:none;font-family:var(--font-b)}
 </style>
 </head>
 <body>
@@ -589,7 +623,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r170</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r172</span>
   </div>
 </header>
 
@@ -800,6 +834,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
     <button onclick="window.print()">🖨️ 列印 / 存 PDF</button>
     <button onclick="showPane('map')">🗺️ 在地圖上看</button>
     <button onclick="generate(true)">🎲 重新洗牌</button>
+    <button onclick="openBudget()">💴 記帳</button>
+    <button onclick="openPacking()">🎒 打包清單</button>
     <button onclick="exportICS()">📅 匯入手機日曆</button>
     <button style="border-color:var(--ai);color:var(--ai)" onclick="shareIti()">🔗 分享連結</button>
     <button style="border-color:var(--shu);color:var(--shu)" onclick="saveIti()">♥ 存入最愛</button>
@@ -850,7 +886,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・餐廳 Powered by ホットペッパーグルメ Webサービス・飯店資料 © 楽天トラベル・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r170
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r172
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -1774,6 +1810,84 @@ function fxCalc(){
   o.textContent=(FXRATE&&v>=0)?("NT$ "+Math.round(v*FXRATE).toLocaleString()):"—";
 }
 setTimeout(fxInit,1200); // 延後載入,不搶首屏資源
+
+/* ═══ r172 Wanderlog 式內容工具:每日筆記/旅費記帳/打包清單(全存本機) ═══ */
+function dayNoteKey(i){return (S.iti&&S.iti.center?S.iti.center.n.split(",")[0]:"trip")+"#"+i}
+function toggleDayNote(i){const t=$("dn"+i);if(!t)return;t.style.display=t.style.display==="none"?"block":"none";if(t.style.display==="block")t.focus()}
+let _DNT;function saveDayNote(i,v){clearTimeout(_DNT);_DNT=setTimeout(()=>{
+  const all=store.get("wayu_daynotes")||{};all[dayNoteKey(i)]=v.trim();store.set("wayu_daynotes",all);
+},400)}
+
+/* ── 旅費記帳(含 JPY→TWD 與人均) ── */
+const EXP_CATS=[["🍜","餐飲"],["🚃","交通"],["🏨","住宿"],["🎫","門票"],["🛍️","購物"],["🧾","其他"]];
+function expKey(){return "wayu_exp_"+(S.iti&&S.iti.center?S.iti.center.n.split(",")[0]:"trip")}
+function openBudget(){
+  const list=store.get(expKey())||[];
+  const total=list.reduce((a,x)=>a+(+x.amt||0),0);
+  const twd=(typeof FXRATE==="number"&&FXRATE)?Math.round(total*FXRATE):null;
+  const ppl=+(store.get("wayu_exp_ppl")||1);
+  $("dPanel").innerHTML=`<div class="d-bd">
+    <h3 style="font-size:19px;margin-bottom:4px">💴 旅費記帳</h3>
+    <div style="background:linear-gradient(135deg,var(--ai),var(--ai-deep));color:#fff;border-radius:16px;padding:16px 18px;margin:10px 0 14px">
+      <div style="font-size:12px;opacity:.8">目前總支出</div>
+      <div style="font-size:28px;font-weight:900;font-family:var(--font-b)">¥${total.toLocaleString()}</div>
+      <div style="font-size:12.5px;opacity:.9;margin-top:2px">${twd!==null?("≈ NT$ "+twd.toLocaleString()):""}${ppl>1?(" ・ 每人 ¥"+Math.round(total/ppl).toLocaleString()):""}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <input id="expName" placeholder="項目(例:一蘭拉麵)" style="flex:2;min-width:120px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px">
+      <input id="expAmt" type="number" inputmode="numeric" placeholder="¥金額" style="flex:1;min-width:80px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px">
+      <select id="expCat" style="border:1.5px solid var(--line);border-radius:10px;padding:10px 8px">${EXP_CATS.map(c=>`<option value="${c[0]}">${c[0]}${c[1]}</option>`).join("")}</select>
+      <button onclick="addExp()" style="border:none;background:var(--shu);color:#fff;border-radius:10px;padding:10px 18px;font-weight:800;font-family:var(--font-b);cursor:pointer">記一筆</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#6E6754;margin-bottom:10px">分帳人數
+      <select onchange="store.set('wayu_exp_ppl',this.value);openBudget()" style="border:1.5px solid var(--line);border-radius:8px;padding:4px 6px">${[1,2,3,4,5,6,7,8].map(n=>`<option ${ppl===n?"selected":""}>${n}</option>`).join("")}</select>人
+      <span style="margin-left:auto">${list.length} 筆</span>
+    </div>
+    <div>${list.length?list.map((x,k)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #F0EADA">
+      <span style="font-size:17px">${x.cat}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${String(x.n).replace(/</g,"&lt;")}</div><div style="font-size:11px;color:#A39B87">${x.d||""}</div></div>
+      <b style="color:var(--ink)">¥${(+x.amt).toLocaleString()}</b>
+      <button onclick="rmExp(${k})" style="border:none;background:none;color:#C9C2B2;font-size:16px;cursor:pointer">✕</button>
+    </div>`).join(""):'<div class="empty"><b>還沒有支出</b>在上方記下第一筆吧!旅程結束就有完整帳本</div>'}</div>
+    <button onclick="closeDetail()" style="margin-top:14px;width:100%;border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
+}
+function addExp(){
+  const n=($("expName").value||"").trim(),amt=+$("expAmt").value;
+  if(!n||!(amt>0)){toast("請輸入項目與金額");return}
+  const list=store.get(expKey())||[];
+  const j=jstNow();
+  list.unshift({n,amt,cat:$("expCat").value,d:(j.getMonth()+1)+"/"+j.getDate()});
+  store.set(expKey(),list);openBudget();
+}
+function rmExp(k){const list=store.get(expKey())||[];list.splice(k,1);store.set(expKey(),list);openBudget()}
+
+/* ── 打包清單(日本旅行預設+自訂) ── */
+const PACK_PRESET=["護照(效期6個月+)","簽證QR/VJW","機票訂位代號","日圓現金","信用卡×2","Suica/ICOCA(手機開卡)","eSIM/WiFi機","行動電源+充電線","常備藥/腸胃藥","好走的鞋","摺疊傘","保暖外套(早晚溫差)","小背包(每日出門)","環保購物袋(免稅戰利品)","飯店訂房確認信"];
+function openPacking(){
+  let st=store.get("wayu_pack");
+  if(!st){st={items:PACK_PRESET.map(t=>({t,c:0}))};store.set("wayu_pack",st)}
+  const done=st.items.filter(x=>x.c).length;
+  $("dPanel").innerHTML=`<div class="d-bd">
+    <h3 style="font-size:19px;margin-bottom:4px">🎒 打包清單 <span style="font-size:13px;color:#8A8272;font-weight:400">${done}/${st.items.length} 完成</span></h3>
+    <div style="height:8px;background:#EFE9DA;border-radius:4px;margin:8px 0 14px"><div style="height:100%;width:${st.items.length?Math.round(done/st.items.length*100):0}%;background:linear-gradient(90deg,var(--matcha),#8FAE72);border-radius:4px;transition:.3s"></div></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <input id="packNew" placeholder="新增自訂項目…" style="flex:1;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px" onkeydown="if(event.key==='Enter')addPack()">
+      <button onclick="addPack()" style="border:none;background:var(--ai);color:#fff;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;font-family:var(--font-b)">＋</button>
+    </div>
+    <div>${st.items.map((x,k)=>`<label style="display:flex;align-items:center;gap:11px;padding:10px 4px;border-bottom:1px solid #F0EADA;cursor:pointer">
+      <input type="checkbox" ${x.c?"checked":""} onchange="togglePack(${k})" style="width:19px;height:19px;accent-color:var(--matcha)">
+      <span style="flex:1;font-size:14.5px;${x.c?"text-decoration:line-through;color:#B5AD98":""}">${String(x.t).replace(/</g,"&lt;")}</span>
+      <button onclick="event.preventDefault();rmPack(${k})" style="border:none;background:none;color:#C9C2B2;font-size:15px;cursor:pointer">✕</button>
+    </label>`).join("")}</div>
+    <button onclick="resetPack()" style="margin-top:12px;width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px;font-size:13px;color:#8A8272;cursor:pointer;font-family:var(--font-b)">還原預設清單</button>
+    <button onclick="closeDetail()" style="margin-top:8px;width:100%;border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-weight:700;font-family:var(--font-b);cursor:pointer">關閉</button></div>`;
+  $("dOverlay").classList.add("show");$("dPanel").classList.add("show");document.body.style.overflow="hidden";
+}
+function togglePack(k){const st=store.get("wayu_pack");st.items[k].c=st.items[k].c?0:1;store.set("wayu_pack",st);openPacking()}
+function addPack(){const v=($("packNew").value||"").trim();if(!v)return;const st=store.get("wayu_pack");st.items.unshift({t:v,c:0});store.set("wayu_pack",st);openPacking()}
+function rmPack(k){const st=store.get("wayu_pack");st.items.splice(k,1);store.set("wayu_pack",st);openPacking()}
+function resetPack(){store.set("wayu_pack",{items:PACK_PRESET.map(t=>({t,c:0}))});openPacking()}
 
 /* ═══ 匯出行事曆 .ics (r152) ═══
    每個停留點=一個含時間的日曆事件(JST→UTC),附 Google 導航連結;住宿=入住提醒。
@@ -4655,6 +4769,12 @@ function renderIti(){
     }
     // 當天住宿卡(掛在該日卡片內結尾)
     h+=renderHotelBlock(d,i);
+    // ★ r172:每日筆記(Wanderlog 式) — 天氣提醒/交通卡/集合時間…想到什麼記什麼
+    const dn=(store.get("wayu_daynotes")||{})[dayNoteKey(i)]||"";
+    h+=`<div class="daynote${dn?" has":""}">
+      <div class="dn-hd" onclick="toggleDayNote(${i})"><span>📝 DAY ${i+1} 筆記</span><span class="dn-hint">${dn?"點擊編輯":"＋ 新增備註(交通/天氣/集合…)"}</span></div>
+      <textarea id="dn${i}" placeholder="例:今天走很多路穿好走的鞋・16:00 前回飯店拿行李・別忘了帶 Suica" style="display:${dn?"block":"none"}" oninput="saveDayNote(${i},this.value)">${dn.replace(/</g,"&lt;")}</textarea>
+    </div>`;
     h+=`</div>`;
   });
   $("itiBox").innerHTML=h;
@@ -5714,7 +5834,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r170"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r172"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});
