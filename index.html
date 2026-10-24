@@ -623,7 +623,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
       <button id="nt-fest" onclick="showPane('fest')">節慶</button>
       <button id="nt-fav" onclick="showPane('fav')">最愛</button>
     </nav>
-    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r172</span>
+    <span class="build" onclick="runDiag()" style="cursor:pointer" title="點兩下執行系統自我診斷">build r173</span>
   </div>
 </header>
 
@@ -886,7 +886,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[t
 <footer>
   <b>旅日和 TABIBIYORI</b><br>
   精選 490 筆 + Wikidata 全國擴充庫・照片 © Wikipedia/Wikimedia Commons・餐廳 Powered by ホットペッパーグルメ Webサービス・飯店資料 © 楽天トラベル・地理編碼 Nominatim・即時搜尋 Overpass・地圖 © OSM 貢獻者<br>
-  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r172
+  「旅日和推薦」為站內編輯評分,實際評價請點各卡片「Google評價」查看;價格與營業時間以官方公告為準。build r173
 </footer>
 
 <nav class="bottom" aria-label="主要導覽(行動版)">
@@ -2520,6 +2520,7 @@ function highlightCity(i){
   document.querySelectorAll(".citychips button").forEach((b,k)=>b.classList.toggle("on",k===i));
 }
 function afterLocate(msg){
+  if(S.center)setTimeout(()=>loadRakutenStatic(S.center.la,S.center.lo),800); // r173:預載此區楽天格
   document.querySelectorAll(".citychips button").forEach(b=>b.classList.remove("on"));
   renderCenter(); renderHomePicks(); toast(msg);
   
@@ -2601,7 +2602,8 @@ async function rakutenAllPages(la,lo,radKm,onProgress){
 }
 // 楽天飯店 → 站內資料格式(房間照直接當卡片主圖、附即時房價與評分)
 function rktToEntry(h){
-  return {n:sanN(h.nm),j:sanN(h.nm),la:h.la,lo:h.lo,c:"hotel",t:[],a:"楽天",ad:sanN(h.ad||""),
+  const nm=sanN(String(h.nm||"").normalize("NFKC").replace(/\s+/g," ").trim()); // r173:全形英數→半形
+  return {n:nm,j:nm,la:h.la,lo:h.lo,c:"hotel",t:[],a:"楽天",ad:sanN(h.ad||""),
     pr:h.min?("¥"+(+h.min).toLocaleString()+"起/晚(楽天即時價)"):"價格請洽楽天",
     rt:h.rev?+h.rev:undefined,im:h.room||h.img||undefined,w:h.url,s:0,p:3,rkt:1};
 }
@@ -2678,25 +2680,30 @@ function mergeHPEntries(list){
   if(n){DBKEYS_N=-1;try{if(NIDX&&NIDX.length)NIDX.length=0}catch(e){}}
   return n;
 }
-let _RKTSTATIC=0;
-async function loadRakutenStatic(){
-  if(_RKTSTATIC)return;_RKTSTATIC=1;
+/* ★ r173:楽天靜態庫改「格網分區按需載入」— 原本 6.5MB 單檔每次開站全載+14,000 筆合併,
+   手機首屏卡頓;現在只載入中心點周邊格(0.5°≈55km),Tokyo 格約 0.9MB、鄉下格幾十 KB */
+let RKTIDX=null;const _RKTCELLS=new Set();
+async function loadRakutenStatic(la,lo){
+  if(!Number.isFinite(+la))return 0;
   try{
-    const r=await fetch("data/rakuten_hotels.json",{cache:"no-cache"});
-    if(!r.ok){_RKTSTATIC=-1;return}
-    const j=await r.json();
-    const n=mergeRktEntries(j.h||[]);
-    _RKTSTATIC=2;
-    console.log("[楽天靜態庫] 載入 "+(j.h||[]).length+" 間(新增 "+n+")");
-    if(S.cat==="hotel")renderExplore();
-  }catch(e){_RKTSTATIC=-1}
+    if(RKTIDX===null){const r=await fetch("data/rkt/index.json",{cache:"no-cache"});RKTIDX=r.ok?await r.json():{p:[]}}
+    const G=RKTIDX.g||0.5;
+    const near=(RKTIDX.p||[]).filter(p=>!_RKTCELLS.has(p.f)&&Math.abs(p.la0+G/2-la)<=G*1.1&&Math.abs(p.lo0+G/2-lo)<=G*1.3);
+    let n=0;
+    for(const p of near){
+      _RKTCELLS.add(p.f);
+      try{const r=await fetch("data/rkt/"+p.f);if(r.ok)n+=mergeRktEntries(await r.json())}catch(e){}
+    }
+    if(n)console.log("[楽天靜態庫] 載入 "+near.length+" 格,新增 "+n+" 間");
+    return n;
+  }catch(e){return 0}
 }
-setTimeout(loadRakutenStatic,2500); // 開站 2.5 秒後背景載入,不搶首屏
+const _RKTSTATIC=2; // 相容舊判斷:靜態庫永遠視為可用
 async function autoImportRakuten(la,lo,cb){
   if(!RAKUTEN_APP_ID||!Number.isFinite(+la))return;
-  await loadRakutenStatic(); // 先確保靜態庫載過
+  await loadRakutenStatic(la,lo); // 先載入此區靜態格
   // 靜態庫已涵蓋此區(3km 內 ≥10 間楽天飯店)→ 不必打 live API
-  if(_RKTSTATIC===2){
+  {
     let near=0;
     for(const x of DB){if(x.rkt&&dist(x.la,x.lo,la,lo)<=3){near++;if(near>=10)break}}
     if(near>=10){if(cb)cb(0);return}
@@ -3302,7 +3309,8 @@ function renderExplore(){
   S.expN=S.expN||60;
   const shown=list.slice(0,S.expN);
   const expMore=list.length>S.expN?`<div style="grid-column:1/-1;text-align:center;margin:4px 0"><button onclick="S.expN+=60;renderExplore()" style="border:1.5px solid var(--ai);background:#fff;color:var(--ai);border-radius:99px;padding:11px 30px;font-weight:700;font-family:var(--font-b);cursor:pointer">載入更多(已顯示 ${shown.length.toLocaleString()} / 共 ${list.length.toLocaleString()})</button></div>`:"";
-  if(S.cat==="hotel"&&S.center)autoImportRakuten(S.center.la,S.center.lo,n=>{if(S.cat==="hotel")renderExplore()}); // r158:自動同步楽天
+  if((S.cat==="hotel"||S.cat==="all")&&S.center)loadRakutenStatic(S.center.la,S.center.lo).then(n=>{if(n&&(S.cat==="hotel"||S.cat==="all"))renderExplore()}); // r173:靜態格按需
+  if(S.cat==="hotel"&&S.center)autoImportRakuten(S.center.la,S.center.lo,n=>{if(n&&S.cat==="hotel")renderExplore()}); // r158:live 備援
   if((S.cat==="food"||S.cat==="all")&&S.center)loadHPNear(S.center.la,S.center.lo).then(n=>{if(n&&(S.cat==="food"||S.cat==="all"))renderExplore()}); // r167:餐廳照片庫
   const agodaBanner="";
   $("exploreGrid").innerHTML=agodaBanner+(shown.length?shown.map(s=>card(s)).join(""):`<div class="empty" style="grid-column:1/-1"><b>沒有符合的結果</b>換個類別或關鍵字,或按「即時搜尋更多」抓取 OpenStreetMap 資料。</div>`)+expMore;
@@ -5834,7 +5842,7 @@ async function loadArea(){
 }
 // 常駐統計膠囊
 function wan(n){return n>=10000?((n/10000).toFixed(1).replace(/\.0$/,"")+" 萬"):n.toLocaleString()}
-const APP_BUILD="r172"; // 隨每次部署遞增;index.html 更新即強制重驗資料
+const APP_BUILD="r173"; // 隨每次部署遞增;index.html 更新即強制重驗資料
 async function checkDbVersion(){
   try{
     const mr=await fetch("data/osm/meta.json",{cache:"no-cache"});

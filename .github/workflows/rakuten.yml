@@ -26,6 +26,6 @@ jobs:
         run: |
           git config user.name "rakuten-bot"
           git config user.email "actions@github.com"
-          git add data/rakuten_hotels.json
+          git add -A data/rkt data/rakuten_hotels.json
           git diff --cached --quiet || git commit -m "chore: 更新楽天飯店庫"
           git push

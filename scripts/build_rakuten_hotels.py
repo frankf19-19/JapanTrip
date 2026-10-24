@@ -129,10 +129,30 @@ def main():
                 continue
             seen.add(k); hotels.append(h)
         print(f"[{i+1}/{len(pts)}] {a} ({la},{lo}) +{len(hotels)-n0} (累計 {len(hotels)})")
-    OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(json.dumps({"t": int(time.time()*1000), "h": hotels},
-                              ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"完成 → {OUT}  共 {len(hotels)} 間 ({OUT.stat().st_size//1024} KB)")
+    # ★ r173:輸出改為 0.5° 格網分區(data/rkt/*.json),訪客只載入所在區域(原本單檔 6.5MB 每次全載)
+    import unicodedata
+    def norm(t):
+        t = unicodedata.normalize("NFKC", t or "")
+        return re.sub(r"\s+", " ", t).strip()
+    G = 0.5
+    cells = {}
+    for h in hotels:
+        h["nm"] = norm(h["nm"]); h["ad"] = norm(h.get("ad", ""))
+        for k in ("img", "room", "url"):
+            if h.get(k) is None: h.pop(k, None)
+        cells.setdefault((int(h["la"] // G), int(h["lo"] // G)), []).append(h)
+    RKT = ROOT / "data" / "rkt"
+    RKT.mkdir(parents=True, exist_ok=True)
+    for old in RKT.glob("*.json"): old.unlink()
+    idx = []
+    for (cy, cx), lst in cells.items():
+        fn = f"{cy}_{cx}.json"
+        (RKT / fn).write_text(json.dumps(lst, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        idx.append({"f": fn, "la0": cy * G, "lo0": cx * G, "c": len(lst)})
+    (RKT / "index.json").write_text(json.dumps({"t": int(time.time()*1000), "g": G, "p": idx},
+                                               ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    if OUT.exists(): OUT.unlink()  # 移除舊版單檔
+    print(f"完成 → data/rkt/  共 {len(idx)} 格 / {len(hotels)} 間")
 
 if __name__ == "__main__":
     main()
